@@ -418,7 +418,7 @@ const persistShipmentState = async (payload: Payload, order: PplOrderDoc, shipme
     overrideAccess: true,
     data: {
       pplShipment: shipment,
-    },
+    } as never,
   })
 
 const persistShipmentError = async (payload: Payload, order: PplOrderDoc, message: string) =>
@@ -442,7 +442,7 @@ const persistShipmentError = async (payload: Payload, order: PplOrderDoc, messag
         lastCheckedAt: new Date().toISOString(),
         lastError: message,
       },
-    },
+    } as never,
   })
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))

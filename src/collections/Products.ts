@@ -1,8 +1,16 @@
 import type { CollectionConfig } from 'payload'
 import { slugField } from 'payload'
 
-const requireUploadedImage = (value: number | null | undefined) => {
-  if (value) {
+const requireUploadedImage = (value: unknown) => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return true
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return true
+  }
+
+  if (typeof value === 'object' && value !== null) {
     return true
   }
 

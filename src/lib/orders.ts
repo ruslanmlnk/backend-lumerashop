@@ -74,6 +74,8 @@ export type InternalOrderUpdateInput = {
   providerResponse?: unknown
 }
 
+type InternalPickupPointInput = NonNullable<NonNullable<InternalOrderCreateInput['shipping']>['pickupPoint']>
+
 type PayloadOrderDoc = {
   id: number
   orderId?: string | null
@@ -132,7 +134,7 @@ const stringifyProviderResponse = (value: unknown) => {
   }
 }
 
-const getPickupPointAddress = (pickupPoint: InternalOrderCreateInput['shipping']['pickupPoint']) => {
+const getPickupPointAddress = (pickupPoint: InternalPickupPointInput | null | undefined) => {
   if (!pickupPoint) {
     return undefined
   }
@@ -232,7 +234,7 @@ const incrementPurchaseCounts = async (payload: Payload, order: PayloadOrderDoc)
       id: productId,
       data: {
         purchaseCount: currentPurchaseCount + quantity,
-      },
+      } as never,
       depth: 0,
       overrideAccess: true,
     })
@@ -316,7 +318,7 @@ export const createOrder = async (payload: Payload, input: InternalOrderCreateIn
         lastEvent: 'order.created',
       },
       purchaseCountRecorded: false,
-    },
+    } as never,
   })
 
   return normalizeOrderSummary(created as PayloadOrderDoc)
@@ -365,7 +367,7 @@ export const updateOrder = async (payload: Payload, orderId: string, input: Inte
         providerResponse:
           stringifyProviderResponse(input.providerResponse) || existing.providerData?.providerResponse || undefined,
       },
-    },
+    } as never,
   })
 
   return normalizeOrderSummary(updated as PayloadOrderDoc)
