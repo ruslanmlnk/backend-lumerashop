@@ -6,15 +6,15 @@
   "type": "module",
   "scripts": {
     "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build",
-    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
-    "devsafe": "rm -rf .next && cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "dev": "cross-env PORT=3001 HOSTNAME=0.0.0.0 NODE_OPTIONS=--no-deprecation next dev",
+    "devsafe": "rm -rf .next && cross-env PORT=3001 HOSTNAME=0.0.0.0 NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "feed:google-merchant": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/generate-google-merchant-feed.ts",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation next lint",
     "typecheck": "tsc --noEmit",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
-    "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
+    "start": "cross-env PORT=3001 HOSTNAME=0.0.0.0 NODE_OPTIONS=--no-deprecation next start",
     "test": "pnpm run test:int && pnpm run test:e2e",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
