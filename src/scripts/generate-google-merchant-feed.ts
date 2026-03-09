@@ -6,17 +6,17 @@ import { fileURLToPath } from 'node:url'
 
 import { getPayload } from 'payload'
 
-import config from '../payload.config'
 import {
   buildGoogleMerchantXml,
   getPayloadApiUrl,
   getSiteUrl,
   mapPayloadFeedProducts,
   type PayloadFeedProductDoc,
-} from '../../../frontend/lib/google-merchant-feed'
+} from '../lib/google-merchant-feed'
+import config from '../payload.config'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
-const outputDir = path.resolve(dirname, '../../../frontend/public/feeds')
+const outputDir = path.resolve(dirname, '../../../public/feeds')
 const outputFile = path.join(outputDir, 'Google-Feed.xml')
 
 async function main() {

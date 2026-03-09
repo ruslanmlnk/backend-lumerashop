@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { SHIPPING_METHOD_PRESETS } from '../../../frontend/data/shipping-methods'
+import { SHIPPING_METHOD_PRESETS } from '../data/shipping-methods'
 
 export const ShippingMethods: CollectionConfig = {
   slug: 'shipping-methods',
