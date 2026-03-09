@@ -1,9 +1,12 @@
-import type { Access, CollectionConfig, PayloadRequest } from 'payload'
+import type { CollectionConfig, PayloadRequest } from 'payload'
 
 import { downloadPplOrderLabel, syncPplOrderLabel } from '@/lib/ppl-labels'
 
-const isAdmin: Access = ({ req: { user } }) => (user as { role?: string } | null)?.role === 'admin'
-const isAdminRequest = (req: PayloadRequest) => (req.user as { role?: string } | null)?.role === 'admin'
+const hasAdminRole = (user: unknown) =>
+  typeof user === 'object' && user !== null && 'role' in user && user.role === 'admin'
+
+const isAdmin = ({ req: { user } }: { req: PayloadRequest }) => hasAdminRole(user)
+const isAdminRequest = (req: PayloadRequest) => hasAdminRole(req.user)
 const readOnlyAdmin = { readOnly: true }
 
 const parseOrderDocId = (req: PayloadRequest) => {
@@ -77,7 +80,7 @@ export const Orders: CollectionConfig = {
     create: isAdmin,
     update: isAdmin,
     delete: isAdmin,
-    admin: isAdmin,
+    admin: ({ req }) => isAdminRequest(req),
   },
   fields: [
     {
