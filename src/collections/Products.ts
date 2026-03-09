@@ -1,7 +1,7 @@
 import type { CollectionConfig, Validate } from 'payload'
 import { slugField } from 'payload'
 
-const requireUploadedImage: Validate<number | null | undefined, unknown, unknown, unknown> = (value) => {
+const requireUploadedImage: Validate<number | null | undefined> = (value) => {
   if (value) {
     return true
   }
