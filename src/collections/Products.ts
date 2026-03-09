@@ -1,7 +1,11 @@
-import type { CollectionConfig, Validate } from 'payload'
+import type { CollectionConfig } from 'payload'
 import { slugField } from 'payload'
 
-const requireUploadedImage: Validate<number | null | undefined> = (value) => {
+const requireUploadedImage = (value: number | unknown[] | null | undefined) => {
+  if (Array.isArray(value)) {
+    return value.length > 0 || 'Upload an image.'
+  }
+
   if (value) {
     return true
   }
