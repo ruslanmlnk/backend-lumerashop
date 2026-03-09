@@ -1,11 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { slugField } from 'payload'
 
-const requireUploadedImage = (value: number | unknown[] | null | undefined) => {
-  if (Array.isArray(value)) {
-    return value.length > 0 || 'Upload an image.'
-  }
-
+const requireUploadedImage = (value: number | null | undefined) => {
   if (value) {
     return true
   }
@@ -154,6 +150,7 @@ export const Products: CollectionConfig = {
     {
       name: 'mainImage',
       type: 'upload',
+      hasMany: false,
       relationTo: 'media',
       label: 'Main image',
       validate: requireUploadedImage,
@@ -166,6 +163,7 @@ export const Products: CollectionConfig = {
         {
           name: 'image',
           type: 'upload',
+          hasMany: false,
           relationTo: 'media',
           label: 'Image',
           validate: requireUploadedImage,
