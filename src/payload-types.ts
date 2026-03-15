@@ -75,6 +75,8 @@ export interface Config {
     'filter-groups': FilterGroup;
     'filter-options': FilterOption;
     products: Product;
+    'product-reviews': ProductReview;
+    coupons: Coupon;
     article: Article;
     orders: Order;
     'shipping-methods': ShippingMethod;
@@ -83,7 +85,14 @@ export interface Config {
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    products: {
+      productReviews: 'product-reviews';
+    };
+    coupons: {
+      orders: 'orders';
+    };
+  };
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
@@ -93,6 +102,8 @@ export interface Config {
     'filter-groups': FilterGroupsSelect<false> | FilterGroupsSelect<true>;
     'filter-options': FilterOptionsSelect<false> | FilterOptionsSelect<true>;
     products: ProductsSelect<false> | ProductsSelect<true>;
+    'product-reviews': ProductReviewsSelect<false> | ProductReviewsSelect<true>;
+    coupons: CouponsSelect<false> | CouponsSelect<true>;
     article: ArticleSelect<false> | ArticleSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     'shipping-methods': ShippingMethodsSelect<false> | ShippingMethodsSelect<true>;
@@ -107,9 +118,11 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     'home-page': HomePage;
+    'loyalty-settings': LoyaltySetting;
   };
   globalsSelect: {
     'home-page': HomePageSelect<false> | HomePageSelect<true>;
+    'loyalty-settings': LoyaltySettingsSelect<false> | LoyaltySettingsSelect<true>;
   };
   locale: null;
   user: User;
@@ -145,6 +158,9 @@ export interface User {
   firstName?: string | null;
   lastName?: string | null;
   role: 'admin' | 'customer';
+  bonusBalance?: number | null;
+  earnedBonusTotal?: number | null;
+  spentBonusTotal?: number | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -365,24 +381,11 @@ export interface Product {
         id?: string | null;
       }[]
     | null;
-  /**
-   * Customer reviews submitted from the storefront. Toggle "Show" to publish them.
-   */
-  reviews?:
-    | {
-        user?: (number | null) | User;
-        authorName?: string | null;
-        authorEmail?: string | null;
-        rating: number;
-        /**
-         * Publish this review on the product page.
-         */
-        show?: boolean | null;
-        submittedAt?: string | null;
-        comment: string;
-        id?: string | null;
-      }[]
-    | null;
+  productReviews?: {
+    docs?: (number | ProductReview)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   /**
    * Pick products that should appear in the color/variant block on the product page.
    */
@@ -399,33 +402,63 @@ export interface Product {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "article".
+ * via the `definition` "product-reviews".
  */
-export interface Article {
+export interface ProductReview {
   id: number;
+  product: number | Product;
+  user?: (number | null) | User;
+  authorName: string;
+  authorEmail: string;
+  rating: number;
   /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   * Publish this review on the product page.
    */
-  generateSlug?: boolean | null;
-  slug: string;
-  title: string;
-  mainImage: number | Media;
-  description?: string | null;
-  content?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
+  show?: boolean | null;
+  submittedAt?: string | null;
+  comment: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coupons".
+ */
+export interface Coupon {
+  id: number;
+  name: string;
+  /**
+   * Leave empty to auto-generate a random code.
+   */
+  code: string;
+  discountPercent: number;
+  /**
+   * Use a full URL like https://lumerashop.cz/checkout or an internal path like /checkout. The coupon code is appended automatically.
+   */
+  websiteLink?: string | null;
+  /**
+   * Choose which coupon details should appear on the branded QR card preview.
+   */
+  qrCard?: {
+    showTitle?: boolean | null;
+    showDiscount?: boolean | null;
+    showCode?: boolean | null;
+    showSubtitle?: boolean | null;
+    /**
+     * Leave empty to use the coupon name automatically.
+     */
+    title?: string | null;
+    subtitle?: string | null;
+    note?: string | null;
+  };
+  isActive?: boolean | null;
+  orders?: {
+    docs?: (number | Order)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  previewSvg?: string | null;
+  qrSvg?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -438,6 +471,7 @@ export interface Order {
   orderId: string;
   provider: 'stripe' | 'global-payments';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'canceled';
+  user?: (number | null) | User;
   customerEmail: string;
   customerPhone?: string | null;
   customerFirstName?: string | null;
@@ -446,6 +480,14 @@ export interface Order {
   subtotal: number;
   shippingTotal: number;
   total: number;
+  discounts?: {
+    coupon?: (number | null) | Coupon;
+    couponCode?: string | null;
+    couponDiscountPercent?: number | null;
+    couponDiscountAmount?: number | null;
+    bonusDiscountAmount?: number | null;
+    discountedSubtotal?: number | null;
+  };
   shippingAddress?: {
     country?: string | null;
     address?: string | null;
@@ -511,7 +553,44 @@ export interface Order {
     lastError?: string | null;
     providerResponse?: string | null;
   };
+  loyalty?: {
+    bonusUnitsSpent?: number | null;
+    bonusUnitsEarned?: number | null;
+  };
   purchaseCountRecorded?: boolean | null;
+  bonusLedgerRecorded?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "article".
+ */
+export interface Article {
+  id: number;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  title: string;
+  mainImage: number | Media;
+  description?: string | null;
+  content?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -592,6 +671,14 @@ export interface PayloadLockedDocument {
         value: number | Product;
       } | null)
     | ({
+        relationTo: 'product-reviews';
+        value: number | ProductReview;
+      } | null)
+    | ({
+        relationTo: 'coupons';
+        value: number | Coupon;
+      } | null)
+    | ({
         relationTo: 'article';
         value: number | Article;
       } | null)
@@ -653,6 +740,9 @@ export interface UsersSelect<T extends boolean = true> {
   firstName?: T;
   lastName?: T;
   role?: T;
+  bonusBalance?: T;
+  earnedBonusTotal?: T;
+  spentBonusTotal?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -802,23 +892,55 @@ export interface ProductsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
-  reviews?:
-    | T
-    | {
-        user?: T;
-        authorName?: T;
-        authorEmail?: T;
-        rating?: T;
-        show?: T;
-        submittedAt?: T;
-        comment?: T;
-        id?: T;
-      };
+  productReviews?: T;
   variantProducts?: T;
   filterOptions?: T;
   status?: T;
   isFeatured?: T;
   isRecommended?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "product-reviews_select".
+ */
+export interface ProductReviewsSelect<T extends boolean = true> {
+  product?: T;
+  user?: T;
+  authorName?: T;
+  authorEmail?: T;
+  rating?: T;
+  show?: T;
+  submittedAt?: T;
+  comment?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coupons_select".
+ */
+export interface CouponsSelect<T extends boolean = true> {
+  name?: T;
+  code?: T;
+  discountPercent?: T;
+  websiteLink?: T;
+  qrCard?:
+    | T
+    | {
+        showTitle?: T;
+        showDiscount?: T;
+        showCode?: T;
+        showSubtitle?: T;
+        title?: T;
+        subtitle?: T;
+        note?: T;
+      };
+  isActive?: T;
+  orders?: T;
+  previewSvg?: T;
+  qrSvg?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -844,6 +966,7 @@ export interface OrdersSelect<T extends boolean = true> {
   orderId?: T;
   provider?: T;
   paymentStatus?: T;
+  user?: T;
   customerEmail?: T;
   customerPhone?: T;
   customerFirstName?: T;
@@ -852,6 +975,16 @@ export interface OrdersSelect<T extends boolean = true> {
   subtotal?: T;
   shippingTotal?: T;
   total?: T;
+  discounts?:
+    | T
+    | {
+        coupon?: T;
+        couponCode?: T;
+        couponDiscountPercent?: T;
+        couponDiscountAmount?: T;
+        bonusDiscountAmount?: T;
+        discountedSubtotal?: T;
+      };
   shippingAddress?:
     | T
     | {
@@ -927,7 +1060,14 @@ export interface OrdersSelect<T extends boolean = true> {
         lastError?: T;
         providerResponse?: T;
       };
+  loyalty?:
+    | T
+    | {
+        bonusUnitsSpent?: T;
+        bonusUnitsEarned?: T;
+      };
   purchaseCountRecorded?: T;
+  bonusLedgerRecorded?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1045,6 +1185,30 @@ export interface HomePage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "loyalty-settings".
+ */
+export interface LoyaltySetting {
+  id: number;
+  bonusesEnabled?: boolean | null;
+  earningRule: {
+    /**
+     * For every X CZK paid for products, award bonus units.
+     */
+    spendAmount: number;
+    bonusUnits: number;
+  };
+  redemptionRule: {
+    bonusUnits: number;
+    /**
+     * How much money the selected bonus block removes from product subtotal.
+     */
+    discountAmount: number;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "home-page_select".
  */
 export interface HomePageSelect<T extends boolean = true> {
@@ -1107,6 +1271,28 @@ export interface HomePageSelect<T extends boolean = true> {
     | {
         title?: T;
         description?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "loyalty-settings_select".
+ */
+export interface LoyaltySettingsSelect<T extends boolean = true> {
+  bonusesEnabled?: T;
+  earningRule?:
+    | T
+    | {
+        spendAmount?: T;
+        bonusUnits?: T;
+      };
+  redemptionRule?:
+    | T
+    | {
+        bonusUnits?: T;
+        discountAmount?: T;
       };
   updatedAt?: T;
   createdAt?: T;

@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 type UserAccessShape = {
   id?: number | string
   role?: string
+  bonusBalance?: number | null
 } | null
 
 const asUser = (value: unknown): UserAccessShape => {
@@ -14,15 +15,33 @@ const asUser = (value: unknown): UserAccessShape => {
 }
 
 const isAdminUser = (value: unknown) => asUser(value)?.role === 'admin'
+const isCurrentUserOrAdmin = ({ req: { user } }: { req: { user?: unknown } }) => {
+  const currentUser = asUser(user)
+
+  if (currentUser?.role === 'admin') {
+    return true
+  }
+
+  if (!currentUser?.id) {
+    return false
+  }
+
+  return {
+    id: {
+      equals: currentUser.id,
+    },
+  }
+}
 
 export const Users: CollectionConfig = {
   slug: 'users',
   admin: {
     useAsTitle: 'email',
+    defaultColumns: ['email', 'role', 'bonusBalance', 'updatedAt'],
   },
   auth: true,
   access: {
-    read: () => true,
+    read: isCurrentUserOrAdmin,
     create: () => true,
     update: ({ req: { user } }) => {
       const currentUser = asUser(user)
@@ -58,6 +77,43 @@ export const Users: CollectionConfig = {
       access: {
         update: ({ req: { user } }) => isAdminUser(user),
       },
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'bonusBalance',
+          type: 'number',
+          label: 'Bonus balance',
+          defaultValue: 0,
+          min: 0,
+          admin: {
+            width: '33%',
+          },
+        },
+        {
+          name: 'earnedBonusTotal',
+          type: 'number',
+          label: 'Earned bonus total',
+          defaultValue: 0,
+          min: 0,
+          admin: {
+            width: '33%',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'spentBonusTotal',
+          type: 'number',
+          label: 'Spent bonus total',
+          defaultValue: 0,
+          min: 0,
+          admin: {
+            width: '33%',
+            readOnly: true,
+          },
+        },
+      ],
     },
   ],
 }

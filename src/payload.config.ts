@@ -16,8 +16,11 @@ import { FilterOptions } from './collections/FilterOptions'
 import { Article } from './collections/Article'
 import { Orders } from './collections/Orders'
 import { ShippingMethods } from './collections/ShippingMethods'
+import { ProductReviews } from './collections/ProductReviews'
+import { Coupons } from './collections/Coupons'
 
 import { HomePage } from './globals/HomePage'
+import { LoyaltySettings } from './globals/LoyaltySettings'
 
 
 const filename = fileURLToPath(import.meta.url)
@@ -30,8 +33,22 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Categories, CategoryGroups, Subcategories, FilterGroups, FilterOptions, Products, Article, Orders, ShippingMethods],
-  globals: [HomePage],
+  collections: [
+    Users,
+    Media,
+    Categories,
+    CategoryGroups,
+    Subcategories,
+    FilterGroups,
+    FilterOptions,
+    Products,
+    ProductReviews,
+    Coupons,
+    Article,
+    Orders,
+    ShippingMethods,
+  ],
+  globals: [HomePage, LoyaltySettings],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

@@ -1,5 +1,7 @@
 import type { Payload } from 'payload'
 
+import { normalizeDocumentId } from '@/lib/commerce'
+
 export type OrderPaymentProvider = 'stripe' | 'global-payments'
 export type OrderPaymentStatus = 'pending' | 'paid' | 'failed' | 'canceled'
 
@@ -21,7 +23,23 @@ export type InternalOrderCreateInput = {
   subtotal: number
   shippingTotal: number
   total: number
+  userId?: number | string
   items: InternalOrderItemInput[]
+  coupon?: {
+    id?: number | string
+    code?: string
+    discountPercent?: number
+    discountAmount?: number
+  } | null
+  discounts?: {
+    couponDiscountAmount?: number
+    bonusDiscountAmount?: number
+    discountedSubtotal?: number
+  } | null
+  loyalty?: {
+    bonusUnitsSpent?: number
+    bonusUnitsEarned?: number
+  } | null
   customer: {
     email: string
     phone?: string
@@ -81,10 +99,24 @@ type PayloadOrderDoc = {
   orderId?: string | null
   provider?: OrderPaymentProvider | null
   paymentStatus?: OrderPaymentStatus | null
+  user?: number | string | { id?: number | string } | null
   customerEmail?: string | null
   currency?: string | null
   total?: number | null
   purchaseCountRecorded?: boolean | null
+  bonusLedgerRecorded?: boolean | null
+  discounts?: {
+    coupon?: number | string | { id?: number | string } | null
+    couponCode?: string | null
+    couponDiscountPercent?: number | null
+    couponDiscountAmount?: number | null
+    bonusDiscountAmount?: number | null
+    discountedSubtotal?: number | null
+  } | null
+  loyalty?: {
+    bonusUnitsSpent?: number | null
+    bonusUnitsEarned?: number | null
+  } | null
   items?:
     | Array<{
         product?: number | { id?: number | string } | null
@@ -116,6 +148,16 @@ const toProductId = (value: unknown): number | undefined => {
   }
 
   return numeric
+}
+
+const toWholeUnits = (value: unknown) => Math.max(0, Math.floor(toPositiveNumber(value)))
+
+const extractDocumentId = (value: unknown) => {
+  if (value && typeof value === 'object' && 'id' in value) {
+    return normalizeDocumentId(value.id)
+  }
+
+  return normalizeDocumentId(value)
 }
 
 const stringifyProviderResponse = (value: unknown) => {
@@ -165,10 +207,18 @@ const normalizeOrderSummary = (order: PayloadOrderDoc) => ({
   orderId: order.orderId || '',
   provider: order.provider || 'stripe',
   paymentStatus: order.paymentStatus || 'pending',
+  userId: extractDocumentId(order.user) ? String(extractDocumentId(order.user)) : '',
   customerEmail: order.customerEmail || '',
   currency: order.currency || 'CZK',
   total: typeof order.total === 'number' ? order.total : 0,
   purchaseCountRecorded: order.purchaseCountRecorded === true,
+  bonusLedgerRecorded: order.bonusLedgerRecorded === true,
+  couponCode: order.discounts?.couponCode || '',
+  couponDiscountAmount: toPositiveNumber(order.discounts?.couponDiscountAmount),
+  bonusDiscountAmount: toPositiveNumber(order.discounts?.bonusDiscountAmount),
+  discountedSubtotal: toPositiveNumber(order.discounts?.discountedSubtotal),
+  bonusUnitsSpent: toWholeUnits(order.loyalty?.bonusUnitsSpent),
+  bonusUnitsEarned: toWholeUnits(order.loyalty?.bonusUnitsEarned),
   providerData: {
     stripeSessionId: order.providerData?.stripeSessionId || '',
     stripePaymentIntentId: order.providerData?.stripePaymentIntentId || '',
@@ -241,6 +291,44 @@ const incrementPurchaseCounts = async (payload: Payload, order: PayloadOrderDoc)
   }
 }
 
+const syncUserBonusLedger = async (payload: Payload, order: PayloadOrderDoc) => {
+  const userId = extractDocumentId(order.user)
+
+  if (typeof userId !== 'number') {
+    return
+  }
+
+  const spent = toWholeUnits(order.loyalty?.bonusUnitsSpent)
+  const earned = toWholeUnits(order.loyalty?.bonusUnitsEarned)
+
+  if (spent <= 0 && earned <= 0) {
+    return
+  }
+
+  const user = await payload.findByID({
+    collection: 'users' as never,
+    id: userId,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  const currentBalance = toWholeUnits((user as { bonusBalance?: unknown }).bonusBalance)
+  const currentEarned = toWholeUnits((user as { earnedBonusTotal?: unknown }).earnedBonusTotal)
+  const currentSpent = toWholeUnits((user as { spentBonusTotal?: unknown }).spentBonusTotal)
+
+  await payload.update({
+    collection: 'users' as never,
+    id: userId,
+    depth: 0,
+    overrideAccess: true,
+    data: {
+      bonusBalance: Math.max(0, currentBalance - spent + earned),
+      earnedBonusTotal: currentEarned + earned,
+      spentBonusTotal: currentSpent + spent,
+    } as never,
+  })
+}
+
 export const createOrder = async (payload: Payload, input: InternalOrderCreateInput) => {
   const orderId = sanitizeString(input.orderId)
   const customerEmail = sanitizeString(input.customer.email)
@@ -265,6 +353,7 @@ export const createOrder = async (payload: Payload, input: InternalOrderCreateIn
       orderId,
       provider: input.provider,
       paymentStatus: 'pending',
+      user: extractDocumentId(input.userId) || undefined,
       customerEmail,
       customerPhone: sanitizeString(input.customer.phone) || undefined,
       customerFirstName: sanitizeString(input.customer.firstName) || undefined,
@@ -273,6 +362,15 @@ export const createOrder = async (payload: Payload, input: InternalOrderCreateIn
       subtotal: toPositiveNumber(input.subtotal),
       shippingTotal: toPositiveNumber(input.shippingTotal),
       total: toPositiveNumber(input.total),
+      discounts: {
+        coupon: extractDocumentId(input.coupon?.id) || undefined,
+        couponCode: sanitizeString(input.coupon?.code) || undefined,
+        couponDiscountPercent: toPositiveNumber(input.coupon?.discountPercent),
+        couponDiscountAmount:
+          toPositiveNumber(input.coupon?.discountAmount) || toPositiveNumber(input.discounts?.couponDiscountAmount),
+        bonusDiscountAmount: toPositiveNumber(input.discounts?.bonusDiscountAmount),
+        discountedSubtotal: toPositiveNumber(input.discounts?.discountedSubtotal),
+      },
       shippingAddress: {
         country: sanitizeString(input.customer.country) || undefined,
         address: sanitizeString(input.customer.address) || undefined,
@@ -317,7 +415,12 @@ export const createOrder = async (payload: Payload, input: InternalOrderCreateIn
       providerData: {
         lastEvent: 'order.created',
       },
+      loyalty: {
+        bonusUnitsSpent: toWholeUnits(input.loyalty?.bonusUnitsSpent),
+        bonusUnitsEarned: toWholeUnits(input.loyalty?.bonusUnitsEarned),
+      },
       purchaseCountRecorded: false,
+      bonusLedgerRecorded: false,
     } as never,
   })
 
@@ -341,9 +444,14 @@ export const updateOrder = async (payload: Payload, orderId: string, input: Inte
 
   const nextPaymentStatus = resolvePaymentStatus(existing.paymentStatus, input.paymentStatus)
   const shouldRecordPurchaseCount = nextPaymentStatus === 'paid' && existing.purchaseCountRecorded !== true
+  const shouldRecordBonusLedger = nextPaymentStatus === 'paid' && existing.bonusLedgerRecorded !== true
 
   if (shouldRecordPurchaseCount) {
     await incrementPurchaseCounts(payload, existing)
+  }
+
+  if (shouldRecordBonusLedger) {
+    await syncUserBonusLedger(payload, existing)
   }
 
   const updated = await payload.update({
@@ -354,6 +462,7 @@ export const updateOrder = async (payload: Payload, orderId: string, input: Inte
     data: {
       paymentStatus: nextPaymentStatus,
       purchaseCountRecorded: existing.purchaseCountRecorded === true || shouldRecordPurchaseCount,
+      bonusLedgerRecorded: existing.bonusLedgerRecorded === true || shouldRecordBonusLedger,
       providerData: {
         stripeSessionId: sanitizeString(input.stripeSessionId) || existing.providerData?.stripeSessionId || undefined,
         stripePaymentIntentId:

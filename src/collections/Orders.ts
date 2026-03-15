@@ -7,6 +7,21 @@ const hasAdminRole = (user: unknown) =>
 
 const isAdmin = ({ req: { user } }: { req: PayloadRequest }) => hasAdminRole(user)
 const isAdminRequest = (req: PayloadRequest) => hasAdminRole(req.user)
+const isAdminOrOrderOwner = ({ req: { user } }: { req: PayloadRequest }) => {
+  if (hasAdminRole(user)) {
+    return true
+  }
+
+  if (typeof user !== 'object' || user === null || !('id' in user) || !user.id) {
+    return false
+  }
+
+  return {
+    user: {
+      equals: user.id,
+    },
+  }
+}
 const readOnlyAdmin = { readOnly: true }
 
 const parseOrderDocId = (req: PayloadRequest) => {
@@ -76,7 +91,7 @@ export const Orders: CollectionConfig = {
     },
   ],
   access: {
-    read: isAdmin,
+    read: isAdminOrOrderOwner,
     create: isAdmin,
     update: isAdmin,
     delete: isAdmin,
@@ -131,6 +146,12 @@ export const Orders: CollectionConfig = {
           value: 'canceled',
         },
       ],
+    },
+    {
+      name: 'user',
+      type: 'relationship',
+      relationTo: 'users',
+      label: 'Customer account',
     },
     {
       type: 'row',
@@ -193,6 +214,59 @@ export const Orders: CollectionConfig = {
           required: true,
           label: 'Order total',
           min: 0,
+        },
+      ],
+    },
+    {
+      name: 'discounts',
+      type: 'group',
+      label: 'Discounts',
+      fields: [
+        {
+          name: 'coupon',
+          type: 'relationship',
+          relationTo: 'coupons',
+          label: 'Coupon',
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'couponCode',
+              type: 'text',
+              label: 'Coupon code',
+            },
+            {
+              name: 'couponDiscountPercent',
+              type: 'number',
+              min: 0,
+              max: 100,
+              label: 'Coupon discount percent',
+            },
+            {
+              name: 'couponDiscountAmount',
+              type: 'number',
+              min: 0,
+              label: 'Coupon discount amount',
+            },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'bonusDiscountAmount',
+              type: 'number',
+              min: 0,
+              label: 'Bonus discount amount',
+            },
+            {
+              name: 'discountedSubtotal',
+              type: 'number',
+              min: 0,
+              label: 'Discounted subtotal',
+            },
+          ],
         },
       ],
     },
@@ -541,6 +615,32 @@ export const Orders: CollectionConfig = {
       ],
     },
     {
+      name: 'loyalty',
+      type: 'group',
+      label: 'Loyalty and bonuses',
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'bonusUnitsSpent',
+              type: 'number',
+              min: 0,
+              defaultValue: 0,
+              label: 'Bonus units spent',
+            },
+            {
+              name: 'bonusUnitsEarned',
+              type: 'number',
+              min: 0,
+              defaultValue: 0,
+              label: 'Bonus units earned',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'pplLabelControls',
       type: 'ui',
       admin: {
@@ -555,6 +655,12 @@ export const Orders: CollectionConfig = {
       name: 'purchaseCountRecorded',
       type: 'checkbox',
       label: 'Purchase count recorded',
+      defaultValue: false,
+    },
+    {
+      name: 'bonusLedgerRecorded',
+      type: 'checkbox',
+      label: 'Bonus ledger recorded',
       defaultValue: false,
     },
   ],

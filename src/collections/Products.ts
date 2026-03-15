@@ -1,20 +1,6 @@
 import type { CollectionConfig, Where } from 'payload'
 import { slugField } from 'payload'
 
-type ReviewAuthor = {
-  id?: number | string
-  email?: string
-  firstName?: string
-  lastName?: string
-  role?: string
-} | null
-
-type ReviewSubmissionBody = {
-  productId?: unknown
-  rating?: unknown
-  comment?: unknown
-}
-
 const requireUploadedImage = (value: unknown) => {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return true
@@ -29,67 +15,6 @@ const requireUploadedImage = (value: unknown) => {
   }
 
   return 'Upload an image.'
-}
-
-const asReviewAuthor = (value: unknown): ReviewAuthor => {
-  if (typeof value !== 'object' || value === null) {
-    return null
-  }
-
-  return value as ReviewAuthor
-}
-
-const normalizeDocumentId = (value: unknown) => {
-  if (typeof value === 'number' && Number.isInteger(value)) {
-    return value
-  }
-
-  if (typeof value === 'string' && value.trim().length > 0) {
-    const trimmed = value.trim()
-    const numeric = Number(trimmed)
-
-    return Number.isInteger(numeric) ? numeric : trimmed
-  }
-
-  return null
-}
-
-const parseReviewRating = (value: unknown) => {
-  const numeric = typeof value === 'number' ? value : Number(value)
-
-  if (!Number.isInteger(numeric) || numeric < 1 || numeric > 5) {
-    return null
-  }
-
-  return numeric
-}
-
-const parseReviewComment = (value: unknown) => {
-  if (typeof value !== 'string') {
-    return ''
-  }
-
-  const trimmed = value.trim()
-
-  if (trimmed.length < 3 || trimmed.length > 2000) {
-    return ''
-  }
-
-  return trimmed
-}
-
-const getReviewerName = (value: unknown) => {
-  const reviewer = asReviewAuthor(value)
-  if (!reviewer) {
-    return 'Customer'
-  }
-
-  const fullName = [reviewer.firstName, reviewer.lastName]
-    .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
-    .map((part) => part.trim())
-    .join(' ')
-
-  return fullName || reviewer.email || 'Customer'
 }
 
 export const Products: CollectionConfig = {
@@ -111,88 +36,6 @@ export const Products: CollectionConfig = {
   access: {
     read: () => true,
   },
-  endpoints: [
-    {
-      path: '/submit-review',
-      method: 'post',
-      handler: async (req) => {
-        const reviewer = asReviewAuthor(req.user)
-
-        if (!reviewer?.id || !reviewer.email) {
-          return Response.json({ error: 'Authentication required.' }, { status: 401 })
-        }
-
-        const reviewerId = normalizeDocumentId(reviewer.id)
-        if (typeof reviewerId !== 'number') {
-          return Response.json({ error: 'Invalid reviewer ID.' }, { status: 400 })
-        }
-
-        let body: ReviewSubmissionBody
-
-        try {
-          body = (await req.json?.()) as ReviewSubmissionBody
-        } catch {
-          return Response.json({ error: 'Invalid request body.' }, { status: 400 })
-        }
-
-        const productId = normalizeDocumentId(body.productId)
-        const rating = parseReviewRating(body.rating)
-        const comment = parseReviewComment(body.comment)
-
-        if (!productId || !rating || !comment) {
-          return Response.json(
-            { error: 'Product, rating from 1 to 5, and a valid review comment are required.' },
-            { status: 400 },
-          )
-        }
-
-        try {
-          const product = await req.payload.findByID({
-            collection: 'products',
-            id: productId,
-            depth: 0,
-            overrideAccess: true,
-          })
-
-          const existingReviews = Array.isArray(product?.reviews) ? product.reviews : []
-
-          await req.payload.update({
-            collection: 'products',
-            id: productId,
-            depth: 0,
-            overrideAccess: true,
-            data: {
-              reviews: [
-                ...existingReviews,
-                {
-                  user: reviewerId,
-                  authorName: getReviewerName(reviewer),
-                  authorEmail: reviewer.email,
-                  rating,
-                  comment,
-                  show: false,
-                  submittedAt: new Date().toISOString(),
-                },
-              ],
-            },
-          })
-
-          return Response.json(
-            {
-              message: 'Review submitted successfully and is awaiting approval.',
-              productId: product.id,
-            },
-            { status: 201 },
-          )
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Failed to submit review.'
-          const status = /not found/i.test(message) ? 404 : 400
-
-          return Response.json({ error: message }, { status })
-        }
-      },
-    },
-  ],
   fields: [
     {
       name: 'name',
@@ -409,88 +252,15 @@ export const Products: CollectionConfig = {
       ],
     },
     {
-      name: 'reviews',
-      type: 'array',
+      name: 'productReviews',
+      type: 'join',
+      collection: 'product-reviews',
+      on: 'product',
       label: 'Product reviews',
       admin: {
-        description: 'Customer reviews submitted from the storefront. Toggle "Show" to publish them.',
-        initCollapsed: true,
+        allowCreate: false,
+        defaultColumns: ['authorName', 'rating', 'show', 'submittedAt'],
       },
-      fields: [
-        {
-          name: 'user',
-          type: 'relationship',
-          relationTo: 'users',
-          label: 'Customer',
-          admin: {
-            readOnly: true,
-          },
-        },
-        {
-          type: 'row',
-          fields: [
-            {
-              name: 'authorName',
-              type: 'text',
-              label: 'Author name',
-              admin: {
-                readOnly: true,
-                width: '50%',
-              },
-            },
-            {
-              name: 'authorEmail',
-              type: 'email',
-              label: 'Author email',
-              admin: {
-                readOnly: true,
-                width: '50%',
-              },
-            },
-          ],
-        },
-        {
-          type: 'row',
-          fields: [
-            {
-              name: 'rating',
-              type: 'number',
-              required: true,
-              min: 1,
-              max: 5,
-              label: 'Rating',
-              admin: {
-                width: '33%',
-              },
-            },
-            {
-              name: 'show',
-              type: 'checkbox',
-              defaultValue: false,
-              label: 'Show',
-              admin: {
-                width: '33%',
-                description: 'Publish this review on the product page.',
-              },
-            },
-            {
-              name: 'submittedAt',
-              type: 'date',
-              label: 'Submitted at',
-              admin: {
-                readOnly: true,
-                width: '34%',
-              },
-            },
-          ],
-        },
-        {
-          name: 'comment',
-          type: 'textarea',
-          required: true,
-          label: 'Review',
-        },
-      ],
     },
     {
       name: 'variantProducts',
