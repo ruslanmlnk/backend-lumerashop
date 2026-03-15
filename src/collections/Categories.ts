@@ -5,7 +5,7 @@ export const Categories: CollectionConfig = {
   slug: 'categories',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'slug', 'showInMenu', 'updatedAt'],
+    defaultColumns: ['name', 'slug', 'showInMenu', 'sortOrder', 'updatedAt'],
   },
   access: {
     read: () => true,
@@ -28,6 +28,15 @@ export const Categories: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: 'Display this category in the main header category menu.',
+      },
+    },
+    {
+      name: 'sortOrder',
+      type: 'number',
+      defaultValue: 0,
+      label: 'Sort order',
+      admin: {
+        position: 'sidebar',
       },
     },
     {

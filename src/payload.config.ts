@@ -8,6 +8,7 @@ import sharp from 'sharp'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { Categories } from './collections/Categories'
+import { CategoryGroups } from './collections/CategoryGroups'
 import { Subcategories } from './collections/Subcategories'
 import { Products } from './collections/Products'
 import { FilterGroups } from './collections/FilterGroups'
@@ -29,7 +30,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Categories, Subcategories, FilterGroups, FilterOptions, Products, Article, Orders, ShippingMethods],
+  collections: [Users, Media, Categories, CategoryGroups, Subcategories, FilterGroups, FilterOptions, Products, Article, Orders, ShippingMethods],
   globals: [HomePage],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',

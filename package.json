@@ -12,6 +12,8 @@
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "feed:google-merchant": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/generate-google-merchant-feed.ts",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation next lint",
+    "seed:admin": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-admin.ts",
+    "seed:categories": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-category-hierarchy.ts",
     "typecheck": "tsc --noEmit",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "start": "cross-env PORT=3001 HOSTNAME=0.0.0.0 NODE_OPTIONS=--no-deprecation next start",

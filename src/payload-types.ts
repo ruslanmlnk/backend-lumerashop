@@ -70,6 +70,7 @@ export interface Config {
     users: User;
     media: Media;
     categories: Category;
+    'category-groups': CategoryGroup;
     subcategories: Subcategory;
     'filter-groups': FilterGroup;
     'filter-options': FilterOption;
@@ -87,6 +88,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    'category-groups': CategoryGroupsSelect<false> | CategoryGroupsSelect<true>;
     subcategories: SubcategoriesSelect<false> | SubcategoriesSelect<true>;
     'filter-groups': FilterGroupsSelect<false> | FilterGroupsSelect<true>;
     'filter-options': FilterOptionsSelect<false> | FilterOptionsSelect<true>;
@@ -197,6 +199,29 @@ export interface Category {
    * Display this category in the main header category menu.
    */
   showInMenu?: boolean | null;
+  sortOrder?: number | null;
+  description?: string | null;
+  image?: (number | null) | Media;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "category-groups".
+ */
+export interface CategoryGroup {
+  id: number;
+  name: string;
+  /**
+   * Generated from the parent category and group name to keep menu URLs unique.
+   */
+  slug: string;
+  /**
+   * Display this group in the header dropdown under its parent category.
+   */
+  showInMenu?: boolean | null;
+  sortOrder?: number | null;
+  category: number | Category;
   description?: string | null;
   image?: (number | null) | Media;
   updatedAt: string;
@@ -210,15 +235,16 @@ export interface Subcategory {
   id: number;
   name: string;
   /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   * Generated from the parent group and subcategory name to keep storefront URLs unique.
    */
-  generateSlug?: boolean | null;
   slug: string;
   /**
-   * Display this subcategory in the header dropdown under its parent category.
+   * Display this subcategory in the nested menu under its parent category group.
    */
   showInMenu?: boolean | null;
+  sortOrder?: number | null;
   category: number | Category;
+  categoryGroup: number | CategoryGroup;
   description?: string | null;
   image?: (number | null) | Media;
   updatedAt: string;
@@ -311,6 +337,10 @@ export interface Product {
     [k: string]: unknown;
   } | null;
   category: number | Category;
+  /**
+   * Second navigation level used for grouped catalog menus and category landing pages.
+   */
+  categoryGroup?: (number | null) | CategoryGroup;
   subcategories?: (number | Subcategory)[] | null;
   mainImage?: (number | null) | Media;
   gallery?:
@@ -332,6 +362,24 @@ export interface Product {
     | {
         key: string;
         value: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Customer reviews submitted from the storefront. Toggle "Show" to publish them.
+   */
+  reviews?:
+    | {
+        user?: (number | null) | User;
+        authorName?: string | null;
+        authorEmail?: string | null;
+        rating: number;
+        /**
+         * Publish this review on the product page.
+         */
+        show?: boolean | null;
+        submittedAt?: string | null;
+        comment: string;
         id?: string | null;
       }[]
     | null;
@@ -524,6 +572,10 @@ export interface PayloadLockedDocument {
         value: number | Category;
       } | null)
     | ({
+        relationTo: 'category-groups';
+        value: number | CategoryGroup;
+      } | null)
+    | ({
         relationTo: 'subcategories';
         value: number | Subcategory;
       } | null)
@@ -645,6 +697,22 @@ export interface CategoriesSelect<T extends boolean = true> {
   generateSlug?: T;
   slug?: T;
   showInMenu?: T;
+  sortOrder?: T;
+  description?: T;
+  image?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "category-groups_select".
+ */
+export interface CategoryGroupsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  showInMenu?: T;
+  sortOrder?: T;
+  category?: T;
   description?: T;
   image?: T;
   updatedAt?: T;
@@ -656,10 +724,11 @@ export interface CategoriesSelect<T extends boolean = true> {
  */
 export interface SubcategoriesSelect<T extends boolean = true> {
   name?: T;
-  generateSlug?: T;
   slug?: T;
   showInMenu?: T;
+  sortOrder?: T;
   category?: T;
+  categoryGroup?: T;
   description?: T;
   image?: T;
   updatedAt?: T;
@@ -711,6 +780,7 @@ export interface ProductsSelect<T extends boolean = true> {
   description?: T;
   descriptionContent?: T;
   category?: T;
+  categoryGroup?: T;
   subcategories?: T;
   mainImage?: T;
   gallery?:
@@ -730,6 +800,18 @@ export interface ProductsSelect<T extends boolean = true> {
     | {
         key?: T;
         value?: T;
+        id?: T;
+      };
+  reviews?:
+    | T
+    | {
+        user?: T;
+        authorName?: T;
+        authorEmail?: T;
+        rating?: T;
+        show?: T;
+        submittedAt?: T;
+        comment?: T;
         id?: T;
       };
   variantProducts?: T;

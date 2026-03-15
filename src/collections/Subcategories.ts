@@ -1,14 +1,47 @@
 import type { CollectionConfig } from 'payload'
-import { slugField } from 'payload'
+
+import { buildSubcategorySlug, resolveCategoryGroupRelation, resolveCategoryRelation } from '../utilities/categoryHierarchy'
 
 export const Subcategories: CollectionConfig = {
   slug: 'subcategories',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'category', 'showInMenu', 'updatedAt'],
+    defaultColumns: ['name', 'category', 'categoryGroup', 'slug', 'showInMenu', 'sortOrder', 'updatedAt'],
   },
   access: {
     read: () => true,
+  },
+  hooks: {
+    beforeValidate: [
+      async ({ data, req }) => {
+        if (!data || typeof data !== 'object') {
+          return data
+        }
+
+        const name = typeof data.name === 'string' ? data.name.trim() : ''
+        if (!name) {
+          return data
+        }
+
+        const resolvedCategoryGroup = await resolveCategoryGroupRelation(req, data.categoryGroup)
+        const resolvedCategory =
+          (await resolveCategoryRelation(req, data.category)) ??
+          (resolvedCategoryGroup?.categoryId != null
+            ? await resolveCategoryRelation(req, resolvedCategoryGroup.categoryId)
+            : null)
+
+        if (!resolvedCategoryGroup || !resolvedCategory) {
+          return data
+        }
+
+        return {
+          ...data,
+          category: resolvedCategory.id,
+          categoryGroup: resolvedCategoryGroup.id,
+          slug: buildSubcategorySlug(resolvedCategoryGroup.slug, name),
+        }
+      },
+    ],
   },
   fields: [
     {
@@ -17,9 +50,17 @@ export const Subcategories: CollectionConfig = {
       required: true,
       label: '\u041d\u0430\u0437\u0432\u0430 \u043f\u0456\u0434\u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0456\u0457',
     },
-    slugField({
-      useAsSlug: 'name',
-    }),
+    {
+      name: 'slug',
+      type: 'text',
+      required: true,
+      unique: true,
+      index: true,
+      admin: {
+        readOnly: true,
+        description: 'Generated from the parent group and subcategory name to keep storefront URLs unique.',
+      },
+    },
     {
       name: 'showInMenu',
       type: 'checkbox',
@@ -27,7 +68,16 @@ export const Subcategories: CollectionConfig = {
       label: 'Show in menu',
       admin: {
         position: 'sidebar',
-        description: 'Display this subcategory in the header dropdown under its parent category.',
+        description: 'Display this subcategory in the nested menu under its parent category group.',
+      },
+    },
+    {
+      name: 'sortOrder',
+      type: 'number',
+      defaultValue: 0,
+      label: 'Sort order',
+      admin: {
+        position: 'sidebar',
       },
     },
     {
@@ -36,6 +86,24 @@ export const Subcategories: CollectionConfig = {
       relationTo: 'categories',
       required: true,
       label: '\u0411\u0430\u0442\u044c\u043a\u0456\u0432\u0441\u044c\u043a\u0430 \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0456\u044f',
+    },
+    {
+      name: 'categoryGroup',
+      type: 'relationship',
+      relationTo: 'category-groups',
+      required: true,
+      label: 'Parent category group',
+      filterOptions: ({ data }) => {
+        if (data?.category) {
+          return {
+            category: {
+              equals: data.category,
+            },
+          }
+        }
+
+        return true
+      },
     },
     {
       name: 'description',
