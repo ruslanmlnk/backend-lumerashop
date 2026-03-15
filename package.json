@@ -11,6 +11,8 @@
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "feed:google-merchant": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/generate-google-merchant-feed.ts",
+    "import:woo-products": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/import-woo-products.ts",
+    "import:woo-variants": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/sync-woo-variant-products.ts",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation next lint",
     "seed:admin": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-admin.ts",
     "seed:categories": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-category-hierarchy.ts",
