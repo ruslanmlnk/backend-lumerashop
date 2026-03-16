@@ -203,16 +203,14 @@ export const hasUserUsedCoupon = async (payload: Payload, userId: number | strin
   return result.totalDocs > 0
 }
 
-export const validateCouponForUser = async (
+export const previewCoupon = async (
   payload: Payload,
   {
     code,
     subtotal,
-    userId,
   }: {
     code: string
     subtotal: number
-    userId: number | string
   },
 ) => {
   const coupon = await findCouponByCode(payload, code)
@@ -223,10 +221,6 @@ export const validateCouponForUser = async (
 
   if (coupon.isActive === false) {
     throw new Error('This coupon is not active.')
-  }
-
-  if (await hasUserUsedCoupon(payload, userId, coupon.id)) {
-    throw new Error('This coupon has already been used on your account.')
   }
 
   const discountPercent = getDiscountPercent(coupon.discountPercent)
@@ -243,4 +237,28 @@ export const validateCouponForUser = async (
     discountPercent,
     discountAmount,
   }
+}
+
+export const validateCouponForUser = async (
+  payload: Payload,
+  {
+    code,
+    subtotal,
+    userId,
+  }: {
+    code: string
+    subtotal: number
+    userId: number | string
+  },
+) => {
+  const preview = await previewCoupon(payload, {
+    code,
+    subtotal,
+  })
+
+  if (await hasUserUsedCoupon(payload, userId, preview.couponId)) {
+    throw new Error('This coupon has already been used on your account.')
+  }
+
+  return preview
 }

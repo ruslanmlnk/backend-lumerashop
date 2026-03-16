@@ -157,6 +157,28 @@ export interface User {
   id: number;
   firstName?: string | null;
   lastName?: string | null;
+  displayName?: string | null;
+  shippingAddress?: {
+    firstName?: string | null;
+    lastName?: string | null;
+    phone?: string | null;
+    country?: string | null;
+    address?: string | null;
+    city?: string | null;
+    zip?: string | null;
+  };
+  billingAddress?: {
+    firstName?: string | null;
+    lastName?: string | null;
+    phone?: string | null;
+    country?: string | null;
+    address?: string | null;
+    city?: string | null;
+    zip?: string | null;
+    companyName?: string | null;
+    companyId?: string | null;
+    vatId?: string | null;
+  };
   role: 'admin' | 'customer';
   bonusBalance?: number | null;
   earnedBonusTotal?: number | null;
@@ -739,6 +761,32 @@ export interface PayloadMigration {
 export interface UsersSelect<T extends boolean = true> {
   firstName?: T;
   lastName?: T;
+  displayName?: T;
+  shippingAddress?:
+    | T
+    | {
+        firstName?: T;
+        lastName?: T;
+        phone?: T;
+        country?: T;
+        address?: T;
+        city?: T;
+        zip?: T;
+      };
+  billingAddress?:
+    | T
+    | {
+        firstName?: T;
+        lastName?: T;
+        phone?: T;
+        country?: T;
+        address?: T;
+        city?: T;
+        zip?: T;
+        companyName?: T;
+        companyId?: T;
+        vatId?: T;
+      };
   role?: T;
   bonusBalance?: T;
   earnedBonusTotal?: T;

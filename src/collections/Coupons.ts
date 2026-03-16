@@ -1,7 +1,7 @@
 import type { CollectionConfig, PayloadRequest } from 'payload'
 
 import { buildCouponPreviewAssets, sanitizeCouponCode } from '@/lib/coupon-preview'
-import { generateCouponCode, validateCouponForUser } from '@/lib/commerce'
+import { generateCouponCode, previewCoupon, validateCouponForUser } from '@/lib/commerce'
 
 type CouponApplyBody = {
   code?: unknown
@@ -80,6 +80,40 @@ export const Coupons: CollectionConfig = {
     admin: isAdmin,
   },
   endpoints: [
+    {
+      path: '/preview',
+      method: 'post',
+      handler: async (req) => {
+        let body: CouponApplyBody
+
+        try {
+          body = (await req.json?.()) as CouponApplyBody
+        } catch {
+          return Response.json({ error: 'Invalid request body.' }, { status: 400 })
+        }
+
+        const code = sanitizeCouponCode(body.code)
+        const subtotal = parseSubtotal(body.subtotal)
+
+        if (!code) {
+          return Response.json({ error: 'Coupon code is required.' }, { status: 400 })
+        }
+
+        try {
+          const applied = await previewCoupon(req.payload, {
+            code,
+            subtotal,
+          })
+
+          return Response.json(applied, { status: 200 })
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Coupon preview could not be generated.'
+          const status = /not found|not active|valid discount/i.test(message) ? 400 : 500
+
+          return Response.json({ error: message }, { status })
+        }
+      },
+    },
     {
       path: '/apply',
       method: 'post',

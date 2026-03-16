@@ -66,6 +66,192 @@ export const Users: CollectionConfig = {
       label: 'Last Name',
     },
     {
+      name: 'displayName',
+      type: 'text',
+      label: 'Display Name',
+    },
+    {
+      name: 'shippingAddress',
+      type: 'group',
+      label: 'Shipping address',
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'firstName',
+              type: 'text',
+              label: 'First Name',
+              admin: {
+                width: '50%',
+              },
+            },
+            {
+              name: 'lastName',
+              type: 'text',
+              label: 'Last Name',
+              admin: {
+                width: '50%',
+              },
+            },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'phone',
+              type: 'text',
+              label: 'Phone',
+              admin: {
+                width: '50%',
+              },
+            },
+            {
+              name: 'country',
+              type: 'text',
+              label: 'Country',
+              defaultValue: 'CZ',
+              admin: {
+                width: '50%',
+              },
+            },
+          ],
+        },
+        {
+          name: 'address',
+          type: 'text',
+          label: 'Street address',
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'city',
+              type: 'text',
+              label: 'City',
+              admin: {
+                width: '50%',
+              },
+            },
+            {
+              name: 'zip',
+              type: 'text',
+              label: 'ZIP',
+              admin: {
+                width: '50%',
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'billingAddress',
+      type: 'group',
+      label: 'Billing address',
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'firstName',
+              type: 'text',
+              label: 'First Name',
+              admin: {
+                width: '50%',
+              },
+            },
+            {
+              name: 'lastName',
+              type: 'text',
+              label: 'Last Name',
+              admin: {
+                width: '50%',
+              },
+            },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'phone',
+              type: 'text',
+              label: 'Phone',
+              admin: {
+                width: '50%',
+              },
+            },
+            {
+              name: 'country',
+              type: 'text',
+              label: 'Country',
+              defaultValue: 'CZ',
+              admin: {
+                width: '50%',
+              },
+            },
+          ],
+        },
+        {
+          name: 'address',
+          type: 'text',
+          label: 'Street address',
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'city',
+              type: 'text',
+              label: 'City',
+              admin: {
+                width: '50%',
+              },
+            },
+            {
+              name: 'zip',
+              type: 'text',
+              label: 'ZIP',
+              admin: {
+                width: '50%',
+              },
+            },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'companyName',
+              type: 'text',
+              label: 'Company name',
+              admin: {
+                width: '34%',
+              },
+            },
+            {
+              name: 'companyId',
+              type: 'text',
+              label: 'Company ID',
+              admin: {
+                width: '33%',
+              },
+            },
+            {
+              name: 'vatId',
+              type: 'text',
+              label: 'VAT ID',
+              admin: {
+                width: '33%',
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'role',
       type: 'select',
       defaultValue: 'customer',

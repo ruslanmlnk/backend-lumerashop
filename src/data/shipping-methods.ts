@@ -18,56 +18,60 @@ export type ShippingMethodPreset = {
   pickupCarrier?: PickupCarrier
 }
 
+export function isCashOnDeliveryShippingMethod(method: Pick<ShippingMethodPreset, 'id' | 'label'>): boolean {
+  return method.id.endsWith('-cod') || method.label.toLowerCase().includes('na dobirku')
+}
+
 export const SHIPPING_METHOD_PRESETS: readonly ShippingMethodPreset[] = [
   {
     id: 'ppl-courier-cod',
-    label: 'PPL - kurýr na dobírku',
-    description: 'Doručení bez dalšího kroku výběru pobočky.',
-    price: 0,
+    label: 'PPL - kuryr na dobirku',
+    description: 'Doruceni bez dalsiho kroku vyberu pobocky.',
+    price: 89,
     sortOrder: 10,
   },
   {
     id: 'ppl-pickup-cod',
-    label: 'PPL - Výdejní místa na dobírku',
-    description: 'Vyberete si konkrétní místo nebo box.',
-    price: 0,
+    label: 'PPL - vydejni mista na dobirku',
+    description: 'Vyberete si konkretni misto nebo box.',
+    price: 89,
     pickupCarrier: 'ppl',
     sortOrder: 20,
   },
   {
     id: 'ppl-courier',
-    label: 'PPL - kurýr',
-    description: 'Doručení bez dalšího kroku výběru pobočky.',
+    label: 'PPL - kuryr',
+    description: 'Doruceni bez dalsiho kroku vyberu pobocky.',
     price: 0,
     sortOrder: 30,
   },
   {
     id: 'ppl-pickup',
-    label: 'PPL - Výdejní místa',
-    description: 'Vyberete si konkrétní místo nebo box.',
+    label: 'PPL - vydejni mista',
+    description: 'Vyberete si konkretni misto nebo box.',
     price: 0,
     pickupCarrier: 'ppl',
     sortOrder: 40,
   },
   {
     id: 'zasilkovna-courier',
-    label: 'Zásilkovna - kurýr',
-    description: 'Doručení bez dalšího kroku výběru pobočky.',
+    label: 'Zasilkovna - kuryr',
+    description: 'Doruceni bez dalsiho kroku vyberu pobocky.',
     price: 0,
     sortOrder: 50,
   },
   {
     id: 'zasilkovna-pickup',
-    label: 'Zásilkovna - Výdejní místa',
-    description: 'Vyberete si konkrétní místo nebo box.',
+    label: 'Zasilkovna - vydejni mista',
+    description: 'Vyberete si konkretni misto nebo box.',
     price: 0,
     pickupCarrier: 'zasilkovna',
     sortOrder: 60,
   },
   {
     id: 'personal-pickup',
-    label: 'Osobní odběr - Lisabonská 2394, Praha (Výdejní místo)',
-    description: 'Připraveno k převzetí na výdejním místě v Praze.',
+    label: 'Osobni odber - Lisabonska 2394, Praha (vydejni misto)',
+    description: 'Pripraveno k prevzeti na vydejnim miste v Praze.',
     price: 0,
     sortOrder: 70,
   },
