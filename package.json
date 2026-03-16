@@ -16,6 +16,7 @@
     "lint": "cross-env NODE_OPTIONS=--no-deprecation next lint",
     "seed:admin": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-admin.ts",
     "seed:categories": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-category-hierarchy.ts",
+    "seed:footer-info-pages": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-footer-info-pages.ts",
     "seed:shipping-methods": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-shipping-methods.ts",
     "typecheck": "tsc --noEmit",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",

@@ -119,10 +119,20 @@ export interface Config {
   globals: {
     'home-page': HomePage;
     'loyalty-settings': LoyaltySetting;
+    'shipping-and-payment-page': ShippingAndPaymentPage;
+    'returns-and-complaints-page': ReturnsAndComplaintsPage;
+    'terms-and-conditions-page': TermsAndConditionsPage;
+    'privacy-policy-page': PrivacyPolicyPage;
+    'cookies-page': CookiesPage;
   };
   globalsSelect: {
     'home-page': HomePageSelect<false> | HomePageSelect<true>;
     'loyalty-settings': LoyaltySettingsSelect<false> | LoyaltySettingsSelect<true>;
+    'shipping-and-payment-page': ShippingAndPaymentPageSelect<false> | ShippingAndPaymentPageSelect<true>;
+    'returns-and-complaints-page': ReturnsAndComplaintsPageSelect<false> | ReturnsAndComplaintsPageSelect<true>;
+    'terms-and-conditions-page': TermsAndConditionsPageSelect<false> | TermsAndConditionsPageSelect<true>;
+    'privacy-policy-page': PrivacyPolicyPageSelect<false> | PrivacyPolicyPageSelect<true>;
+    'cookies-page': CookiesPageSelect<false> | CookiesPageSelect<true>;
   };
   locale: null;
   user: User;
@@ -1279,6 +1289,186 @@ export interface LoyaltySetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shipping-and-payment-page".
+ */
+export interface ShippingAndPaymentPage {
+  id: number;
+  title: string;
+  /**
+   * Image shown in the large hero banner above the page content.
+   */
+  heroImage?: (number | null) | Media;
+  /**
+   * This page is rendered on the storefront footer route and uses the Lexical editor.
+   */
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "returns-and-complaints-page".
+ */
+export interface ReturnsAndComplaintsPage {
+  id: number;
+  title: string;
+  /**
+   * Image shown in the large hero banner above the page content.
+   */
+  heroImage?: (number | null) | Media;
+  /**
+   * This page is rendered on the storefront footer route and uses the Lexical editor.
+   */
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "terms-and-conditions-page".
+ */
+export interface TermsAndConditionsPage {
+  id: number;
+  title: string;
+  /**
+   * Image shown in the large hero banner above the page content.
+   */
+  heroImage?: (number | null) | Media;
+  /**
+   * This page is rendered on the storefront footer route and uses the Lexical editor.
+   */
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "privacy-policy-page".
+ */
+export interface PrivacyPolicyPage {
+  id: number;
+  title: string;
+  /**
+   * Image shown in the large hero banner above the page content.
+   */
+  heroImage?: (number | null) | Media;
+  /**
+   * This page is rendered on the storefront footer route and uses the Lexical editor.
+   */
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cookies-page".
+ */
+export interface CookiesPage {
+  id: number;
+  title: string;
+  /**
+   * Image shown in the large hero banner above the page content.
+   */
+  heroImage?: (number | null) | Media;
+  /**
+   * This page is rendered on the storefront footer route and uses the Lexical editor.
+   */
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "home-page_select".
  */
 export interface HomePageSelect<T extends boolean = true> {
@@ -1363,6 +1553,96 @@ export interface LoyaltySettingsSelect<T extends boolean = true> {
     | {
         bonusUnits?: T;
         discountAmount?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shipping-and-payment-page_select".
+ */
+export interface ShippingAndPaymentPageSelect<T extends boolean = true> {
+  title?: T;
+  heroImage?: T;
+  content?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "returns-and-complaints-page_select".
+ */
+export interface ReturnsAndComplaintsPageSelect<T extends boolean = true> {
+  title?: T;
+  heroImage?: T;
+  content?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "terms-and-conditions-page_select".
+ */
+export interface TermsAndConditionsPageSelect<T extends boolean = true> {
+  title?: T;
+  heroImage?: T;
+  content?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "privacy-policy-page_select".
+ */
+export interface PrivacyPolicyPageSelect<T extends boolean = true> {
+  title?: T;
+  heroImage?: T;
+  content?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cookies-page_select".
+ */
+export interface CookiesPageSelect<T extends boolean = true> {
+  title?: T;
+  heroImage?: T;
+  content?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
       };
   updatedAt?: T;
   createdAt?: T;

@@ -21,6 +21,11 @@ import { Coupons } from './collections/Coupons'
 
 import { HomePage } from './globals/HomePage'
 import { LoyaltySettings } from './globals/LoyaltySettings'
+import { ShippingAndPaymentPage } from './globals/ShippingAndPaymentPage'
+import { ReturnsAndComplaintsPage } from './globals/ReturnsAndComplaintsPage'
+import { TermsAndConditionsPage } from './globals/TermsAndConditionsPage'
+import { PrivacyPolicyPage } from './globals/PrivacyPolicyPage'
+import { CookiesPage } from './globals/CookiesPage'
 
 
 const filename = fileURLToPath(import.meta.url)
@@ -48,7 +53,15 @@ export default buildConfig({
     Orders,
     ShippingMethods,
   ],
-  globals: [HomePage, LoyaltySettings],
+  globals: [
+    HomePage,
+    LoyaltySettings,
+    ShippingAndPaymentPage,
+    ReturnsAndComplaintsPage,
+    TermsAndConditionsPage,
+    PrivacyPolicyPage,
+    CookiesPage,
+  ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
