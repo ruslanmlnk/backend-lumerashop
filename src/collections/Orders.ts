@@ -1,6 +1,7 @@
 import type { CollectionConfig, PayloadRequest } from 'payload'
 
 import { downloadPplOrderLabel, syncPplOrderLabel } from '@/lib/ppl-labels'
+import { downloadZasilkovnaOrderLabel, syncZasilkovnaOrderLabel } from '@/lib/zasilkovna-labels'
 
 const hasAdminRole = (user: unknown) =>
   typeof user === 'object' && user !== null && 'role' in user && user.role === 'admin'
@@ -85,6 +86,49 @@ export const Orders: CollectionConfig = {
           })
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to download PPL label.'
+          return Response.json({ error: message }, { status: 400 })
+        }
+      },
+    },
+    {
+      path: '/:id/zasilkovna-label',
+      method: 'post',
+      handler: async (req) => {
+        if (!isAdminRequest(req)) {
+          return Response.json({ error: 'Forbidden.' }, { status: 403 })
+        }
+
+        try {
+          const result = await syncZasilkovnaOrderLabel(req.payload, parseOrderDocId(req))
+
+          return Response.json(result)
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to sync Zasilkovna label.'
+          return Response.json({ error: message }, { status: 400 })
+        }
+      },
+    },
+    {
+      path: '/:id/zasilkovna-label/download',
+      method: 'get',
+      handler: async (req) => {
+        if (!isAdminRequest(req)) {
+          return Response.json({ error: 'Forbidden.' }, { status: 403 })
+        }
+
+        try {
+          const result = await downloadZasilkovnaOrderLabel(req.payload, parseOrderDocId(req))
+
+          return new Response(result.data, {
+            status: 200,
+            headers: {
+              'Content-Type': result.contentType,
+              'Content-Disposition': `inline; filename="${result.fileName}"`,
+              'Cache-Control': 'no-store',
+            },
+          })
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to download Zasilkovna label.'
           return Response.json({ error: message }, { status: 400 })
         }
       },
@@ -641,6 +685,76 @@ export const Orders: CollectionConfig = {
       ],
     },
     {
+      name: 'zasilkovnaShipment',
+      type: 'group',
+      label: 'Zasilkovna shipment',
+      fields: [
+        {
+          name: 'packetId',
+          type: 'text',
+          label: 'Packet ID',
+          admin: readOnlyAdmin,
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'packetNumber',
+              type: 'text',
+              label: 'Packet number',
+              admin: readOnlyAdmin,
+            },
+            {
+              name: 'carrierNumber',
+              type: 'text',
+              label: 'Carrier number',
+              admin: readOnlyAdmin,
+            },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'labelFormat',
+              type: 'text',
+              label: 'Label format',
+              admin: readOnlyAdmin,
+            },
+            {
+              name: 'labelMode',
+              type: 'text',
+              label: 'Label mode',
+              admin: readOnlyAdmin,
+            },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'generatedAt',
+              type: 'date',
+              label: 'Generated at',
+              admin: readOnlyAdmin,
+            },
+            {
+              name: 'lastCheckedAt',
+              type: 'date',
+              label: 'Last checked at',
+              admin: readOnlyAdmin,
+            },
+          ],
+        },
+        {
+          name: 'lastError',
+          type: 'textarea',
+          label: 'Last label error',
+          admin: readOnlyAdmin,
+        },
+      ],
+    },
+    {
       name: 'pplLabelControls',
       type: 'ui',
       admin: {
@@ -648,6 +762,17 @@ export const Orders: CollectionConfig = {
         condition: (data) => typeof data?.shipping?.methodId === 'string' && data.shipping.methodId.startsWith('ppl-'),
         components: {
           Field: '@/components/admin/orders/PPLLabelControls',
+        },
+      },
+    },
+    {
+      name: 'zasilkovnaLabelControls',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        condition: (data) => typeof data?.shipping?.methodId === 'string' && data.shipping.methodId.startsWith('zasilkovna-'),
+        components: {
+          Field: '@/components/admin/orders/ZasilkovnaLabelControls',
         },
       },
     },

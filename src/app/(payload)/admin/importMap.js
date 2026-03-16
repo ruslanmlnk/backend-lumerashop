@@ -24,6 +24,7 @@ import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { default as default_7498ceaf0f5a036fc90322c188923b78 } from '@/components/admin/coupons/CouponPreview'
 import { default as default_d9b1919bf53c4ad40104ed46e7a2b852 } from '@/components/admin/orders/PPLLabelControls'
+import { default as default_6c732e2c41b34768e37042417900ec79 } from '@/components/admin/orders/ZasilkovnaLabelControls'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 export const importMap = {
@@ -53,5 +54,6 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/components/admin/coupons/CouponPreview#default": default_7498ceaf0f5a036fc90322c188923b78,
   "@/components/admin/orders/PPLLabelControls#default": default_d9b1919bf53c4ad40104ed46e7a2b852,
+  "@/components/admin/orders/ZasilkovnaLabelControls#default": default_6c732e2c41b34768e37042417900ec79,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

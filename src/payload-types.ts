@@ -579,6 +579,16 @@ export interface Order {
     bonusUnitsSpent?: number | null;
     bonusUnitsEarned?: number | null;
   };
+  zasilkovnaShipment?: {
+    packetId?: string | null;
+    packetNumber?: string | null;
+    carrierNumber?: string | null;
+    labelFormat?: string | null;
+    labelMode?: string | null;
+    generatedAt?: string | null;
+    lastCheckedAt?: string | null;
+    lastError?: string | null;
+  };
   purchaseCountRecorded?: boolean | null;
   bonusLedgerRecorded?: boolean | null;
   updatedAt: string;
@@ -1113,6 +1123,18 @@ export interface OrdersSelect<T extends boolean = true> {
     | {
         bonusUnitsSpent?: T;
         bonusUnitsEarned?: T;
+      };
+  zasilkovnaShipment?:
+    | T
+    | {
+        packetId?: T;
+        packetNumber?: T;
+        carrierNumber?: T;
+        labelFormat?: T;
+        labelMode?: T;
+        generatedAt?: T;
+        lastCheckedAt?: T;
+        lastError?: T;
       };
   purchaseCountRecorded?: T;
   bonusLedgerRecorded?: T;
