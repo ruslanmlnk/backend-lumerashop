@@ -1,18 +1,24 @@
 export type CategoryHierarchySeed = {
   name: string
   showInMenu?: boolean
+  showInDesktopMenu?: boolean
+  showInMobileMenu?: boolean
   groups?: CategoryGroupSeed[]
 }
 
 export type CategoryGroupSeed = {
   name: string
   showInMenu?: boolean
+  showInDesktopMenu?: boolean
+  showInMobileMenu?: boolean
   subcategories?: CategorySubcategorySeed[]
 }
 
 export type CategorySubcategorySeed = {
   name: string
   showInMenu?: boolean
+  showInDesktopMenu?: boolean
+  showInMobileMenu?: boolean
 }
 
 // Workbook-derived hierarchy from the root spreadsheet.

@@ -6,7 +6,7 @@ export const Subcategories: CollectionConfig = {
   slug: 'subcategories',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'category', 'categoryGroup', 'slug', 'showInMenu', 'sortOrder', 'updatedAt'],
+    defaultColumns: ['name', 'category', 'categoryGroup', 'slug', 'showInDesktopMenu', 'showInMobileMenu', 'sortOrder', 'updatedAt'],
   },
   access: {
     read: () => true,
@@ -65,10 +65,31 @@ export const Subcategories: CollectionConfig = {
       name: 'showInMenu',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Show in menu',
+      label: 'Legacy menu visibility',
+      admin: {
+        hidden: true,
+        position: 'sidebar',
+        description: 'Legacy visibility flag kept only for backward compatibility.',
+      },
+    },
+    {
+      name: 'showInDesktopMenu',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Show in desktop menu',
       admin: {
         position: 'sidebar',
-        description: 'Display this subcategory in the nested menu under its parent category group.',
+        description: 'Display this subcategory in the desktop nested menu under its parent category group.',
+      },
+    },
+    {
+      name: 'showInMobileMenu',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Show in mobile menu',
+      admin: {
+        position: 'sidebar',
+        description: 'Display this subcategory in the mobile navigation menu.',
       },
     },
     {

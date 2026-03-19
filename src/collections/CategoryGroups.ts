@@ -6,7 +6,7 @@ export const CategoryGroups: CollectionConfig = {
   slug: 'category-groups',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'category', 'slug', 'showInMenu', 'sortOrder', 'updatedAt'],
+    defaultColumns: ['name', 'category', 'slug', 'showInDesktopMenu', 'showInMobileMenu', 'sortOrder', 'updatedAt'],
   },
   access: {
     read: () => true,
@@ -58,10 +58,31 @@ export const CategoryGroups: CollectionConfig = {
       name: 'showInMenu',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Show in menu',
+      label: 'Legacy menu visibility',
+      admin: {
+        hidden: true,
+        position: 'sidebar',
+        description: 'Legacy visibility flag kept only for backward compatibility.',
+      },
+    },
+    {
+      name: 'showInDesktopMenu',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Show in desktop menu',
       admin: {
         position: 'sidebar',
-        description: 'Display this group in the header dropdown under its parent category.',
+        description: 'Display this group in the desktop header dropdown under its parent category.',
+      },
+    },
+    {
+      name: 'showInMobileMenu',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Show in mobile menu',
+      admin: {
+        position: 'sidebar',
+        description: 'Display this group in the mobile navigation menu.',
       },
     },
     {

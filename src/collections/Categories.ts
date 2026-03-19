@@ -5,7 +5,7 @@ export const Categories: CollectionConfig = {
   slug: 'categories',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'slug', 'showInMenu', 'sortOrder', 'updatedAt'],
+    defaultColumns: ['name', 'slug', 'showInDesktopMenu', 'showInMobileMenu', 'sortOrder', 'updatedAt'],
   },
   access: {
     read: () => true,
@@ -24,10 +24,31 @@ export const Categories: CollectionConfig = {
       name: 'showInMenu',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Show in menu',
+      label: 'Legacy menu visibility',
+      admin: {
+        hidden: true,
+        position: 'sidebar',
+        description: 'Legacy visibility flag kept only for backward compatibility.',
+      },
+    },
+    {
+      name: 'showInDesktopMenu',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Show in desktop menu',
       admin: {
         position: 'sidebar',
-        description: 'Display this category in the main header category menu.',
+        description: 'Display this category in the main header category menu on desktop.',
+      },
+    },
+    {
+      name: 'showInMobileMenu',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Show in mobile menu',
+      admin: {
+        position: 'sidebar',
+        description: 'Display this category in the mobile navigation menu.',
       },
     },
     {

@@ -94,6 +94,8 @@ async function seedCategoryHierarchy() {
       {
         name: categorySeed.name,
         showInMenu: categorySeed.showInMenu ?? true,
+        showInDesktopMenu: categorySeed.showInDesktopMenu ?? categorySeed.showInMenu ?? true,
+        showInMobileMenu: categorySeed.showInMobileMenu ?? categorySeed.showInMenu ?? true,
         sortOrder: categoryIndex + 1,
       },
     )
@@ -131,7 +133,9 @@ async function seedCategoryHierarchy() {
         {
           name: groupSeed.name,
           category: categoryId,
-          showInMenu: true,
+          showInMenu: groupSeed.showInMenu ?? true,
+          showInDesktopMenu: groupSeed.showInDesktopMenu ?? groupSeed.showInMenu ?? true,
+          showInMobileMenu: groupSeed.showInMobileMenu ?? groupSeed.showInMenu ?? true,
           sortOrder: groupIndex + 1,
         },
       )
@@ -170,7 +174,9 @@ async function seedCategoryHierarchy() {
             name: subcategorySeed.name,
             category: categoryId,
             categoryGroup: groupId,
-            showInMenu: true,
+            showInMenu: subcategorySeed.showInMenu ?? true,
+            showInDesktopMenu: subcategorySeed.showInDesktopMenu ?? subcategorySeed.showInMenu ?? true,
+            showInMobileMenu: subcategorySeed.showInMobileMenu ?? subcategorySeed.showInMenu ?? true,
             sortOrder: subcategoryIndex + 1,
           },
         )
