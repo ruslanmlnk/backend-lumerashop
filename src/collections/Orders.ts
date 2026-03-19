@@ -299,6 +299,12 @@ export const Orders: CollectionConfig = {
           type: 'row',
           fields: [
             {
+              name: 'firstPurchaseDiscountAmount',
+              type: 'number',
+              min: 0,
+              label: 'First purchase discount amount',
+            },
+            {
               name: 'bonusDiscountAmount',
               type: 'number',
               min: 0,

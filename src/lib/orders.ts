@@ -33,6 +33,7 @@ export type InternalOrderCreateInput = {
   } | null
   discounts?: {
     couponDiscountAmount?: number
+    firstPurchaseDiscountAmount?: number
     bonusDiscountAmount?: number
     discountedSubtotal?: number
   } | null
@@ -110,6 +111,7 @@ type PayloadOrderDoc = {
     couponCode?: string | null
     couponDiscountPercent?: number | null
     couponDiscountAmount?: number | null
+    firstPurchaseDiscountAmount?: number | null
     bonusDiscountAmount?: number | null
     discountedSubtotal?: number | null
   } | null
@@ -215,6 +217,7 @@ const normalizeOrderSummary = (order: PayloadOrderDoc) => ({
   bonusLedgerRecorded: order.bonusLedgerRecorded === true,
   couponCode: order.discounts?.couponCode || '',
   couponDiscountAmount: toPositiveNumber(order.discounts?.couponDiscountAmount),
+  firstPurchaseDiscountAmount: toPositiveNumber(order.discounts?.firstPurchaseDiscountAmount),
   bonusDiscountAmount: toPositiveNumber(order.discounts?.bonusDiscountAmount),
   discountedSubtotal: toPositiveNumber(order.discounts?.discountedSubtotal),
   bonusUnitsSpent: toWholeUnits(order.loyalty?.bonusUnitsSpent),
@@ -329,6 +332,39 @@ const syncUserBonusLedger = async (payload: Payload, order: PayloadOrderDoc) => 
   })
 }
 
+const markFirstPurchaseDiscountUsed = async (payload: Payload, order: PayloadOrderDoc) => {
+  const userId = extractDocumentId(order.user)
+
+  if (typeof userId !== 'number') {
+    return
+  }
+
+  if (toPositiveNumber(order.discounts?.firstPurchaseDiscountAmount) <= 0) {
+    return
+  }
+
+  const user = await payload.findByID({
+    collection: 'users' as never,
+    id: userId,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  if ((user as { firstPurchaseDiscountUsed?: unknown }).firstPurchaseDiscountUsed === true) {
+    return
+  }
+
+  await payload.update({
+    collection: 'users' as never,
+    id: userId,
+    depth: 0,
+    overrideAccess: true,
+    data: {
+      firstPurchaseDiscountUsed: true,
+    } as never,
+  })
+}
+
 export const createOrder = async (payload: Payload, input: InternalOrderCreateInput) => {
   const orderId = sanitizeString(input.orderId)
   const customerEmail = sanitizeString(input.customer.email)
@@ -368,6 +404,7 @@ export const createOrder = async (payload: Payload, input: InternalOrderCreateIn
         couponDiscountPercent: toPositiveNumber(input.coupon?.discountPercent),
         couponDiscountAmount:
           toPositiveNumber(input.coupon?.discountAmount) || toPositiveNumber(input.discounts?.couponDiscountAmount),
+        firstPurchaseDiscountAmount: toPositiveNumber(input.discounts?.firstPurchaseDiscountAmount),
         bonusDiscountAmount: toPositiveNumber(input.discounts?.bonusDiscountAmount),
         discountedSubtotal: toPositiveNumber(input.discounts?.discountedSubtotal),
       },
@@ -445,6 +482,10 @@ export const updateOrder = async (payload: Payload, orderId: string, input: Inte
   const nextPaymentStatus = resolvePaymentStatus(existing.paymentStatus, input.paymentStatus)
   const shouldRecordPurchaseCount = nextPaymentStatus === 'paid' && existing.purchaseCountRecorded !== true
   const shouldRecordBonusLedger = nextPaymentStatus === 'paid' && existing.bonusLedgerRecorded !== true
+  const shouldMarkFirstPurchaseDiscountUsed =
+    nextPaymentStatus === 'paid' &&
+    existing.paymentStatus !== 'paid' &&
+    toPositiveNumber(existing.discounts?.firstPurchaseDiscountAmount) > 0
 
   if (shouldRecordPurchaseCount) {
     await incrementPurchaseCounts(payload, existing)
@@ -452,6 +493,10 @@ export const updateOrder = async (payload: Payload, orderId: string, input: Inte
 
   if (shouldRecordBonusLedger) {
     await syncUserBonusLedger(payload, existing)
+  }
+
+  if (shouldMarkFirstPurchaseDiscountUsed) {
+    await markFirstPurchaseDiscountUsed(payload, existing)
   }
 
   const updated = await payload.update({

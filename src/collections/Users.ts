@@ -301,5 +301,17 @@ export const Users: CollectionConfig = {
         },
       ],
     },
+    {
+      name: 'firstPurchaseDiscountUsed',
+      type: 'checkbox',
+      label: 'First purchase discount used',
+      defaultValue: false,
+      access: {
+        update: ({ req: { user } }) => isAdminUser(user),
+      },
+      admin: {
+        readOnly: true,
+      },
+    },
   ],
 }
