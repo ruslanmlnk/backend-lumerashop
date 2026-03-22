@@ -95,6 +95,7 @@ async function seedCategoryHierarchy() {
         name: categorySeed.name,
         showInMenu: categorySeed.showInMenu ?? true,
         showInDesktopMenu: categorySeed.showInDesktopMenu ?? categorySeed.showInMenu ?? true,
+        showInDesktopDropdownMenu: categorySeed.showInDesktopDropdownMenu ?? false,
         showInMobileMenu: categorySeed.showInMobileMenu ?? categorySeed.showInMenu ?? true,
         sortOrder: categoryIndex + 1,
       },

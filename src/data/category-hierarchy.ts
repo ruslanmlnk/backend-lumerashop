@@ -2,6 +2,7 @@ export type CategoryHierarchySeed = {
   name: string
   showInMenu?: boolean
   showInDesktopMenu?: boolean
+  showInDesktopDropdownMenu?: boolean
   showInMobileMenu?: boolean
   groups?: CategoryGroupSeed[]
 }

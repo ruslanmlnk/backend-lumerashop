@@ -5,7 +5,7 @@ export const Categories: CollectionConfig = {
   slug: 'categories',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'slug', 'showInDesktopMenu', 'showInMobileMenu', 'sortOrder', 'updatedAt'],
+    defaultColumns: ['name', 'slug', 'showInDesktopMenu', 'showInDesktopDropdownMenu', 'showInMobileMenu', 'sortOrder', 'updatedAt'],
   },
   access: {
     read: () => true,
@@ -39,6 +39,16 @@ export const Categories: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: 'Display this category in the main header category menu on desktop.',
+      },
+    },
+    {
+      name: 'showInDesktopDropdownMenu',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Show in desktop dropdown menu',
+      admin: {
+        position: 'sidebar',
+        description: 'Move this desktop-visible category out of the main header row and into the additional desktop dropdown menu.',
       },
     },
     {
