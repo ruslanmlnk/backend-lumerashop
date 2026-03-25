@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { slugField } from 'payload'
+import { catalogFilterVisibilityFields } from '../fields/catalogFilterVisibilityFields'
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
@@ -75,6 +76,7 @@ export const Categories: CollectionConfig = {
       type: 'textarea',
       label: '\u041e\u043f\u0438\u0441',
     },
+    ...catalogFilterVisibilityFields,
     {
       name: 'image',
       type: 'upload',

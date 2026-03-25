@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
+import { catalogFilterVisibilityFields } from '../fields/catalogFilterVisibilityFields'
 import { buildCategoryGroupSlug, resolveCategoryRelation } from '../utilities/categoryHierarchy'
 
 export const CategoryGroups: CollectionConfig = {
@@ -106,6 +107,7 @@ export const CategoryGroups: CollectionConfig = {
       type: 'textarea',
       label: 'Popis',
     },
+    ...catalogFilterVisibilityFields,
     {
       name: 'image',
       type: 'upload',

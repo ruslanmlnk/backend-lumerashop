@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
+import { catalogFilterVisibilityFields } from '../fields/catalogFilterVisibilityFields'
 import { buildSubcategorySlug, resolveCategoryGroupRelation, resolveCategoryRelation } from '../utilities/categoryHierarchy'
 
 export const Subcategories: CollectionConfig = {
@@ -131,6 +132,7 @@ export const Subcategories: CollectionConfig = {
       type: 'textarea',
       label: '\u041e\u043f\u0438\u0441',
     },
+    ...catalogFilterVisibilityFields,
     {
       name: 'image',
       type: 'upload',
