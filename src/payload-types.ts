@@ -193,6 +193,7 @@ export interface User {
   bonusBalance?: number | null;
   earnedBonusTotal?: number | null;
   spentBonusTotal?: number | null;
+  firstPurchaseDiscountUsed?: boolean | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -244,56 +245,31 @@ export interface Category {
   generateSlug?: boolean | null;
   slug: string;
   /**
-   * Display this category in the main header category menu.
+   * Legacy visibility flag kept only for backward compatibility.
    */
   showInMenu?: boolean | null;
+  /**
+   * Display this category in the main header category menu on desktop.
+   */
+  showInDesktopMenu?: boolean | null;
+  /**
+   * Move this desktop-visible category out of the main header row and into the additional desktop dropdown menu.
+   */
+  showInDesktopDropdownMenu?: boolean | null;
+  /**
+   * Display this category in the mobile navigation menu.
+   */
+  showInMobileMenu?: boolean | null;
   sortOrder?: number | null;
   description?: string | null;
-  image?: (number | null) | Media;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "category-groups".
- */
-export interface CategoryGroup {
-  id: number;
-  name: string;
   /**
-   * Generated from the parent category and group name to keep menu URLs unique.
+   * Hide entire filter groups such as Material or Barva on this category level in the storefront.
    */
-  slug: string;
+  hiddenFilterGroups?: (number | FilterGroup)[] | null;
   /**
-   * Display this group in the header dropdown under its parent category.
+   * Hide only specific filter options such as Cerná while keeping the rest of the filter visible.
    */
-  showInMenu?: boolean | null;
-  sortOrder?: number | null;
-  category: number | Category;
-  description?: string | null;
-  image?: (number | null) | Media;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "subcategories".
- */
-export interface Subcategory {
-  id: number;
-  name: string;
-  /**
-   * Generated from the parent group and subcategory name to keep storefront URLs unique.
-   */
-  slug: string;
-  /**
-   * Display this subcategory in the nested menu under its parent category group.
-   */
-  showInMenu?: boolean | null;
-  sortOrder?: number | null;
-  category: number | Category;
-  categoryGroup: number | CategoryGroup;
-  description?: string | null;
+  hiddenFilterOptions?: (number | FilterOption)[] | null;
   image?: (number | null) | Media;
   updatedAt: string;
   createdAt: string;
@@ -336,6 +312,83 @@ export interface FilterOption {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "category-groups".
+ */
+export interface CategoryGroup {
+  id: number;
+  name: string;
+  /**
+   * Generated from the parent category and group name to keep menu URLs unique.
+   */
+  slug: string;
+  /**
+   * Legacy visibility flag kept only for backward compatibility.
+   */
+  showInMenu?: boolean | null;
+  /**
+   * Display this group in the desktop header dropdown under its parent category.
+   */
+  showInDesktopMenu?: boolean | null;
+  /**
+   * Display this group in the mobile navigation menu.
+   */
+  showInMobileMenu?: boolean | null;
+  sortOrder?: number | null;
+  category: number | Category;
+  description?: string | null;
+  /**
+   * Hide entire filter groups such as Material or Barva on this category level in the storefront.
+   */
+  hiddenFilterGroups?: (number | FilterGroup)[] | null;
+  /**
+   * Hide only specific filter options such as Cerná while keeping the rest of the filter visible.
+   */
+  hiddenFilterOptions?: (number | FilterOption)[] | null;
+  image?: (number | null) | Media;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subcategories".
+ */
+export interface Subcategory {
+  id: number;
+  name: string;
+  /**
+   * Generated from the parent group and subcategory name to keep storefront URLs unique.
+   */
+  slug: string;
+  /**
+   * Legacy visibility flag kept only for backward compatibility.
+   */
+  showInMenu?: boolean | null;
+  /**
+   * Display this subcategory in the desktop nested menu under its parent category group.
+   */
+  showInDesktopMenu?: boolean | null;
+  /**
+   * Display this subcategory in the mobile navigation menu.
+   */
+  showInMobileMenu?: boolean | null;
+  sortOrder?: number | null;
+  category: number | Category;
+  categoryGroup: number | CategoryGroup;
+  description?: string | null;
+  /**
+   * Hide entire filter groups such as Material or Barva on this category level in the storefront.
+   */
+  hiddenFilterGroups?: (number | FilterGroup)[] | null;
+  /**
+   * Hide only specific filter options such as Cerná while keeping the rest of the filter visible.
+   */
+  hiddenFilterOptions?: (number | FilterOption)[] | null;
+  image?: (number | null) | Media;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "products".
  */
 export interface Product {
@@ -354,10 +407,6 @@ export interface Product {
    * Used for popularity sorting on the storefront.
    */
   purchaseCount?: number | null;
-  /**
-   * Controls the stock badge on the product page.
-   */
-  stockStatus?: ('in-stock' | 'low-stock' | 'out-of-stock') | null;
   /**
    * Compact intro shown next to the product title.
    */
@@ -429,6 +478,10 @@ export interface Product {
   status?: ('draft' | 'published') | null;
   isFeatured?: boolean | null;
   isRecommended?: boolean | null;
+  /**
+   * If set, displays "Do X dnů" on the storefront.
+   */
+  deliveryTime?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -517,6 +570,7 @@ export interface Order {
     couponCode?: string | null;
     couponDiscountPercent?: number | null;
     couponDiscountAmount?: number | null;
+    firstPurchaseDiscountAmount?: number | null;
     bonusDiscountAmount?: number | null;
     discountedSubtotal?: number | null;
   };
@@ -811,6 +865,7 @@ export interface UsersSelect<T extends boolean = true> {
   bonusBalance?: T;
   earnedBonusTotal?: T;
   spentBonusTotal?: T;
+  firstPurchaseDiscountUsed?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -855,8 +910,13 @@ export interface CategoriesSelect<T extends boolean = true> {
   generateSlug?: T;
   slug?: T;
   showInMenu?: T;
+  showInDesktopMenu?: T;
+  showInDesktopDropdownMenu?: T;
+  showInMobileMenu?: T;
   sortOrder?: T;
   description?: T;
+  hiddenFilterGroups?: T;
+  hiddenFilterOptions?: T;
   image?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -869,9 +929,13 @@ export interface CategoryGroupsSelect<T extends boolean = true> {
   name?: T;
   slug?: T;
   showInMenu?: T;
+  showInDesktopMenu?: T;
+  showInMobileMenu?: T;
   sortOrder?: T;
   category?: T;
   description?: T;
+  hiddenFilterGroups?: T;
+  hiddenFilterOptions?: T;
   image?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -884,10 +948,14 @@ export interface SubcategoriesSelect<T extends boolean = true> {
   name?: T;
   slug?: T;
   showInMenu?: T;
+  showInDesktopMenu?: T;
+  showInMobileMenu?: T;
   sortOrder?: T;
   category?: T;
   categoryGroup?: T;
   description?: T;
+  hiddenFilterGroups?: T;
+  hiddenFilterOptions?: T;
   image?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -933,7 +1001,6 @@ export interface ProductsSelect<T extends boolean = true> {
   sku?: T;
   stockQuantity?: T;
   purchaseCount?: T;
-  stockStatus?: T;
   shortDescription?: T;
   description?: T;
   descriptionContent?: T;
@@ -966,6 +1033,7 @@ export interface ProductsSelect<T extends boolean = true> {
   status?: T;
   isFeatured?: T;
   isRecommended?: T;
+  deliveryTime?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1050,6 +1118,7 @@ export interface OrdersSelect<T extends boolean = true> {
         couponCode?: T;
         couponDiscountPercent?: T;
         couponDiscountAmount?: T;
+        firstPurchaseDiscountAmount?: T;
         bonusDiscountAmount?: T;
         discountedSubtotal?: T;
       };
