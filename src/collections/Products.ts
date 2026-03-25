@@ -27,7 +27,6 @@ export const Products: CollectionConfig = {
       'category',
       'categoryGroup',
       'status',
-      'stockStatus',
       'isFeatured',
       'isRecommended',
       'updatedAt',
@@ -91,30 +90,6 @@ export const Products: CollectionConfig = {
           },
         },
       ],
-    },
-    {
-      name: 'stockStatus',
-      type: 'select',
-      defaultValue: 'in-stock',
-      label: 'Stock status',
-      options: [
-        {
-          label: 'In stock',
-          value: 'in-stock',
-        },
-        {
-          label: 'Low stock',
-          value: 'low-stock',
-        },
-        {
-          label: 'Out of stock',
-          value: 'out-of-stock',
-        },
-      ],
-      admin: {
-        description: 'Controls the stock badge on the product page.',
-        position: 'sidebar',
-      },
     },
     {
       name: 'shortDescription',
@@ -315,6 +290,15 @@ export const Products: CollectionConfig = {
       label: 'Recommended product',
       defaultValue: false,
       admin: {
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'deliveryTime',
+      type: 'number',
+      label: 'Delivery time (days)',
+      admin: {
+        description: 'If set, displays "Do X dnů" on the storefront.',
         position: 'sidebar',
       },
     },
