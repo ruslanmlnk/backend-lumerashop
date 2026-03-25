@@ -16,10 +16,13 @@ export type ShippingMethodPreset = {
   price: number
   sortOrder: number
   pickupCarrier?: PickupCarrier
+  cashOnDelivery?: boolean
 }
 
-export function isCashOnDeliveryShippingMethod(method: Pick<ShippingMethodPreset, 'id' | 'label'>): boolean {
-  return method.id.endsWith('-cod') || method.label.toLowerCase().includes('na dobirku')
+export function isCashOnDeliveryShippingMethod(
+  method: Pick<ShippingMethodPreset, 'id' | 'label' | 'cashOnDelivery'>,
+): boolean {
+  return method.cashOnDelivery === true || method.id.endsWith('-cod') || method.label.toLowerCase().includes('na dobirku')
 }
 
 export const SHIPPING_METHOD_PRESETS: readonly ShippingMethodPreset[] = [
@@ -29,6 +32,7 @@ export const SHIPPING_METHOD_PRESETS: readonly ShippingMethodPreset[] = [
     description: 'Doruceni bez dalsiho kroku vyberu pobocky.',
     price: 89,
     sortOrder: 10,
+    cashOnDelivery: true,
   },
   {
     id: 'ppl-pickup-cod',
@@ -37,6 +41,7 @@ export const SHIPPING_METHOD_PRESETS: readonly ShippingMethodPreset[] = [
     price: 89,
     pickupCarrier: 'ppl',
     sortOrder: 20,
+    cashOnDelivery: true,
   },
   {
     id: 'ppl-courier',

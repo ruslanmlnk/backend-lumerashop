@@ -1,6 +1,7 @@
 import type { CollectionConfig, PayloadRequest } from 'payload'
 
 import { downloadPplOrderLabel, syncPplOrderLabel } from '@/lib/ppl-labels'
+import { confirmOrder } from '@/lib/orders'
 import { downloadZasilkovnaOrderLabel, syncZasilkovnaOrderLabel } from '@/lib/zasilkovna-labels'
 
 const hasAdminRole = (user: unknown) =>
@@ -44,9 +45,31 @@ export const Orders: CollectionConfig = {
   slug: 'orders',
   admin: {
     useAsTitle: 'orderId',
-    defaultColumns: ['orderId', 'paymentStatus', 'provider', 'total', 'customerEmail', 'updatedAt'],
+    defaultColumns: ['orderId', 'paymentStatus', 'isConfirmed', 'provider', 'total', 'customerEmail', 'updatedAt'],
   },
   endpoints: [
+    {
+      path: '/:id/confirm',
+      method: 'post',
+      handler: async (req) => {
+        if (!isAdminRequest(req)) {
+          return Response.json({ error: 'Forbidden.' }, { status: 403 })
+        }
+
+        try {
+          const result = await confirmOrder(req.payload, parseOrderDocId(req))
+
+          if (!result) {
+            return Response.json({ error: 'Order not found.' }, { status: 404 })
+          }
+
+          return Response.json(result)
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to confirm order.'
+          return Response.json({ error: message }, { status: 400 })
+        }
+      },
+    },
     {
       path: '/:id/ppl-label',
       method: 'post',
@@ -164,6 +187,10 @@ export const Orders: CollectionConfig = {
           label: 'Global Payments',
           value: 'global-payments',
         },
+        {
+          label: 'Cash on delivery',
+          value: 'cash-on-delivery',
+        },
       ],
     },
     {
@@ -188,6 +215,30 @@ export const Orders: CollectionConfig = {
         {
           label: 'Canceled',
           value: 'canceled',
+        },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'isConfirmed',
+          type: 'checkbox',
+          label: 'Order confirmed',
+          defaultValue: false,
+          admin: readOnlyAdmin,
+        },
+        {
+          name: 'confirmedAt',
+          type: 'date',
+          label: 'Confirmed at',
+          admin: readOnlyAdmin,
+        },
+        {
+          name: 'confirmationEmailSentAt',
+          type: 'date',
+          label: 'Confirmation email sent at',
+          admin: readOnlyAdmin,
         },
       ],
     },
@@ -451,6 +502,12 @@ export const Orders: CollectionConfig = {
           type: 'number',
           label: 'Price',
           min: 0,
+        },
+        {
+          name: 'cashOnDelivery',
+          type: 'checkbox',
+          label: 'Cash on delivery',
+          defaultValue: false,
         },
         {
           name: 'pickupCarrier',
@@ -759,6 +816,16 @@ export const Orders: CollectionConfig = {
           admin: readOnlyAdmin,
         },
       ],
+    },
+    {
+      name: 'orderConfirmationControls',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field: '@/components/admin/orders/OrderConfirmationControls',
+        },
+      },
     },
     {
       name: 'pplLabelControls',

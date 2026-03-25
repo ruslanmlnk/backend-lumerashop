@@ -1,8 +1,10 @@
 import type { Payload } from 'payload'
 
 import { normalizeDocumentId } from '@/lib/commerce'
+import { sendOrderConfirmedEmailToCustomer } from '@/lib/customer-order-confirmation-email'
+import { notifyAdminAboutOrder } from '@/lib/order-notifications'
 
-export type OrderPaymentProvider = 'stripe' | 'global-payments'
+export type OrderPaymentProvider = 'stripe' | 'global-payments' | 'cash-on-delivery'
 export type OrderPaymentStatus = 'pending' | 'paid' | 'failed' | 'canceled'
 
 export type InternalOrderItemInput = {
@@ -56,6 +58,7 @@ export type InternalOrderCreateInput = {
     methodId?: string
     label?: string
     price?: number
+    cashOnDelivery?: boolean
     pickupPoint?: {
       carrier?: string
       id?: string
@@ -93,6 +96,14 @@ export type InternalOrderUpdateInput = {
   providerResponse?: unknown
 }
 
+export type OrderConfirmationSummary = {
+  orderId: string
+  isConfirmed: boolean
+  confirmedAt: string
+  confirmationEmailSentAt: string
+  alreadyConfirmed: boolean
+}
+
 type InternalPickupPointInput = NonNullable<NonNullable<InternalOrderCreateInput['shipping']>['pickupPoint']>
 
 type PayloadOrderDoc = {
@@ -103,9 +114,48 @@ type PayloadOrderDoc = {
   user?: number | string | { id?: number | string } | null
   customerEmail?: string | null
   currency?: string | null
+  subtotal?: number | null
+  shippingTotal?: number | null
   total?: number | null
+  customerPhone?: string | null
+  customerFirstName?: string | null
+  customerLastName?: string | null
+  isConfirmed?: boolean | null
+  confirmedAt?: string | null
+  confirmationEmailSentAt?: string | null
   purchaseCountRecorded?: boolean | null
   bonusLedgerRecorded?: boolean | null
+  shippingAddress?: {
+    country?: string | null
+    address?: string | null
+    city?: string | null
+    zip?: string | null
+    notes?: string | null
+  } | null
+  billing?: {
+    sameAsShipping?: boolean | null
+    isCompany?: boolean | null
+    firstName?: string | null
+    lastName?: string | null
+    address?: string | null
+    city?: string | null
+    zip?: string | null
+    country?: string | null
+    companyName?: string | null
+    companyId?: string | null
+    vatId?: string | null
+  } | null
+  shipping?: {
+    methodId?: string | null
+    label?: string | null
+    price?: number | null
+    cashOnDelivery?: boolean | null
+    pickupCarrier?: string | null
+    pickupPointId?: string | null
+    pickupPointCode?: string | null
+    pickupPointName?: string | null
+    pickupPointAddress?: string | null
+  } | null
   discounts?: {
     coupon?: number | string | { id?: number | string } | null
     couponCode?: string | null
@@ -122,7 +172,12 @@ type PayloadOrderDoc = {
   items?:
     | Array<{
         product?: number | { id?: number | string } | null
+        name?: string | null
         quantity?: number | null
+        unitPrice?: number | null
+        lineTotal?: number | null
+        sku?: string | null
+        variant?: string | null
       }>
     | null
   providerData?: {
@@ -204,6 +259,26 @@ const findOrderByOrderId = async (payload: Payload, orderId: string): Promise<Pa
   return (result.docs[0] as PayloadOrderDoc | undefined) ?? null
 }
 
+const findOrderByDocumentId = async (
+  payload: Payload,
+  documentId: number | string,
+): Promise<PayloadOrderDoc | null> => {
+  try {
+    return (await payload.findByID({
+      collection: 'orders' as never,
+      id: documentId,
+      depth: 0,
+      overrideAccess: true,
+    })) as PayloadOrderDoc
+  } catch (error) {
+    if (error instanceof Error && /not found/i.test(error.message)) {
+      return null
+    }
+
+    throw error
+  }
+}
+
 const normalizeOrderSummary = (order: PayloadOrderDoc) => ({
   id: order.id,
   orderId: order.orderId || '',
@@ -245,6 +320,28 @@ const resolvePaymentStatus = (
   }
 
   return nextStatus
+}
+
+const getOrderConfirmationSummary = (
+  order: PayloadOrderDoc,
+  alreadyConfirmed = order.isConfirmed === true,
+): OrderConfirmationSummary => ({
+  orderId: order.orderId || '',
+  isConfirmed: order.isConfirmed === true,
+  confirmedAt: sanitizeString(order.confirmedAt),
+  confirmationEmailSentAt: sanitizeString(order.confirmationEmailSentAt),
+  alreadyConfirmed,
+})
+
+const sendOrderNotificationSafely = async (
+  order: PayloadOrderDoc,
+  reason: 'paid' | 'cash-on-delivery-created',
+) => {
+  try {
+    await notifyAdminAboutOrder(order, reason)
+  } catch (error) {
+    console.error('Failed to send order notification email.', error)
+  }
 }
 
 const incrementPurchaseCounts = async (payload: Payload, order: PayloadOrderDoc) => {
@@ -432,6 +529,7 @@ export const createOrder = async (payload: Payload, input: InternalOrderCreateIn
         methodId: sanitizeString(input.shipping?.methodId) || undefined,
         label: sanitizeString(input.shipping?.label) || undefined,
         price: toPositiveNumber(input.shipping?.price),
+        cashOnDelivery: input.shipping?.cashOnDelivery === true,
         pickupCarrier: sanitizeString(input.shipping?.pickupPoint?.carrier) || undefined,
         pickupPointId: sanitizeString(input.shipping?.pickupPoint?.id) || undefined,
         pickupPointCode: sanitizeString(input.shipping?.pickupPoint?.code) || undefined,
@@ -461,7 +559,13 @@ export const createOrder = async (payload: Payload, input: InternalOrderCreateIn
     } as never,
   })
 
-  return normalizeOrderSummary(created as PayloadOrderDoc)
+  const createdOrder = created as PayloadOrderDoc
+
+  if (input.provider === 'cash-on-delivery') {
+    await sendOrderNotificationSafely(createdOrder, 'cash-on-delivery-created')
+  }
+
+  return normalizeOrderSummary(createdOrder)
 }
 
 export const getOrderSummary = async (payload: Payload, orderId: string) => {
@@ -524,5 +628,46 @@ export const updateOrder = async (payload: Payload, orderId: string, input: Inte
     } as never,
   })
 
-  return normalizeOrderSummary(updated as PayloadOrderDoc)
+  const updatedOrder = updated as PayloadOrderDoc
+
+  if (nextPaymentStatus === 'paid' && existing.paymentStatus !== 'paid') {
+    await sendOrderNotificationSafely(updatedOrder, 'paid')
+  }
+
+  return normalizeOrderSummary(updatedOrder)
+}
+
+export const confirmOrder = async (
+  payload: Payload,
+  documentId: number | string,
+): Promise<OrderConfirmationSummary | null> => {
+  const existing = await findOrderByDocumentId(payload, documentId)
+  if (!existing) {
+    return null
+  }
+
+  if (existing.isConfirmed === true) {
+    return getOrderConfirmationSummary(existing, true)
+  }
+
+  if (!sanitizeString(existing.customerEmail)) {
+    throw new Error('Order is missing customer email.')
+  }
+
+  await sendOrderConfirmedEmailToCustomer(existing)
+
+  const timestamp = new Date().toISOString()
+  const updated = await payload.update({
+    collection: 'orders' as never,
+    id: existing.id,
+    depth: 0,
+    overrideAccess: true,
+    data: {
+      isConfirmed: true,
+      confirmedAt: timestamp,
+      confirmationEmailSentAt: timestamp,
+    } as never,
+  })
+
+  return getOrderConfirmationSummary(updated as PayloadOrderDoc, false)
 }

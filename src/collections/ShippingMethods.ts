@@ -6,7 +6,7 @@ export const ShippingMethods: CollectionConfig = {
   slug: 'shipping-methods',
   admin: {
     useAsTitle: 'methodId',
-    defaultColumns: ['methodId', 'price', 'isActive', 'sortOrder', 'updatedAt'],
+    defaultColumns: ['methodId', 'price', 'cashOnDelivery', 'isActive', 'sortOrder', 'updatedAt'],
   },
   access: {
     read: () => true,
@@ -36,6 +36,12 @@ export const ShippingMethods: CollectionConfig = {
       type: 'checkbox',
       label: 'Active on checkout',
       defaultValue: true,
+    },
+    {
+      name: 'cashOnDelivery',
+      type: 'checkbox',
+      label: 'Na dobirku',
+      defaultValue: false,
     },
     {
       name: 'sortOrder',

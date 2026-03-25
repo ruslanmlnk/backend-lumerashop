@@ -44,6 +44,7 @@ type ZasilkovnaOrderDoc = {
   shipping?: {
     methodId?: string | null
     label?: string | null
+    cashOnDelivery?: boolean | null
     pickupPointId?: string | null
     pickupPointCode?: string | null
     pickupPointName?: string | null
@@ -144,8 +145,15 @@ const isZasilkovnaShippingMethod = (methodId: unknown) =>
 const isZasilkovnaPickupMethod = (methodId: unknown) =>
   typeof methodId === 'string' && methodId.includes('pickup')
 
-const isCashOnDeliveryMethod = (methodId: unknown) =>
-  typeof methodId === 'string' && methodId.endsWith('-cod')
+const isCashOnDeliveryMethod = (
+  shipping:
+    | {
+        methodId?: string | null
+        cashOnDelivery?: boolean | null
+      }
+    | null
+    | undefined,
+) => shipping?.cashOnDelivery === true || (typeof shipping?.methodId === 'string' && shipping.methodId.endsWith('-cod'))
 
 const getOrderById = async (payload: Payload, id: number | string) => {
   const order = await payload.findByID({
@@ -345,7 +353,7 @@ const buildCreatePacketInnerXml = async (payload: Payload, order: ZasilkovnaOrde
     tag('weight', weightKg.toFixed(3)),
   ]
 
-  if (isCashOnDeliveryMethod(order.shipping?.methodId)) {
+  if (isCashOnDeliveryMethod(order.shipping)) {
     baseFields.push(tag('cod', insuredValue.toFixed(2)))
   }
 

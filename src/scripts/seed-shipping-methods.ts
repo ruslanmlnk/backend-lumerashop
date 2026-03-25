@@ -35,6 +35,7 @@ async function seedShippingMethods() {
       isActive: true,
       methodId: method.id,
       price: isCashOnDeliveryShippingMethod(method) ? 89 : method.price,
+      cashOnDelivery: isCashOnDeliveryShippingMethod(method),
       sortOrder: method.sortOrder,
     }
 
