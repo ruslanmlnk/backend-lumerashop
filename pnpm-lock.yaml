@@ -35,6 +35,9 @@ importers:
       next:
         specifier: 15.4.11
         version: 15.4.11(@babel/core@7.29.0)(@playwright/test@1.58.2)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.77.4)
+      nodemailer:
+        specifier: ^8.0.4
+        version: 8.0.4
       payload:
         specifier: 3.77.0
         version: 3.77.0(graphql@16.13.0)(typescript@5.7.3)
@@ -3274,6 +3277,10 @@ packages:
 
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
+
+  nodemailer@8.0.4:
+    resolution: {integrity: sha512-k+jf6N8PfQJ0Fe8ZhJlgqU5qJU44Lpvp2yvidH3vp1lPnVQMgi4yEEMPXg5eJS1gFIJTVq1NHBk7Ia9ARdSBdQ==}
+    engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -7635,6 +7642,8 @@ snapshots:
       semver: 6.3.1
 
   node-releases@2.0.27: {}
+
+  nodemailer@8.0.4: {}
 
   normalize-path@3.0.0: {}
 
