@@ -25,6 +25,7 @@ const isAdminOrOrderOwner = ({ req: { user } }: { req: PayloadRequest }) => {
   }
 }
 const readOnlyAdmin = { readOnly: true }
+const hiddenReadOnlyAdmin = { readOnly: true, hidden: true }
 
 const parseOrderDocId = (req: PayloadRequest) => {
   const raw = req.routeParams?.id
@@ -241,52 +242,42 @@ export const Orders: CollectionConfig = {
       ],
     },
     {
-      type: 'row',
-      fields: [
-        {
-          name: 'isConfirmed',
-          type: 'checkbox',
-          label: 'Order confirmed',
-          defaultValue: false,
-          admin: readOnlyAdmin,
-        },
-        {
-          name: 'confirmedAt',
-          type: 'date',
-          label: 'Confirmed at',
-          admin: readOnlyAdmin,
-        },
-        {
-          name: 'confirmationEmailSentAt',
-          type: 'date',
-          label: 'Confirmation email sent at',
-          admin: readOnlyAdmin,
-        },
-        {
-          name: 'isCanceled',
-          type: 'checkbox',
-          label: 'Order canceled',
-          defaultValue: false,
-          admin: readOnlyAdmin,
-        },
-      ],
+      name: 'isConfirmed',
+      type: 'checkbox',
+      label: 'Order confirmed',
+      defaultValue: false,
+      admin: hiddenReadOnlyAdmin,
     },
     {
-      type: 'row',
-      fields: [
-        {
-          name: 'canceledAt',
-          type: 'date',
-          label: 'Canceled at',
-          admin: readOnlyAdmin,
-        },
-        {
-          name: 'cancellationEmailSentAt',
-          type: 'date',
-          label: 'Cancellation email sent at',
-          admin: readOnlyAdmin,
-        },
-      ],
+      name: 'confirmedAt',
+      type: 'date',
+      label: 'Confirmed at',
+      admin: hiddenReadOnlyAdmin,
+    },
+    {
+      name: 'confirmationEmailSentAt',
+      type: 'date',
+      label: 'Confirmation email sent at',
+      admin: hiddenReadOnlyAdmin,
+    },
+    {
+      name: 'isCanceled',
+      type: 'checkbox',
+      label: 'Order canceled',
+      defaultValue: false,
+      admin: hiddenReadOnlyAdmin,
+    },
+    {
+      name: 'canceledAt',
+      type: 'date',
+      label: 'Canceled at',
+      admin: hiddenReadOnlyAdmin,
+    },
+    {
+      name: 'cancellationEmailSentAt',
+      type: 'date',
+      label: 'Cancellation email sent at',
+      admin: hiddenReadOnlyAdmin,
     },
     {
       name: 'user',
