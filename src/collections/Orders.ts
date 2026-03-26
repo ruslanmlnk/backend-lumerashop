@@ -1,7 +1,7 @@
 import type { CollectionConfig, PayloadRequest } from 'payload'
 
 import { downloadPplOrderLabel, syncPplOrderLabel } from '@/lib/ppl-labels'
-import { cancelOrder, confirmOrder } from '@/lib/orders'
+import { cancelOrder, confirmOrder, getOrderDecision } from '@/lib/orders'
 import { downloadZasilkovnaOrderLabel, syncZasilkovnaOrderLabel } from '@/lib/zasilkovna-labels'
 
 const hasAdminRole = (user: unknown) =>
@@ -49,6 +49,28 @@ export const Orders: CollectionConfig = {
     defaultColumns: ['orderId', 'paymentStatus', 'provider', 'total', 'customerEmail', 'updatedAt'],
   },
   endpoints: [
+    {
+      path: '/:id/decision',
+      method: 'get',
+      handler: async (req) => {
+        if (!isAdminRequest(req)) {
+          return Response.json({ error: 'Forbidden.' }, { status: 403 })
+        }
+
+        try {
+          const result = await getOrderDecision(req.payload, parseOrderDocId(req))
+
+          if (!result) {
+            return Response.json({ error: 'Order not found.' }, { status: 404 })
+          }
+
+          return Response.json(result)
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to read order decision.'
+          return Response.json({ error: message }, { status: 400 })
+        }
+      },
+    },
     {
       path: '/:id/confirm',
       method: 'post',

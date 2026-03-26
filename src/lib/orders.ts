@@ -605,6 +605,18 @@ export const getOrderSummary = async (payload: Payload, orderId: string) => {
   return normalizeOrderSummary(order)
 }
 
+export const getOrderDecision = async (
+  payload: Payload,
+  documentId: number | string,
+): Promise<OrderDecisionSummary | null> => {
+  const order = await findOrderByDocumentId(payload, documentId)
+  if (!order) {
+    return null
+  }
+
+  return getOrderDecisionSummary(order)
+}
+
 export const updateOrder = async (payload: Payload, orderId: string, input: InternalOrderUpdateInput) => {
   const existing = await findOrderByOrderId(payload, orderId)
   if (!existing) {

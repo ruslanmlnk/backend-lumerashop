@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { toast, useDocumentInfo } from '@payloadcms/ui'
 
 type OrderDecisionState = {
@@ -69,9 +69,29 @@ const getStatusLabel = (status: OrderDecisionState['currentStatus']) => {
   return 'Waiting for decision'
 }
 
+const mergeDecisionIntoDocument = (value: unknown, decision: OrderDecisionState) => {
+  if (!value || typeof value !== 'object') {
+    return value
+  }
+
+  return {
+    ...(value as Record<string, unknown>),
+    orderId: decision.orderId || '',
+    isConfirmed: decision.isConfirmed === true,
+    confirmedAt: decision.confirmedAt || undefined,
+    confirmationEmailSentAt: decision.confirmationEmailSentAt || undefined,
+    isCanceled: decision.isCanceled === true,
+    canceledAt: decision.canceledAt || undefined,
+    cancellationEmailSentAt: decision.cancellationEmailSentAt || undefined,
+    currentStatus: decision.currentStatus || 'pending',
+  }
+}
+
 export default function OrderConfirmationControls() {
-  const { data } = useDocumentInfo()
+  const { data, setData } = useDocumentInfo()
   const [busyAction, setBusyAction] = useState<'confirm' | 'cancel' | null>(null)
+  const [isRefreshingDecision, setIsRefreshingDecision] = useState(false)
+  const [hasLoadedPersistedDecision, setHasLoadedPersistedDecision] = useState(false)
   const [decision, setDecision] = useState<OrderDecisionState>(() => readOrderDecisionState(data))
 
   useEffect(() => {
@@ -88,6 +108,55 @@ export default function OrderConfirmationControls() {
 
     return ''
   }, [data])
+
+  const applyDecision = useEffectEvent((nextDecision: OrderDecisionState) => {
+    setDecision(nextDecision)
+
+    if (typeof setData === 'function') {
+      const nextData = mergeDecisionIntoDocument(data, nextDecision)
+
+      if (nextData && typeof nextData === 'object') {
+        setData(nextData)
+      }
+    }
+  })
+
+  const refreshDecision = useEffectEvent(async () => {
+    if (!docId) {
+      return
+    }
+
+    setIsRefreshingDecision(true)
+
+    try {
+      const response = await fetch(`/api/orders/${encodeURIComponent(docId)}/decision`, {
+        method: 'GET',
+        cache: 'no-store',
+      })
+
+      const payload = (await response.json().catch(() => ({}))) as EndpointResponse
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to load saved order status.')
+      }
+
+      applyDecision(readOrderDecisionState(payload))
+    } catch (error) {
+      console.error('Failed to refresh order decision state.', error)
+    } finally {
+      setIsRefreshingDecision(false)
+      setHasLoadedPersistedDecision(true)
+    }
+  })
+
+  useEffect(() => {
+    if (!docId) {
+      return
+    }
+
+    setHasLoadedPersistedDecision(false)
+    void refreshDecision()
+  }, [docId, refreshDecision])
 
   if (!docId) {
     return null
@@ -111,7 +180,9 @@ export default function OrderConfirmationControls() {
       }
 
       const nextDecision = readOrderDecisionState(payload)
-      setDecision(nextDecision)
+      applyDecision(nextDecision)
+      setHasLoadedPersistedDecision(true)
+      void refreshDecision()
 
       if (action === 'confirm') {
         toast.success(nextDecision.alreadyConfirmed ? 'Order was already accepted.' : 'Order accepted and email sent.')
@@ -129,6 +200,8 @@ export default function OrderConfirmationControls() {
 
   const canConfirm = decision.isConfirmed !== true && decision.isCanceled !== true
   const canCancel = decision.isCanceled !== true
+  const isBusy = busyAction !== null || isRefreshingDecision
+  const shouldShowActions = hasLoadedPersistedDecision && decision.currentStatus !== 'canceled'
 
   return (
     <div
@@ -152,6 +225,9 @@ export default function OrderConfirmationControls() {
         <div>
           <strong>Status:</strong> {getStatusLabel(decision.currentStatus)}
         </div>
+        {!hasLoadedPersistedDecision ? (
+          <div style={{ color: 'var(--theme-elevation-600)' }}>Loading saved status...</div>
+        ) : null}
         {decision.orderId ? (
           <div>
             <strong>Order ID:</strong> {decision.orderId}
@@ -169,24 +245,24 @@ export default function OrderConfirmationControls() {
         ) : null}
       </div>
 
-      {decision.currentStatus === 'canceled' ? null : (
+      {shouldShowActions ? (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           {canConfirm ? (
             <button
               type="button"
               onClick={() => handleAction('confirm')}
-              disabled={busyAction !== null}
+              disabled={isBusy}
               style={{
                 border: '1px solid transparent',
                 borderRadius: 999,
                 padding: '10px 16px',
-                background: busyAction !== null ? 'var(--theme-elevation-150)' : '#111111',
-                color: busyAction !== null ? 'var(--theme-elevation-700)' : '#ffffff',
-                cursor: busyAction !== null ? 'not-allowed' : 'pointer',
+                background: isBusy ? 'var(--theme-elevation-150)' : '#111111',
+                color: isBusy ? 'var(--theme-elevation-700)' : '#ffffff',
+                cursor: isBusy ? 'not-allowed' : 'pointer',
                 fontWeight: 600,
               }}
             >
-              {busyAction === 'confirm' ? 'Sending...' : 'Accept'}
+              {busyAction === 'confirm' ? 'Sending...' : isRefreshingDecision ? 'Refreshing...' : 'Accept'}
             </button>
           ) : null}
 
@@ -194,22 +270,22 @@ export default function OrderConfirmationControls() {
             <button
               type="button"
               onClick={() => handleAction('cancel')}
-              disabled={busyAction !== null}
+              disabled={isBusy}
               style={{
                 border: '1px solid #d8b2a8',
                 borderRadius: 999,
                 padding: '10px 16px',
-                background: busyAction !== null ? 'var(--theme-elevation-150)' : '#fff5f3',
-                color: busyAction !== null ? 'var(--theme-elevation-700)' : '#9f2d20',
-                cursor: busyAction !== null ? 'not-allowed' : 'pointer',
+                background: isBusy ? 'var(--theme-elevation-150)' : '#fff5f3',
+                color: isBusy ? 'var(--theme-elevation-700)' : '#9f2d20',
+                cursor: isBusy ? 'not-allowed' : 'pointer',
                 fontWeight: 600,
               }}
             >
-              {busyAction === 'cancel' ? 'Sending...' : 'Cancel'}
+              {busyAction === 'cancel' ? 'Sending...' : isRefreshingDecision ? 'Refreshing...' : 'Cancel'}
             </button>
           ) : null}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

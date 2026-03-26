@@ -220,22 +220,97 @@ const buildItemsHtml = (order: OrderStatusEmailDoc, currency: string) => {
   const items = Array.isArray(order.items) ? order.items : []
 
   if (items.length === 0) {
-    return '<li>Bez polozek</li>'
+    return `
+      <tr>
+        <td style="padding:0;font-size:15px;line-height:1.7;color:#6b6258">Bez polozek</td>
+      </tr>
+    `
   }
 
   return items
-    .map((item) => {
+    .map((item, index) => {
       const quantity = Math.max(1, Math.floor(toPositiveNumber(item.quantity) || 1))
       const extras = [sanitizeText(item.variant), sanitizeText(item.sku) ? `SKU ${sanitizeText(item.sku)}` : '']
         .filter(Boolean)
         .join(' | ')
 
-      return `<li style="margin:0 0 10px"><strong>${escapeHtml(sanitizeText(item.name) || 'Produkt')}</strong> x${quantity}${
-        extras ? ` <span style="color:#6b6258">(${escapeHtml(extras)})</span>` : ''
-      }<span style="float:right;font-weight:700">${escapeHtml(formatMoney(item.lineTotal, currency))}</span></li>`
+      return `
+        <tr>
+          <td style="padding:${index === items.length - 1 ? '0' : '0 0 14px'};border-bottom:${index === items.length - 1 ? '0' : '1px solid #efe6da'}">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+              <tr>
+                <td class="item-info-cell" style="padding:0 14px 0 0;vertical-align:top;font-size:15px;line-height:1.6;color:#2f2a24">
+                  <div style="font-weight:700;color:#111111">${escapeHtml(sanitizeText(item.name) || 'Produkt')}</div>
+                  <div style="margin-top:6px;font-size:13px;color:#6b6258">Mnozstvi: ${quantity}</div>
+                  ${extras ? `<div style="margin-top:4px;font-size:13px;color:#6b6258">${escapeHtml(extras)}</div>` : ''}
+                </td>
+                <td class="item-price-cell" align="right" valign="top" style="white-space:nowrap;font-size:15px;line-height:1.6;font-weight:700;color:#111111">
+                  ${escapeHtml(formatMoney(item.lineTotal, currency))}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      `
     })
     .join('')
 }
+
+const buildEmailStyles = () => `
+  <style>
+    @media only screen and (max-width: 620px) {
+      .email-shell {
+        padding: 16px 10px !important;
+      }
+
+      .email-card {
+        border-radius: 20px !important;
+      }
+
+      .hero-section {
+        padding: 28px 20px 24px !important;
+      }
+
+      .email-section {
+        padding: 24px 20px !important;
+      }
+
+      .hero-title {
+        font-size: 30px !important;
+        line-height: 1.15 !important;
+      }
+
+      .summary-cell,
+      .detail-cell,
+      .item-info-cell,
+      .item-price-cell {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+
+      .summary-cell {
+        padding-right: 0 !important;
+        padding-bottom: 12px !important;
+      }
+
+      .detail-cell {
+        padding-right: 0 !important;
+        padding-bottom: 16px !important;
+      }
+
+      .item-info-cell {
+        padding-right: 0 !important;
+        padding-bottom: 8px !important;
+      }
+
+      .item-price-cell {
+        text-align: left !important;
+        padding-top: 0 !important;
+      }
+    }
+  </style>
+`
 
 const getStatusCopy = (status: OrderCustomerEmailStatus, order: OrderStatusEmailDoc) => {
   if (status === 'canceled') {
@@ -316,16 +391,45 @@ const buildTextBody = (order: OrderStatusEmailDoc, status: OrderCustomerEmailSta
 
 const buildHtmlLines = (lines: string[]) =>
   lines.length
-    ? `<ul style="margin:0;padding-left:18px;color:#3f372f">${lines
-        .map((line) => `<li style="margin:0 0 8px">${escapeHtml(line)}</li>`)
-        .join('')}</ul>`
-    : '<p style="margin:0;color:#6b6258">-</p>'
+    ? `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+        ${lines
+          .map(
+            (line, index) => `
+              <tr>
+                <td style="padding:${index === lines.length - 1 ? '0' : '0 0 8px'};font-size:14px;line-height:1.7;color:#3f372f">
+                  ${escapeHtml(line)}
+                </td>
+              </tr>
+            `,
+          )
+          .join('')}
+      </table>
+    `
+    : '<div style="font-size:14px;line-height:1.7;color:#6b6258">-</div>'
 
 const buildSummaryCard = (label: string, value: string) => `
-  <div style="padding:14px 16px;border:1px solid #ede5da;border-radius:18px;background:#fffdf9">
-    <div style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#8a7a68;margin-bottom:6px">${escapeHtml(label)}</div>
-    <div style="font-size:18px;font-weight:700;color:#111111">${escapeHtml(value)}</div>
-  </div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;border:1px solid #ede5da;border-radius:18px;background:#fffdf9">
+    <tr>
+      <td style="padding:14px 16px">
+        <div style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#8a7a68;margin-bottom:6px">${escapeHtml(label)}</div>
+        <div style="font-size:18px;line-height:1.3;font-weight:700;color:#111111">${escapeHtml(value)}</div>
+      </td>
+    </tr>
+  </table>
+`
+
+const buildSectionCard = (title: string, body: string) => `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;border:1px solid #ede5da;border-radius:24px;background:#ffffff">
+    <tr>
+      <td style="padding:22px">
+        <h3 style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:21px;line-height:1.15;color:#111111">
+          ${escapeHtml(title)}
+        </h3>
+        ${body}
+      </td>
+    </tr>
+  </table>
 `
 
 const buildHtmlBody = (order: OrderStatusEmailDoc, status: OrderCustomerEmailStatus) => {
@@ -341,71 +445,110 @@ const buildHtmlBody = (order: OrderStatusEmailDoc, status: OrderCustomerEmailSta
   const heroText = status === 'canceled' ? '#fde9e4' : '#f5ede1'
 
   return `
-    <div style="margin:0;padding:32px 12px;background:linear-gradient(180deg,#f7f4ef 0%,#efe4d2 100%);font-family:Arial,sans-serif;color:#111111">
-      <div style="max-width:680px;margin:0 auto;background:#ffffff;border-radius:28px;overflow:hidden;box-shadow:0 18px 60px rgba(17,17,17,0.08)">
-        <div style="padding:36px 36px 28px;background:${heroBackground};color:#ffffff">
-          <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:${accentColor};margin-bottom:14px">Lumera</div>
-          <h1 style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:36px;line-height:1.05;font-weight:700">
-            ${escapeHtml(copy.title)}
-          </h1>
-          <p style="margin:0;font-size:16px;line-height:1.7;color:${heroText}">
-            ${escapeHtml(copy.hero)}
-          </p>
-        </div>
+    <!doctype html>
+    <html lang="cs">
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        ${buildEmailStyles()}
+      </head>
+      <body style="margin:0;padding:0;background:#f4ede3;font-family:Arial,sans-serif;color:#111111">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background:linear-gradient(180deg,#f7f4ef 0%,#efe4d2 100%)">
+          <tr>
+            <td class="email-shell" align="center" style="padding:32px 12px">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-card" style="width:100%;max-width:680px;background:#ffffff;border-radius:28px;overflow:hidden;box-shadow:0 18px 60px rgba(17,17,17,0.08)">
+                <tr>
+                  <td class="hero-section" style="padding:36px 36px 28px;background:${heroBackground};color:#ffffff">
+                    <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:${accentColor};margin-bottom:14px">Lumera</div>
+                    <h1 class="hero-title" style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:36px;line-height:1.05;font-weight:700;color:#ffffff">
+                      ${escapeHtml(copy.title)}
+                    </h1>
+                    <p style="margin:0;font-size:16px;line-height:1.7;color:${heroText}">
+                      ${escapeHtml(copy.hero)}
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="email-section" style="padding:32px 36px">
+                    <p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:#2f2a24">
+                      Dobry den, <strong>${escapeHtml(buildCustomerName(order))}</strong>,
+                    </p>
+                    <p style="margin:0 0 24px;font-size:15px;line-height:1.8;color:#4a433b">
+                      ${escapeHtml(copy.detail)}
+                    </p>
 
-        <div style="padding:32px 36px">
-          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:#2f2a24">
-            Dobry den, <strong>${escapeHtml(buildCustomerName(order))}</strong>,
-          </p>
-          <p style="margin:0 0 24px;font-size:15px;line-height:1.8;color:#4a433b">
-            ${escapeHtml(copy.detail)}
-          </p>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 24px">
+                      <tr>
+                        <td class="summary-cell" width="33.333%" style="padding:0 8px 12px 0;vertical-align:top">
+                          ${buildSummaryCard('Objednavka', sanitizeText(order.orderId) || '-')}
+                        </td>
+                        <td class="summary-cell" width="33.333%" style="padding:0 8px 12px;vertical-align:top">
+                          ${buildSummaryCard('Celkem', formatMoney(order.total, currency))}
+                        </td>
+                        <td class="summary-cell" width="33.333%" style="padding:0 0 12px 8px;vertical-align:top">
+                          ${buildSummaryCard('Doprava', sanitizeText(order.shipping?.label) || 'Upresnime e-mailem')}
+                        </td>
+                      </tr>
+                    </table>
 
-          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 24px">
-            ${buildSummaryCard('Objednavka', sanitizeText(order.orderId) || '-')}
-            ${buildSummaryCard('Celkem', formatMoney(order.total, currency))}
-            ${buildSummaryCard('Doprava', sanitizeText(order.shipping?.label) || 'Upresnime e-mailem')}
-          </div>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;border:1px solid #ede5da;border-radius:24px;background:#fffdf9;margin:0 0 20px">
+                      <tr>
+                        <td style="padding:24px">
+                          <h2 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:1.1;color:#111111">
+                            Objednane produkty
+                          </h2>
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+                            ${buildItemsHtml(order, currency)}
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
 
-          <div style="border:1px solid #ede5da;border-radius:24px;padding:24px;background:#fffdf9;margin-bottom:20px">
-            <h2 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:1.1;color:#111111">
-              Objednane produkty
-            </h2>
-            <ul style="margin:0;padding-left:20px;color:#2f2a24;line-height:1.8">
-              ${buildItemsHtml(order, currency)}
-            </ul>
-          </div>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 20px">
+                      <tr>
+                        <td class="detail-cell" width="50%" style="padding:0 8px 0 0;vertical-align:top">
+                          ${buildSectionCard('Doprava', buildHtmlLines(shippingLines))}
+                        </td>
+                        <td class="detail-cell" width="50%" style="padding:0 0 0 8px;vertical-align:top">
+                          ${buildSectionCard('Fakturacni udaje', buildHtmlLines(billingLines))}
+                        </td>
+                      </tr>
+                    </table>
 
-          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:20px">
-            <div style="border:1px solid #ede5da;border-radius:24px;padding:22px;background:#ffffff">
-              <h3 style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:21px;line-height:1.15;color:#111111">
-                Doprava
-              </h3>
-              ${buildHtmlLines(shippingLines)}
-            </div>
-            <div style="border:1px solid #ede5da;border-radius:24px;padding:22px;background:#ffffff">
-              <h3 style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:21px;line-height:1.15;color:#111111">
-                Fakturacni udaje
-              </h3>
-              ${buildHtmlLines(billingLines)}
-            </div>
-          </div>
-
-          <div style="border-radius:24px;padding:22px;background:#111111;color:#f5ede1">
-            <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#d7c29f;margin-bottom:10px">
-              Rekapitulace
-            </div>
-            <div style="display:grid;gap:8px;font-size:15px;line-height:1.7">
-              <div><strong>E-mail:</strong> ${escapeHtml(sanitizeText(order.customerEmail) || '-')}</div>
-              <div><strong>Telefon:</strong> ${escapeHtml(sanitizeText(order.customerPhone) || '-')}</div>
-              <div><strong>Mezisoucet:</strong> ${escapeHtml(formatMoney(order.subtotal, currency))}</div>
-              <div><strong>Doprava:</strong> ${escapeHtml(formatMoney(order.shippingTotal, currency))}</div>
-              <div><strong>Celkem:</strong> ${escapeHtml(formatMoney(order.total, currency))}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;border-radius:24px;background:#111111;color:#f5ede1">
+                      <tr>
+                        <td style="padding:22px">
+                          <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#d7c29f;margin-bottom:10px">
+                            Rekapitulace
+                          </div>
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:15px;line-height:1.7;color:#f5ede1">
+                            <tr>
+                              <td style="padding:0 0 8px"><strong>E-mail:</strong> ${escapeHtml(sanitizeText(order.customerEmail) || '-')}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding:0 0 8px"><strong>Telefon:</strong> ${escapeHtml(sanitizeText(order.customerPhone) || '-')}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding:0 0 8px"><strong>Mezisoucet:</strong> ${escapeHtml(formatMoney(order.subtotal, currency))}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding:0 0 8px"><strong>Doprava:</strong> ${escapeHtml(formatMoney(order.shippingTotal, currency))}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding:0"><strong>Celkem:</strong> ${escapeHtml(formatMoney(order.total, currency))}</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
   `
 }
 
