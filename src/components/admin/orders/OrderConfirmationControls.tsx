@@ -3,28 +3,48 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast, useDocumentInfo } from '@payloadcms/ui'
 
-type ConfirmationState = {
+type OrderDecisionState = {
   orderId?: string
   isConfirmed?: boolean
   confirmedAt?: string
   confirmationEmailSentAt?: string
+  isCanceled?: boolean
+  canceledAt?: string
+  cancellationEmailSentAt?: string
+  currentStatus?: 'pending' | 'confirmed' | 'canceled'
   alreadyConfirmed?: boolean
+  alreadyCanceled?: boolean
 }
 
-type EndpointResponse = ConfirmationState & {
+type EndpointResponse = OrderDecisionState & {
   error?: string
 }
 
-const readConfirmationState = (value: unknown): ConfirmationState => {
+const readOrderDecisionState = (value: unknown): OrderDecisionState => {
   const source = value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
+  const isConfirmed = source.isConfirmed === true
+  const isCanceled = source.isCanceled === true
 
   return {
     orderId: typeof source.orderId === 'string' ? source.orderId : '',
-    isConfirmed: source.isConfirmed === true,
+    isConfirmed,
     confirmedAt: typeof source.confirmedAt === 'string' ? source.confirmedAt : '',
     confirmationEmailSentAt:
       typeof source.confirmationEmailSentAt === 'string' ? source.confirmationEmailSentAt : '',
+    isCanceled,
+    canceledAt: typeof source.canceledAt === 'string' ? source.canceledAt : '',
+    cancellationEmailSentAt:
+      typeof source.cancellationEmailSentAt === 'string' ? source.cancellationEmailSentAt : '',
+    currentStatus:
+      source.currentStatus === 'confirmed' || source.currentStatus === 'canceled'
+        ? source.currentStatus
+        : isCanceled
+          ? 'canceled'
+          : isConfirmed
+            ? 'confirmed'
+            : 'pending',
     alreadyConfirmed: source.alreadyConfirmed === true,
+    alreadyCanceled: source.alreadyCanceled === true,
   }
 }
 
@@ -37,13 +57,25 @@ const formatTimestamp = (value: string | undefined) => {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString()
 }
 
+const getStatusLabel = (status: OrderDecisionState['currentStatus']) => {
+  if (status === 'canceled') {
+    return 'Canceled'
+  }
+
+  if (status === 'confirmed') {
+    return 'Accepted'
+  }
+
+  return 'Waiting for decision'
+}
+
 export default function OrderConfirmationControls() {
   const { data } = useDocumentInfo()
-  const [isBusy, setIsBusy] = useState(false)
-  const [confirmation, setConfirmation] = useState<ConfirmationState>(() => readConfirmationState(data))
+  const [busyAction, setBusyAction] = useState<'confirm' | 'cancel' | null>(null)
+  const [decision, setDecision] = useState<OrderDecisionState>(() => readOrderDecisionState(data))
 
   useEffect(() => {
-    setConfirmation(readConfirmationState(data))
+    setDecision(readOrderDecisionState(data))
   }, [data])
 
   const docId = useMemo(() => {
@@ -61,11 +93,11 @@ export default function OrderConfirmationControls() {
     return null
   }
 
-  const handleConfirm = async () => {
-    setIsBusy(true)
+  const handleAction = async (action: 'confirm' | 'cancel') => {
+    setBusyAction(action)
 
     try {
-      const response = await fetch(`/api/orders/${encodeURIComponent(docId)}/confirm`, {
+      const response = await fetch(`/api/orders/${encodeURIComponent(docId)}/${action}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,23 +107,28 @@ export default function OrderConfirmationControls() {
       const payload = (await response.json().catch(() => ({}))) as EndpointResponse
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Failed to confirm order.')
+        throw new Error(payload.error || `Failed to ${action} order.`)
       }
 
-      const nextConfirmation = readConfirmationState(payload)
-      setConfirmation(nextConfirmation)
-      toast.success(
-        nextConfirmation.alreadyConfirmed
-          ? 'Order was already confirmed.'
-          : 'Order confirmed and customer email sent.',
-      )
+      const nextDecision = readOrderDecisionState(payload)
+      setDecision(nextDecision)
+
+      if (action === 'confirm') {
+        toast.success(nextDecision.alreadyConfirmed ? 'Order was already accepted.' : 'Order accepted and email sent.')
+      } else {
+        toast.success(nextDecision.alreadyCanceled ? 'Order was already canceled.' : 'Order canceled and email sent.')
+      }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to confirm order.'
+      const message =
+        error instanceof Error ? error.message : action === 'confirm' ? 'Failed to accept order.' : 'Failed to cancel order.'
       toast.error(message)
     } finally {
-      setIsBusy(false)
+      setBusyAction(null)
     }
   }
+
+  const canConfirm = decision.isConfirmed !== true && decision.isCanceled !== true
+  const canCancel = decision.isCanceled !== true
 
   return (
     <div
@@ -105,49 +142,74 @@ export default function OrderConfirmationControls() {
       }}
     >
       <div style={{ display: 'grid', gap: 4 }}>
-        <strong style={{ fontSize: 14 }}>Order confirmation</strong>
+        <strong style={{ fontSize: 14 }}>Order status</strong>
         <span style={{ color: 'var(--theme-elevation-600)', fontSize: 13 }}>
-          Confirm the order and send the customer a branded email with the order summary.
+          Accept or cancel the order and notify the customer by email right away.
         </span>
       </div>
 
       <div style={{ display: 'grid', gap: 6, fontSize: 13 }}>
         <div>
-          <strong>Status:</strong> {confirmation.isConfirmed ? 'Confirmed' : 'Waiting for confirmation'}
+          <strong>Status:</strong> {getStatusLabel(decision.currentStatus)}
         </div>
-        {confirmation.orderId ? (
+        {decision.orderId ? (
           <div>
-            <strong>Order ID:</strong> {confirmation.orderId}
+            <strong>Order ID:</strong> {decision.orderId}
           </div>
         ) : null}
-        {confirmation.confirmedAt ? (
+        {decision.confirmedAt ? (
           <div>
-            <strong>Confirmed:</strong> {formatTimestamp(confirmation.confirmedAt)}
+            <strong>Accepted:</strong> {formatTimestamp(decision.confirmedAt)}
           </div>
         ) : null}
-        {confirmation.confirmationEmailSentAt ? (
+        {decision.canceledAt ? (
           <div>
-            <strong>Email sent:</strong> {formatTimestamp(confirmation.confirmationEmailSentAt)}
+            <strong>Canceled:</strong> {formatTimestamp(decision.canceledAt)}
           </div>
         ) : null}
       </div>
 
-      <button
-        type="button"
-        onClick={handleConfirm}
-        disabled={isBusy || confirmation.isConfirmed}
-        style={{
-          border: '1px solid transparent',
-          borderRadius: 999,
-          padding: '10px 16px',
-          background: isBusy || confirmation.isConfirmed ? 'var(--theme-elevation-150)' : '#111111',
-          color: isBusy || confirmation.isConfirmed ? 'var(--theme-elevation-700)' : '#ffffff',
-          cursor: isBusy || confirmation.isConfirmed ? 'not-allowed' : 'pointer',
-          fontWeight: 600,
-        }}
-      >
-        {isBusy ? 'Sending...' : confirmation.isConfirmed ? 'Order confirmed' : 'Confirm order'}
-      </button>
+      {decision.currentStatus === 'canceled' ? null : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          {canConfirm ? (
+            <button
+              type="button"
+              onClick={() => handleAction('confirm')}
+              disabled={busyAction !== null}
+              style={{
+                border: '1px solid transparent',
+                borderRadius: 999,
+                padding: '10px 16px',
+                background: busyAction !== null ? 'var(--theme-elevation-150)' : '#111111',
+                color: busyAction !== null ? 'var(--theme-elevation-700)' : '#ffffff',
+                cursor: busyAction !== null ? 'not-allowed' : 'pointer',
+                fontWeight: 600,
+              }}
+            >
+              {busyAction === 'confirm' ? 'Sending...' : 'Accept'}
+            </button>
+          ) : null}
+
+          {canCancel ? (
+            <button
+              type="button"
+              onClick={() => handleAction('cancel')}
+              disabled={busyAction !== null}
+              style={{
+                border: '1px solid #d8b2a8',
+                borderRadius: 999,
+                padding: '10px 16px',
+                background: busyAction !== null ? 'var(--theme-elevation-150)' : '#fff5f3',
+                color: busyAction !== null ? 'var(--theme-elevation-700)' : '#9f2d20',
+                cursor: busyAction !== null ? 'not-allowed' : 'pointer',
+                fontWeight: 600,
+              }}
+            >
+              {busyAction === 'cancel' ? 'Sending...' : 'Cancel'}
+            </button>
+          ) : null}
+        </div>
+      )}
     </div>
   )
 }

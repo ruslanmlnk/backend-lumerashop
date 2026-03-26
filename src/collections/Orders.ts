@@ -1,7 +1,7 @@
 import type { CollectionConfig, PayloadRequest } from 'payload'
 
 import { downloadPplOrderLabel, syncPplOrderLabel } from '@/lib/ppl-labels'
-import { confirmOrder } from '@/lib/orders'
+import { cancelOrder, confirmOrder } from '@/lib/orders'
 import { downloadZasilkovnaOrderLabel, syncZasilkovnaOrderLabel } from '@/lib/zasilkovna-labels'
 
 const hasAdminRole = (user: unknown) =>
@@ -45,7 +45,7 @@ export const Orders: CollectionConfig = {
   slug: 'orders',
   admin: {
     useAsTitle: 'orderId',
-    defaultColumns: ['orderId', 'paymentStatus', 'isConfirmed', 'provider', 'total', 'customerEmail', 'updatedAt'],
+    defaultColumns: ['orderId', 'paymentStatus', 'provider', 'total', 'customerEmail', 'updatedAt'],
   },
   endpoints: [
     {
@@ -66,6 +66,28 @@ export const Orders: CollectionConfig = {
           return Response.json(result)
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to confirm order.'
+          return Response.json({ error: message }, { status: 400 })
+        }
+      },
+    },
+    {
+      path: '/:id/cancel',
+      method: 'post',
+      handler: async (req) => {
+        if (!isAdminRequest(req)) {
+          return Response.json({ error: 'Forbidden.' }, { status: 403 })
+        }
+
+        try {
+          const result = await cancelOrder(req.payload, parseOrderDocId(req))
+
+          if (!result) {
+            return Response.json({ error: 'Order not found.' }, { status: 404 })
+          }
+
+          return Response.json(result)
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to cancel order.'
           return Response.json({ error: message }, { status: 400 })
         }
       },
@@ -238,6 +260,30 @@ export const Orders: CollectionConfig = {
           name: 'confirmationEmailSentAt',
           type: 'date',
           label: 'Confirmation email sent at',
+          admin: readOnlyAdmin,
+        },
+        {
+          name: 'isCanceled',
+          type: 'checkbox',
+          label: 'Order canceled',
+          defaultValue: false,
+          admin: readOnlyAdmin,
+        },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'canceledAt',
+          type: 'date',
+          label: 'Canceled at',
+          admin: readOnlyAdmin,
+        },
+        {
+          name: 'cancellationEmailSentAt',
+          type: 'date',
+          label: 'Cancellation email sent at',
           admin: readOnlyAdmin,
         },
       ],

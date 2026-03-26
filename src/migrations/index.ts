@@ -6,6 +6,7 @@ import * as migration_20260323_090000_add_catalog_filter_visibility from './2026
 import * as migration_20260325_080952 from './20260325_080952';
 import * as migration_20260325_120000_add_cash_on_delivery_and_order_notifications from './20260325_120000_add_cash_on_delivery_and_order_notifications';
 import * as migration_20260326_000000_add_order_confirmation_fields from './20260326_000000_add_order_confirmation_fields';
+import * as migration_20260326_010000_add_order_cancellation_fields from './20260326_010000_add_order_cancellation_fields';
 
 export const migrations = [
   {
@@ -47,5 +48,10 @@ export const migrations = [
     up: migration_20260326_000000_add_order_confirmation_fields.up,
     down: migration_20260326_000000_add_order_confirmation_fields.down,
     name: '20260326_000000_add_order_confirmation_fields',
+  },
+  {
+    up: migration_20260326_010000_add_order_cancellation_fields.up,
+    down: migration_20260326_010000_add_order_cancellation_fields.down,
+    name: '20260326_010000_add_order_cancellation_fields',
   },
 ];

@@ -1,7 +1,10 @@
 import type { Payload } from 'payload'
 
 import { normalizeDocumentId } from '@/lib/commerce'
-import { sendOrderConfirmedEmailToCustomer } from '@/lib/customer-order-confirmation-email'
+import {
+  sendOrderCanceledEmailToCustomer,
+  sendOrderConfirmedEmailToCustomer,
+} from '@/lib/customer-order-confirmation-email'
 import { notifyAdminAboutOrder } from '@/lib/order-notifications'
 
 export type OrderPaymentProvider = 'stripe' | 'global-payments' | 'cash-on-delivery'
@@ -96,12 +99,17 @@ export type InternalOrderUpdateInput = {
   providerResponse?: unknown
 }
 
-export type OrderConfirmationSummary = {
+export type OrderDecisionSummary = {
   orderId: string
   isConfirmed: boolean
   confirmedAt: string
   confirmationEmailSentAt: string
+  isCanceled: boolean
+  canceledAt: string
+  cancellationEmailSentAt: string
+  currentStatus: 'pending' | 'confirmed' | 'canceled'
   alreadyConfirmed: boolean
+  alreadyCanceled: boolean
 }
 
 type InternalPickupPointInput = NonNullable<NonNullable<InternalOrderCreateInput['shipping']>['pickupPoint']>
@@ -123,6 +131,9 @@ type PayloadOrderDoc = {
   isConfirmed?: boolean | null
   confirmedAt?: string | null
   confirmationEmailSentAt?: string | null
+  isCanceled?: boolean | null
+  canceledAt?: string | null
+  cancellationEmailSentAt?: string | null
   purchaseCountRecorded?: boolean | null
   bonusLedgerRecorded?: boolean | null
   shippingAddress?: {
@@ -322,15 +333,32 @@ const resolvePaymentStatus = (
   return nextStatus
 }
 
-const getOrderConfirmationSummary = (
+const getCurrentOrderStatus = (order: PayloadOrderDoc): OrderDecisionSummary['currentStatus'] => {
+  if (order.isCanceled === true) {
+    return 'canceled'
+  }
+
+  if (order.isConfirmed === true) {
+    return 'confirmed'
+  }
+
+  return 'pending'
+}
+
+const getOrderDecisionSummary = (
   order: PayloadOrderDoc,
-  alreadyConfirmed = order.isConfirmed === true,
-): OrderConfirmationSummary => ({
+  overrides?: Partial<Pick<OrderDecisionSummary, 'alreadyConfirmed' | 'alreadyCanceled'>>,
+): OrderDecisionSummary => ({
   orderId: order.orderId || '',
   isConfirmed: order.isConfirmed === true,
   confirmedAt: sanitizeString(order.confirmedAt),
   confirmationEmailSentAt: sanitizeString(order.confirmationEmailSentAt),
-  alreadyConfirmed,
+  isCanceled: order.isCanceled === true,
+  canceledAt: sanitizeString(order.canceledAt),
+  cancellationEmailSentAt: sanitizeString(order.cancellationEmailSentAt),
+  currentStatus: getCurrentOrderStatus(order),
+  alreadyConfirmed: overrides?.alreadyConfirmed === true,
+  alreadyCanceled: overrides?.alreadyCanceled === true,
 })
 
 const sendOrderNotificationSafely = async (
@@ -640,14 +668,18 @@ export const updateOrder = async (payload: Payload, orderId: string, input: Inte
 export const confirmOrder = async (
   payload: Payload,
   documentId: number | string,
-): Promise<OrderConfirmationSummary | null> => {
+): Promise<OrderDecisionSummary | null> => {
   const existing = await findOrderByDocumentId(payload, documentId)
   if (!existing) {
     return null
   }
 
+  if (existing.isCanceled === true) {
+    throw new Error('Canceled orders cannot be accepted.')
+  }
+
   if (existing.isConfirmed === true) {
-    return getOrderConfirmationSummary(existing, true)
+    return getOrderDecisionSummary(existing, { alreadyConfirmed: true })
   }
 
   if (!sanitizeString(existing.customerEmail)) {
@@ -669,5 +701,40 @@ export const confirmOrder = async (
     } as never,
   })
 
-  return getOrderConfirmationSummary(updated as PayloadOrderDoc, false)
+  return getOrderDecisionSummary(updated as PayloadOrderDoc)
+}
+
+export const cancelOrder = async (
+  payload: Payload,
+  documentId: number | string,
+): Promise<OrderDecisionSummary | null> => {
+  const existing = await findOrderByDocumentId(payload, documentId)
+  if (!existing) {
+    return null
+  }
+
+  if (existing.isCanceled === true) {
+    return getOrderDecisionSummary(existing, { alreadyCanceled: true })
+  }
+
+  if (!sanitizeString(existing.customerEmail)) {
+    throw new Error('Order is missing customer email.')
+  }
+
+  await sendOrderCanceledEmailToCustomer(existing)
+
+  const timestamp = new Date().toISOString()
+  const updated = await payload.update({
+    collection: 'orders' as never,
+    id: existing.id,
+    depth: 0,
+    overrideAccess: true,
+    data: {
+      isCanceled: true,
+      canceledAt: timestamp,
+      cancellationEmailSentAt: timestamp,
+    } as never,
+  })
+
+  return getOrderDecisionSummary(updated as PayloadOrderDoc)
 }

@@ -1,6 +1,8 @@
 import nodemailer from 'nodemailer'
 
-type OrderConfirmationEmailDoc = {
+export type OrderCustomerEmailStatus = 'confirmed' | 'canceled'
+
+type OrderStatusEmailDoc = {
   orderId?: string | null
   provider?: string | null
   paymentStatus?: string | null
@@ -43,7 +45,6 @@ type OrderConfirmationEmailDoc = {
     | Array<{
         name?: string | null
         quantity?: number | null
-        unitPrice?: number | null
         lineTotal?: number | null
         sku?: string | null
         variant?: string | null
@@ -127,10 +128,10 @@ const formatMoney = (value: unknown, currency: string) =>
     maximumFractionDigits: 2,
   }).format(toPositiveNumber(value))
 
-const buildCustomerName = (order: OrderConfirmationEmailDoc) =>
+const buildCustomerName = (order: OrderStatusEmailDoc) =>
   [sanitizeText(order.customerFirstName), sanitizeText(order.customerLastName)].filter(Boolean).join(' ') || 'Zakazniku'
 
-const buildShippingLines = (order: OrderConfirmationEmailDoc) => {
+const buildShippingLines = (order: OrderStatusEmailDoc) => {
   const lines = [
     sanitizeText(order.shipping?.label),
     order.shipping?.cashOnDelivery ? 'Platba probiha pri prevzeti zasilky.' : '',
@@ -165,7 +166,7 @@ const buildShippingLines = (order: OrderConfirmationEmailDoc) => {
   return lines
 }
 
-const buildBillingLines = (order: OrderConfirmationEmailDoc) => {
+const buildBillingLines = (order: OrderStatusEmailDoc) => {
   if (order.billing?.sameAsShipping) {
     return ['Fakturacni adresa je stejna jako dorucovaci.']
   }
@@ -193,7 +194,7 @@ const buildBillingLines = (order: OrderConfirmationEmailDoc) => {
   return [person, company, addressLine].filter(Boolean)
 }
 
-const buildItemsText = (order: OrderConfirmationEmailDoc, currency: string) => {
+const buildItemsText = (order: OrderStatusEmailDoc, currency: string) => {
   const items = Array.isArray(order.items) ? order.items : []
 
   if (items.length === 0) {
@@ -215,7 +216,7 @@ const buildItemsText = (order: OrderConfirmationEmailDoc, currency: string) => {
     .join('\n')
 }
 
-const buildItemsHtml = (order: OrderConfirmationEmailDoc, currency: string) => {
+const buildItemsHtml = (order: OrderStatusEmailDoc, currency: string) => {
   const items = Array.isArray(order.items) ? order.items : []
 
   if (items.length === 0) {
@@ -236,28 +237,60 @@ const buildItemsHtml = (order: OrderConfirmationEmailDoc, currency: string) => {
     .join('')
 }
 
-const buildPaymentNote = (order: OrderConfirmationEmailDoc) => {
+const getStatusCopy = (status: OrderCustomerEmailStatus, order: OrderStatusEmailDoc) => {
+  if (status === 'canceled') {
+    return {
+      title: 'Objednavka zrusena',
+      hero: 'Vasi objednavku jsme zrusili.',
+      intro: 'vasi objednavku jsme zrusili.',
+      detail:
+        order.paymentStatus === 'paid'
+          ? 'Pokud uz byla platba provedena, ozveme se vam s dalsim postupem ohledne vraceni platby.'
+          : 'Pokud budete chtit vytvorit novou objednavku, staci se vratit zpet na web a objednat znovu.',
+      subject: `Lumera: objednavka ${sanitizeText(order.orderId) || ''} byla zrusena`,
+    }
+  }
+
   if (order.provider === 'cash-on-delivery' || order.shipping?.cashOnDelivery) {
-    return 'Zvolili jste dobirku. Uhradu provedete pri prevzeti zasilky.'
+    return {
+      title: 'Objednavka prijata',
+      hero: 'Vasi objednavku jsme prijali a nyni ji pripravujeme k odeslani.',
+      intro: 'vasi objednavku jsme uspesne prijali.',
+      detail: 'Zvolili jste dobirku. Uhradu provedete pri prevzeti zasilky.',
+      subject: `Lumera: objednavka ${sanitizeText(order.orderId) || ''} byla prijata`,
+    }
   }
 
   if (order.paymentStatus === 'paid') {
-    return 'Platba byla prijata a objednavka je pripravena k dalsimu zpracovani.'
+    return {
+      title: 'Objednavka prijata',
+      hero: 'Vasi objednavku jsme prijali a nyni ji pripravujeme k odeslani.',
+      intro: 'vasi objednavku jsme uspesne prijali.',
+      detail: 'Platba byla prijata a objednavka je pripravena k dalsimu zpracovani.',
+      subject: `Lumera: objednavka ${sanitizeText(order.orderId) || ''} byla prijata`,
+    }
   }
 
-  return 'Objednavku jsme potvrdili a budeme ji dale zpracovavat podle zvolene platby a dopravy.'
+  return {
+    title: 'Objednavka prijata',
+    hero: 'Vasi objednavku jsme prijali a nyni ji pripravujeme k odeslani.',
+    intro: 'vasi objednavku jsme uspesne prijali.',
+    detail: 'Objednavku jsme prijali a budeme ji dale zpracovavat podle zvolene platby a dopravy.',
+    subject: `Lumera: objednavka ${sanitizeText(order.orderId) || ''} byla prijata`,
+  }
 }
 
-const buildTextBody = (order: OrderConfirmationEmailDoc) => {
+const buildTextBody = (order: OrderStatusEmailDoc, status: OrderCustomerEmailStatus) => {
   const currency = sanitizeText(order.currency) || 'CZK'
   const shippingLines = buildShippingLines(order).join('\n')
   const billingLines = buildBillingLines(order).join('\n')
+  const copy = getStatusCopy(status, order)
 
   return [
     `Dobry den, ${buildCustomerName(order)},`,
     '',
-    'vasi objednavku jsme uspesne potvrdili.',
-    buildPaymentNote(order),
+    copy.intro,
+    copy.detail,
     '',
     `Cislo objednavky: ${sanitizeText(order.orderId) || '-'}`,
     `E-mail: ${sanitizeText(order.customerEmail) || '-'}`,
@@ -295,21 +328,28 @@ const buildSummaryCard = (label: string, value: string) => `
   </div>
 `
 
-const buildHtmlBody = (order: OrderConfirmationEmailDoc) => {
+const buildHtmlBody = (order: OrderStatusEmailDoc, status: OrderCustomerEmailStatus) => {
   const currency = sanitizeText(order.currency) || 'CZK'
   const shippingLines = buildShippingLines(order)
   const billingLines = buildBillingLines(order)
+  const copy = getStatusCopy(status, order)
+  const heroBackground =
+    status === 'canceled'
+      ? 'linear-gradient(135deg,#3a1515 0%,#6e2626 100%)'
+      : 'linear-gradient(135deg,#111111 0%,#2d241b 100%)'
+  const accentColor = status === 'canceled' ? '#efb4aa' : '#d7c29f'
+  const heroText = status === 'canceled' ? '#fde9e4' : '#f5ede1'
 
   return `
     <div style="margin:0;padding:32px 12px;background:linear-gradient(180deg,#f7f4ef 0%,#efe4d2 100%);font-family:Arial,sans-serif;color:#111111">
       <div style="max-width:680px;margin:0 auto;background:#ffffff;border-radius:28px;overflow:hidden;box-shadow:0 18px 60px rgba(17,17,17,0.08)">
-        <div style="padding:36px 36px 28px;background:linear-gradient(135deg,#111111 0%,#2d241b 100%);color:#ffffff">
-          <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#d7c29f;margin-bottom:14px">Lumera</div>
+        <div style="padding:36px 36px 28px;background:${heroBackground};color:#ffffff">
+          <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:${accentColor};margin-bottom:14px">Lumera</div>
           <h1 style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:36px;line-height:1.05;font-weight:700">
-            Objednavka potvrzena
+            ${escapeHtml(copy.title)}
           </h1>
-          <p style="margin:0;font-size:16px;line-height:1.7;color:#f5ede1">
-            Vase objednavka byla potvrzena a nyni ji pripravujeme k odeslani.
+          <p style="margin:0;font-size:16px;line-height:1.7;color:${heroText}">
+            ${escapeHtml(copy.hero)}
           </p>
         </div>
 
@@ -318,7 +358,7 @@ const buildHtmlBody = (order: OrderConfirmationEmailDoc) => {
             Dobry den, <strong>${escapeHtml(buildCustomerName(order))}</strong>,
           </p>
           <p style="margin:0 0 24px;font-size:15px;line-height:1.8;color:#4a433b">
-            ${escapeHtml(buildPaymentNote(order))}
+            ${escapeHtml(copy.detail)}
           </p>
 
           <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 24px">
@@ -369,7 +409,10 @@ const buildHtmlBody = (order: OrderConfirmationEmailDoc) => {
   `
 }
 
-export const sendOrderConfirmedEmailToCustomer = async (order: OrderConfirmationEmailDoc) => {
+export const sendOrderStatusEmailToCustomer = async (
+  order: OrderStatusEmailDoc,
+  status: OrderCustomerEmailStatus,
+) => {
   const config = getMailConfig()
   if (!config) {
     throw new Error('SMTP is not configured for customer emails.')
@@ -381,11 +424,19 @@ export const sendOrderConfirmedEmailToCustomer = async (order: OrderConfirmation
   }
 
   const transport = getTransporter(config)
+  const copy = getStatusCopy(status, order)
+
   await transport.sendMail({
     from: config.from,
     to: recipient,
-    subject: `Lumera: objednavka ${sanitizeText(order.orderId) || ''} je potvrzena`,
-    text: buildTextBody(order),
-    html: buildHtmlBody(order),
+    subject: copy.subject,
+    text: buildTextBody(order, status),
+    html: buildHtmlBody(order, status),
   })
 }
+
+export const sendOrderConfirmedEmailToCustomer = (order: OrderStatusEmailDoc) =>
+  sendOrderStatusEmailToCustomer(order, 'confirmed')
+
+export const sendOrderCanceledEmailToCustomer = (order: OrderStatusEmailDoc) =>
+  sendOrderStatusEmailToCustomer(order, 'canceled')
