@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useEffectEvent, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast, useDocumentInfo } from '@payloadcms/ui'
 
 type OrderDecisionState = {
@@ -93,8 +93,10 @@ export default function OrderConfirmationControls() {
   const [isRefreshingDecision, setIsRefreshingDecision] = useState(false)
   const [hasLoadedPersistedDecision, setHasLoadedPersistedDecision] = useState(false)
   const [decision, setDecision] = useState<OrderDecisionState>(() => readOrderDecisionState(data))
+  const dataRef = useRef(data)
 
   useEffect(() => {
+    dataRef.current = data
     setDecision(readOrderDecisionState(data))
   }, [data])
 
@@ -109,27 +111,24 @@ export default function OrderConfirmationControls() {
     return ''
   }, [data])
 
-  const applyDecision = useEffectEvent((nextDecision: OrderDecisionState) => {
+  const applyDecision = (nextDecision: OrderDecisionState) => {
     setDecision(nextDecision)
 
     if (typeof setData === 'function') {
-      const nextData = mergeDecisionIntoDocument(data, nextDecision)
+      const nextData = mergeDecisionIntoDocument(dataRef.current, nextDecision)
 
       if (nextData && typeof nextData === 'object') {
+        dataRef.current = nextData
         setData(nextData)
       }
     }
-  })
+  }
 
-  const refreshDecision = useEffectEvent(async () => {
-    if (!docId) {
-      return
-    }
-
+  const refreshDecision = async (targetDocId: string) => {
     setIsRefreshingDecision(true)
 
     try {
-      const response = await fetch(`/api/orders/${encodeURIComponent(docId)}/decision`, {
+      const response = await fetch(`/api/orders/${encodeURIComponent(targetDocId)}/decision`, {
         method: 'GET',
         cache: 'no-store',
       })
@@ -147,7 +146,7 @@ export default function OrderConfirmationControls() {
       setIsRefreshingDecision(false)
       setHasLoadedPersistedDecision(true)
     }
-  })
+  }
 
   useEffect(() => {
     if (!docId) {
@@ -155,8 +154,8 @@ export default function OrderConfirmationControls() {
     }
 
     setHasLoadedPersistedDecision(false)
-    void refreshDecision()
-  }, [docId, refreshDecision])
+    void refreshDecision(docId)
+  }, [docId])
 
   if (!docId) {
     return null
@@ -182,7 +181,7 @@ export default function OrderConfirmationControls() {
       const nextDecision = readOrderDecisionState(payload)
       applyDecision(nextDecision)
       setHasLoadedPersistedDecision(true)
-      void refreshDecision()
+      void refreshDecision(docId)
 
       if (action === 'confirm') {
         toast.success(nextDecision.alreadyConfirmed ? 'Order was already accepted.' : 'Order accepted and email sent.')
