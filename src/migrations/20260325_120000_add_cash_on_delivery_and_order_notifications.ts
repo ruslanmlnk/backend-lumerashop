@@ -24,7 +24,7 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
     WHERE "shipping_cash_on_delivery" IS DISTINCT FROM true
       AND (
         "shipping_method_id"::text LIKE '%-cod'
-        OR "provider" = 'cash-on-delivery'
+        OR LOWER(COALESCE("provider"::text, '')) = 'cash-on-delivery'
       );
   `)
 }
