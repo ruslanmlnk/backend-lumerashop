@@ -1,7 +1,7 @@
 import type { CollectionConfig, Where } from 'payload'
 import { slugField } from 'payload'
 
-const requireUploadedImage = (value: unknown) => {
+const requireUploadedMedia = (value: unknown) => {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return true
   }
@@ -14,7 +14,7 @@ const requireUploadedImage = (value: unknown) => {
     return true
   }
 
-  return 'Upload an image.'
+  return 'Upload a media file.'
 }
 
 export const Products: CollectionConfig = {
@@ -174,20 +174,23 @@ export const Products: CollectionConfig = {
       hasMany: false,
       relationTo: 'media',
       label: 'Main image',
-      validate: requireUploadedImage,
+      validate: requireUploadedMedia,
     },
     {
       name: 'gallery',
       type: 'array',
-      label: 'Gallery',
+      label: 'Gallery media',
+      admin: {
+        description: 'Add images or videos shown in the product gallery on the storefront.',
+      },
       fields: [
         {
           name: 'image',
           type: 'upload',
           hasMany: false,
           relationTo: 'media',
-          label: 'Image',
-          validate: requireUploadedImage,
+          label: 'Media',
+          validate: requireUploadedMedia,
         },
       ],
     },

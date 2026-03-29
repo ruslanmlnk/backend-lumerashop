@@ -5,6 +5,12 @@ export interface ProductFilterValue {
   optionSlug?: string
 }
 
+export interface ProductMedia {
+  type: 'image' | 'video'
+  url: string
+  alt?: string
+}
+
 export interface Product {
   id: string
   name: string
@@ -21,6 +27,7 @@ export interface Product {
   descriptionHtml?: string
   shortDescription?: string
   gallery?: string[]
+  mediaGallery?: ProductMedia[]
   specifications?: Record<string, string>
   filterValues?: ProductFilterValue[]
   highlights?: string[]
