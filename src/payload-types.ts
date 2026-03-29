@@ -440,6 +440,9 @@ export interface Product {
   categoryGroup?: (number | null) | CategoryGroup;
   subcategories?: (number | Subcategory)[] | null;
   mainImage?: (number | null) | Media;
+  /**
+   * Add images or videos shown in the product gallery on the storefront.
+   */
   gallery?:
     | {
         image?: (number | null) | Media;
@@ -554,8 +557,14 @@ export interface Coupon {
 export interface Order {
   id: number;
   orderId: string;
-  provider: 'stripe' | 'global-payments';
+  provider: 'stripe' | 'global-payments' | 'cash-on-delivery';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'canceled';
+  isConfirmed?: boolean | null;
+  confirmedAt?: string | null;
+  confirmationEmailSentAt?: string | null;
+  isCanceled?: boolean | null;
+  canceledAt?: string | null;
+  cancellationEmailSentAt?: string | null;
   user?: (number | null) | User;
   customerEmail: string;
   customerPhone?: string | null;
@@ -598,6 +607,7 @@ export interface Order {
     methodId?: string | null;
     label?: string | null;
     price?: number | null;
+    cashOnDelivery?: boolean | null;
     pickupCarrier?: string | null;
     pickupPointId?: string | null;
     pickupPointCode?: string | null;
@@ -706,6 +716,7 @@ export interface ShippingMethod {
     | 'personal-pickup';
   price: number;
   isActive?: boolean | null;
+  cashOnDelivery?: boolean | null;
   sortOrder?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -1102,6 +1113,12 @@ export interface OrdersSelect<T extends boolean = true> {
   orderId?: T;
   provider?: T;
   paymentStatus?: T;
+  isConfirmed?: T;
+  confirmedAt?: T;
+  confirmationEmailSentAt?: T;
+  isCanceled?: T;
+  canceledAt?: T;
+  cancellationEmailSentAt?: T;
   user?: T;
   customerEmail?: T;
   customerPhone?: T;
@@ -1152,6 +1169,7 @@ export interface OrdersSelect<T extends boolean = true> {
         methodId?: T;
         label?: T;
         price?: T;
+        cashOnDelivery?: T;
         pickupCarrier?: T;
         pickupPointId?: T;
         pickupPointCode?: T;
@@ -1228,6 +1246,7 @@ export interface ShippingMethodsSelect<T extends boolean = true> {
   methodId?: T;
   price?: T;
   isActive?: T;
+  cashOnDelivery?: T;
   sortOrder?: T;
   updatedAt?: T;
   createdAt?: T;

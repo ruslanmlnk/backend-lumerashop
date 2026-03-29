@@ -341,16 +341,20 @@ function parseListNode(element: Element): LexicalListNode | null {
 
 function parseBlockNodes(parent: ParentNode): LexicalBlockNode[] {
   const blocks: LexicalBlockNode[] = []
+  let inlineBuffer: LexicalInlineNode[] = []
+
+  const flushInlineBuffer = () => {
+    const paragraph = createParagraphNode(trimInlineChildren(inlineBuffer))
+    inlineBuffer = []
+
+    if (paragraph) {
+      blocks.push(paragraph)
+    }
+  }
 
   for (const child of Array.from(parent.childNodes)) {
     if (child.nodeType === child.TEXT_NODE) {
-      const textNode = createTextNode(child.textContent ?? '')
-      if (textNode) {
-        const paragraph = createParagraphNode([textNode])
-        if (paragraph) {
-          blocks.push(paragraph)
-        }
-      }
+      inlineBuffer.push(...parseInlineNode(child))
       continue
     }
 
@@ -362,6 +366,7 @@ function parseBlockNodes(parent: ParentNode): LexicalBlockNode[] {
     const tag = element.tagName.toLowerCase()
 
     if (tag === 'p') {
+      flushInlineBuffer()
       const paragraph = createParagraphNode(parseInlineChildren(element))
       if (paragraph) {
         blocks.push(paragraph)
@@ -370,6 +375,7 @@ function parseBlockNodes(parent: ParentNode): LexicalBlockNode[] {
     }
 
     if (/^h[1-6]$/.test(tag)) {
+      flushInlineBuffer()
       const heading = createHeadingNode(tag as LexicalHeadingNode['tag'], parseInlineChildren(element))
       if (heading) {
         blocks.push(heading)
@@ -378,6 +384,7 @@ function parseBlockNodes(parent: ParentNode): LexicalBlockNode[] {
     }
 
     if (tag === 'ul' || tag === 'ol') {
+      flushInlineBuffer()
       const list = parseListNode(element)
       if (list) {
         blocks.push(list)
@@ -386,6 +393,7 @@ function parseBlockNodes(parent: ParentNode): LexicalBlockNode[] {
     }
 
     if (tag === 'blockquote') {
+      flushInlineBuffer()
       const quote = createQuoteNode(parseInlineChildren(element))
       if (quote) {
         blocks.push(quote)
@@ -394,20 +402,21 @@ function parseBlockNodes(parent: ParentNode): LexicalBlockNode[] {
     }
 
     if (tag === 'section' || tag === 'article' || tag === 'div') {
+      flushInlineBuffer()
       blocks.push(...parseBlockNodes(element))
       continue
     }
 
     if (INLINE_ELEMENT_TAGS.has(tag) || tag === 'a') {
-      const paragraph = createParagraphNode(parseInlineChildren(element))
-      if (paragraph) {
-        blocks.push(paragraph)
-      }
+      inlineBuffer.push(...parseInlineNode(element))
       continue
     }
 
+    flushInlineBuffer()
     blocks.push(...parseBlockNodes(element))
   }
+
+  flushInlineBuffer()
 
   return blocks
 }

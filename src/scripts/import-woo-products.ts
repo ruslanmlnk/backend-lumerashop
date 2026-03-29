@@ -7,6 +7,7 @@ import path from 'node:path'
 
 import { getPayload } from 'payload'
 
+import { convertHtmlToLexicalDocument } from '../lib/html-to-lexical'
 import config from '../payload.config'
 
 type CSVRow = Record<string, string>
@@ -457,6 +458,16 @@ const resolveDescription = (row: CSVRow) => {
   return stripHtml(cleanString(row.post_content))
 }
 
+const resolveDescriptionContent = (row: CSVRow) => {
+  const html = cleanString(row.post_content)
+
+  if (!stripHtml(html)) {
+    return undefined
+  }
+
+  return convertHtmlToLexicalDocument(html)
+}
+
 const getProductStatus = (wooStatus: string) => {
   return normalizeLabel(wooStatus) === 'publikovano' ? 'published' : 'draft'
 }
@@ -891,6 +902,7 @@ async function importWooProducts() {
       const specifications = buildSpecifications(row)
       const shortDescription = resolveShortDescription(row)
       const description = resolveDescription(row)
+      const descriptionContent = resolveDescriptionContent(row)
       const purchaseCount = parseInteger(cleanString(row['meta:total_sales'])) ?? 0
       const status = getProductStatus(cleanString(row.post_status))
       const existingProduct = productCache.get(slug)
@@ -908,6 +920,7 @@ async function importWooProducts() {
         stockStatus: getStockStatus(row),
         shortDescription: shortDescription || undefined,
         description: description || undefined,
+        descriptionContent,
         category: categoryDoc.id,
         categoryGroup: categoryGroupDoc?.id,
         subcategories: primarySubcategoryDoc ? [primarySubcategoryDoc.id] : [],
