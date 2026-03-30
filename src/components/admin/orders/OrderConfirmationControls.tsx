@@ -264,7 +264,8 @@ export default function OrderConfirmationControls() {
 
   const canConfirm = decision.isConfirmed !== true && decision.isCanceled !== true
   const canCancel = decision.isCanceled !== true
-  const isBusy = busyAction !== null || isRefreshingDecision
+  const isDecisionBusy = busyAction !== null || isRefreshingDecision
+  const isInvoiceBusy = busyAction !== null
   const shouldShowActions = hasLoadedPersistedDecision && decision.currentStatus !== 'canceled'
 
   return (
@@ -309,20 +310,39 @@ export default function OrderConfirmationControls() {
         ) : null}
       </div>
 
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        <button
+          type="button"
+          onClick={handleInvoiceDownload}
+          disabled={isInvoiceBusy}
+          style={{
+            border: '1px solid var(--theme-elevation-300)',
+            borderRadius: 999,
+            padding: '10px 16px',
+            background: isInvoiceBusy ? 'var(--theme-elevation-150)' : 'var(--theme-elevation-0)',
+            color: 'var(--theme-text)',
+            cursor: isInvoiceBusy ? 'not-allowed' : 'pointer',
+            fontWeight: 600,
+          }}
+        >
+          {busyAction === 'invoice' ? 'Generating...' : 'Generate Invoice PDF'}
+        </button>
+      </div>
+
       {shouldShowActions ? (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           {canConfirm ? (
             <button
               type="button"
               onClick={() => handleAction('confirm')}
-              disabled={isBusy}
+              disabled={isDecisionBusy}
               style={{
                 border: '1px solid transparent',
                 borderRadius: 999,
                 padding: '10px 16px',
-                background: isBusy ? 'var(--theme-elevation-150)' : '#111111',
-                color: isBusy ? 'var(--theme-elevation-700)' : '#ffffff',
-                cursor: isBusy ? 'not-allowed' : 'pointer',
+                background: isDecisionBusy ? 'var(--theme-elevation-150)' : '#111111',
+                color: isDecisionBusy ? 'var(--theme-elevation-700)' : '#ffffff',
+                cursor: isDecisionBusy ? 'not-allowed' : 'pointer',
                 fontWeight: 600,
               }}
             >
@@ -334,37 +354,20 @@ export default function OrderConfirmationControls() {
             <button
               type="button"
               onClick={() => handleAction('cancel')}
-              disabled={isBusy}
+              disabled={isDecisionBusy}
               style={{
                 border: '1px solid #d8b2a8',
                 borderRadius: 999,
                 padding: '10px 16px',
-                background: isBusy ? 'var(--theme-elevation-150)' : '#fff5f3',
-                color: isBusy ? 'var(--theme-elevation-700)' : '#9f2d20',
-                cursor: isBusy ? 'not-allowed' : 'pointer',
+                background: isDecisionBusy ? 'var(--theme-elevation-150)' : '#fff5f3',
+                color: isDecisionBusy ? 'var(--theme-elevation-700)' : '#9f2d20',
+                cursor: isDecisionBusy ? 'not-allowed' : 'pointer',
                 fontWeight: 600,
               }}
             >
               {busyAction === 'cancel' ? 'Sending...' : isRefreshingDecision ? 'Refreshing...' : 'Cancel'}
             </button>
           ) : null}
-
-          <button
-            type="button"
-            onClick={handleInvoiceDownload}
-            disabled={isBusy}
-            style={{
-              border: '1px solid var(--theme-elevation-300)',
-              borderRadius: 999,
-              padding: '10px 16px',
-              background: isBusy ? 'var(--theme-elevation-150)' : 'var(--theme-elevation-0)',
-              color: 'var(--theme-text)',
-              cursor: isBusy ? 'not-allowed' : 'pointer',
-              fontWeight: 600,
-            }}
-          >
-            {busyAction === 'invoice' ? 'Generating...' : isRefreshingDecision ? 'Refreshing...' : 'Generate Invoice PDF'}
-          </button>
         </div>
       ) : null}
     </div>

@@ -98,6 +98,10 @@ type InvoiceLine = {
   taxRateLabel: string
   taxAmount: string
   grossLineTotal: string
+  grossAmountRaw: number
+  netAmountRaw: number
+  taxAmountRaw: number
+  taxCategory: 'included' | 'zero'
 }
 
 type InvoiceDownloadResult = {
@@ -109,6 +113,7 @@ type InvoiceDownloadResult = {
 type LoadedInvoiceAssets = {
   logoPngBytes?: Uint8Array
   regularFontBytes?: Uint8Array
+  templatePdfBytes?: Uint8Array
 }
 
 let loadedAssetsPromise: Promise<LoadedInvoiceAssets> | null = null
@@ -128,6 +133,7 @@ const formatMoney = (value: number, currency: string) =>
     currency: currency || 'CZK',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+    useGrouping: false,
   }).format(roundMoney(value))
 
 const formatDate = (value: Date) =>
@@ -265,9 +271,13 @@ const buildInvoiceLines = (order: PayloadOrderDoc, currency: string) => {
       unit: 'položka',
       netUnitPrice: formatMoney(roundMoney(resolvedGrossUnitPrice / (1 + VAT_RATE)), currency),
       netLineTotal: formatMoney(tax.netAmount, currency),
-      taxRateLabel: '21 %',
+      taxRateLabel: 'Včetně DPH',
       taxAmount: formatMoney(tax.taxAmount, currency),
       grossLineTotal: formatMoney(grossLineTotal, currency),
+      grossAmountRaw: grossLineTotal,
+      netAmountRaw: tax.netAmount,
+      taxAmountRaw: tax.taxAmount,
+      taxCategory: 'included',
     })
   })
 
@@ -284,9 +294,13 @@ const buildInvoiceLines = (order: PayloadOrderDoc, currency: string) => {
       unit: 'položka',
       netUnitPrice: formatMoney(tax.netAmount, currency),
       netLineTotal: formatMoney(tax.netAmount, currency),
-      taxRateLabel: shippingGross > 0 ? '21 %' : '0 %',
+      taxRateLabel: shippingGross > 0 ? 'Včetně DPH' : '0%',
       taxAmount: formatMoney(shippingGross > 0 ? tax.taxAmount : 0, currency),
       grossLineTotal: formatMoney(shippingGross, currency),
+      grossAmountRaw: shippingGross,
+      netAmountRaw: shippingGross > 0 ? tax.netAmount : 0,
+      taxAmountRaw: shippingGross > 0 ? tax.taxAmount : 0,
+      taxCategory: shippingGross > 0 ? 'included' : 'zero',
     })
   }
 
@@ -746,13 +760,659 @@ const getSafeFileName = (orderId: string) => {
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
+const TEMPLATE_PAGE_WIDTH = 595.28
+const TEMPLATE_PAGE_HEIGHT = 841.89
+const TEMPLATE_HEADER_LINES = [
+  { label: 'Datum prodeje:', labelX: 462.182, valueX: 520.886, y: 805.976 },
+  { label: 'Datum vystavení:', labelX: 454.798, valueX: 520.886, y: 794.376 },
+  { label: 'Datum splatnosti:', labelX: 454.454, valueX: 520.886, y: 782.776 },
+  { label: 'Způsob platby:', labelX: 478.806, valueX: 535.206, y: 771.176 },
+] as const
+const TEMPLATE_BUYER_HEADING = { x: 297.64, y: 713.792 }
+const TEMPLATE_BUYER_LINES_Y = [701.176, 689.576, 677.976, 666.376] as const
+const TEMPLATE_TITLE_Y = 620.616
+const TEMPLATE_TABLE_BORDERS_X = [28.346, 44.132, 206.409, 257.251, 301.251, 350.889, 403.501, 455.306, 509.185, 566.934]
+const TEMPLATE_TABLE_HEADER_TOP_Y = 596.43
+const TEMPLATE_TABLE_HEADER_HEIGHT = 31.6
+const TEMPLATE_TABLE_ROW_HEIGHT = 28.2
+const TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT = 18.6
+const TEMPLATE_TABLE_BODY_START_Y = TEMPLATE_TABLE_HEADER_TOP_Y - TEMPLATE_TABLE_HEADER_HEIGHT
+const TEMPLATE_TABLE_TEXT = {
+  indexX: 34.451,
+  nameX: 49.132,
+  quantityRightX: 251.251,
+  unitX: 266.56,
+  netPriceRightX: 350.889,
+  netTotalRightX: 403.501,
+  taxRateRightX: 455.306,
+  taxAmountRightX: 509.185,
+  grossRightX: 561.934,
+}
+const TEMPLATE_TOTAL_LABEL_X = 318.441
+const TEMPLATE_FOOTER_Y = 417.376
+
+const drawWhiteRect = (page: PDFPage, x: number, y: number, width: number, height: number) => {
+  page.drawRectangle({
+    x,
+    y,
+    width,
+    height,
+    color: rgb(1, 1, 1),
+  })
+}
+
+const drawMoneyRight = ({
+  font,
+  page,
+  size,
+  text,
+  x,
+  y,
+}: {
+  font: PDFFont
+  page: PDFPage
+  size: number
+  text: string
+  x: number
+  y: number
+}) => {
+  page.drawText(text, {
+    x: x - font.widthOfTextAtSize(text, size),
+    y,
+    size,
+    font,
+    color: rgb(0, 0, 0),
+  })
+}
+
+const drawMoneyWithOptionalWrappedCurrency = ({
+  font,
+  page,
+  size,
+  text,
+  x,
+  y,
+  wrapCurrencyThreshold,
+}: {
+  font: PDFFont
+  page: PDFPage
+  size: number
+  text: string
+  x: number
+  y: number
+  wrapCurrencyThreshold: number
+}) => {
+  const trimmed = text.trim()
+
+  if (!trimmed.endsWith(' Kč')) {
+    drawMoneyRight({ font, page, size, text: trimmed, x, y })
+    return
+  }
+
+  const numberPart = trimmed.slice(0, -3)
+  const fullWidth = font.widthOfTextAtSize(trimmed, size)
+
+  if (fullWidth <= wrapCurrencyThreshold) {
+    drawMoneyRight({ font, page, size, text: trimmed, x, y })
+    return
+  }
+
+  drawMoneyRight({ font, page, size, text: numberPart, x, y })
+  drawMoneyRight({ font, page, size, text: 'Kč', x, y: y - 9.6 })
+}
+
+const buildBuyerLinesForTemplate = (order: PayloadOrderDoc) => {
+  const billing = order.billing ?? {}
+  const shippingAddress = order.shippingAddress ?? {}
+  const useBillingAddress =
+    billing.sameAsShipping === false ||
+    Boolean(
+      sanitizeString(billing.address) ||
+        sanitizeString(billing.city) ||
+        sanitizeString(billing.zip) ||
+        sanitizeString(billing.country),
+    )
+
+  const firstName = sanitizeString(billing.firstName) || sanitizeString(order.customerFirstName)
+  const lastName = sanitizeString(billing.lastName) || sanitizeString(order.customerLastName)
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim()
+  const address = useBillingAddress
+    ? {
+        address: sanitizeString(billing.address),
+        city: sanitizeString(billing.city),
+        zip: sanitizeString(billing.zip),
+        country: sanitizeString(billing.country),
+      }
+    : {
+        address: sanitizeString(shippingAddress.address),
+        city: sanitizeString(shippingAddress.city),
+        zip: sanitizeString(shippingAddress.zip),
+        country: sanitizeString(shippingAddress.country),
+      }
+
+  return [
+    sanitizeString(billing.companyName) || fullName || sanitizeString(order.customerEmail) || 'Zákazník',
+    address.address,
+    [address.zip, address.city].filter(Boolean).join(' ').trim(),
+    address.country || 'Česká republika',
+  ].filter(Boolean)
+}
+
+const getSummaryBreakdownRows = (invoiceLines: InvoiceLine[], currency: string) => {
+  const totals = {
+    included: { net: 0, tax: 0, gross: 0, taxLabel: 'Včetně DPH' },
+    zero: { net: 0, tax: 0, gross: 0, taxLabel: '0%' },
+  }
+
+  for (const line of invoiceLines) {
+    const bucket = line.taxCategory === 'zero' ? totals.zero : totals.included
+    bucket.net += line.netAmountRaw
+    bucket.tax += line.taxAmountRaw
+    bucket.gross += line.grossAmountRaw
+  }
+
+  return [
+    {
+      prefix: 'Včetně',
+      net: formatMoney(totals.included.net, currency),
+      taxLabel: totals.included.taxLabel,
+      tax: formatMoney(totals.included.tax, currency),
+      gross: formatMoney(totals.included.gross, currency),
+    },
+    {
+      prefix: 'Včetně',
+      net: formatMoney(totals.zero.net, currency),
+      taxLabel: totals.zero.taxLabel,
+      tax: formatMoney(totals.zero.tax, currency),
+      gross: formatMoney(totals.zero.gross, currency),
+    },
+  ]
+}
+
+const drawTemplateHeader = ({
+  currency,
+  dueDate,
+  issuedAt,
+  order,
+  page,
+  regularFont,
+  saleDate,
+}: {
+  currency: string
+  dueDate: Date
+  issuedAt: Date
+  order: PayloadOrderDoc
+  page: PDFPage
+  regularFont: PDFFont
+  saleDate: Date
+}) => {
+  const values = [
+    formatDate(saleDate),
+    formatDate(issuedAt),
+    formatDate(dueDate),
+    getPaymentMethodLabel(order),
+  ]
+
+  drawWhiteRect(page, 445, 765, 125, 50)
+  drawWhiteRect(page, 440, 764, 132, 46)
+
+  TEMPLATE_HEADER_LINES.forEach((line, index) => {
+    page.drawText(line.label, {
+      x: line.labelX,
+      y: line.y,
+      size: 7.6,
+      font: regularFont,
+      color: rgb(0, 0, 0),
+    })
+
+    drawStrongText({
+      page,
+      font: regularFont,
+      text: values[index] || '',
+      x: line.valueX,
+      y: line.y,
+      size: 7.6,
+    })
+  })
+}
+
+const drawTemplateBuyer = ({
+  buyerLines,
+  page,
+  regularFont,
+}: {
+  buyerLines: string[]
+  page: PDFPage
+  regularFont: PDFFont
+}) => {
+  drawWhiteRect(page, 292, 660, 150, 60)
+
+  drawStrongText({
+    page,
+    font: regularFont,
+    text: 'Kupující:',
+    x: TEMPLATE_BUYER_HEADING.x,
+    y: TEMPLATE_BUYER_HEADING.y,
+    size: 12,
+  })
+
+  TEMPLATE_BUYER_LINES_Y.forEach((y, index) => {
+    const text = buyerLines[index] || ''
+
+    if (!text) {
+      return
+    }
+
+    page.drawText(text, {
+      x: TEMPLATE_BUYER_HEADING.x,
+      y,
+      size: 8,
+      font: regularFont,
+      color: rgb(0, 0, 0),
+    })
+  })
+}
+
+const drawTemplateTitle = ({
+  orderId,
+  page,
+  regularFont,
+}: {
+  orderId: string
+  page: PDFPage
+  regularFont: PDFFont
+}) => {
+  const titleText = `Faktura${orderId}`
+  drawWhiteRect(page, 205, 614, 180, 24)
+
+  drawStrongText({
+    page,
+    font: regularFont,
+    text: titleText,
+    x: (TEMPLATE_PAGE_WIDTH - regularFont.widthOfTextAtSize(titleText, 18)) / 2,
+    y: TEMPLATE_TITLE_Y,
+    size: 18,
+  })
+}
+
+const drawTemplateTable = ({
+  currency,
+  grossAmount,
+  invoiceLines,
+  netAmount,
+  page,
+  regularFont,
+  taxAmount,
+}: {
+  currency: string
+  grossAmount: number
+  invoiceLines: InvoiceLine[]
+  netAmount: number
+  page: PDFPage
+  regularFont: PDFFont
+  taxAmount: number
+}) => {
+  const tableLeft = TEMPLATE_TABLE_BORDERS_X[0]
+  const tableWidth = TEMPLATE_TABLE_BORDERS_X[TEMPLATE_TABLE_BORDERS_X.length - 1] - tableLeft
+  const dynamicSectionHeight =
+    TEMPLATE_TABLE_HEADER_HEIGHT +
+    invoiceLines.length * TEMPLATE_TABLE_ROW_HEIGHT +
+    TEMPLATE_TABLE_ROW_HEIGHT +
+    2 * TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT +
+    36
+
+  drawWhiteRect(
+    page,
+    tableLeft - 1,
+    TEMPLATE_TABLE_BODY_START_Y - invoiceLines.length * TEMPLATE_TABLE_ROW_HEIGHT - 58,
+    tableWidth + 2,
+    dynamicSectionHeight,
+  )
+
+  page.drawRectangle({
+    x: tableLeft,
+    y: TEMPLATE_TABLE_BODY_START_Y,
+    width: tableWidth,
+    height: TEMPLATE_TABLE_HEADER_HEIGHT,
+    borderColor: rgb(0.15, 0.15, 0.15),
+    borderWidth: 1,
+    color: rgb(0.95, 0.95, 0.95),
+  })
+
+  const headerLabels = [
+    { text: '#', x: 33.346, y: 584.83, size: 9 },
+    { text: 'Jméno', x: 49.132, y: 584.83, size: 9 },
+    { text: 'Množství', x: 210.409, y: 584.83, size: 9 },
+    { text: 'Jednotka', x: 260.251, y: 584.83, size: 9 },
+    { text: 'Netto', x: 317.454, y: 584.83, size: 9 },
+    { text: 'cena', x: 319.479, y: 574.03, size: 9 },
+    { text: 'Netto', x: 368.91, y: 584.83, size: 9 },
+    { text: 'částka', x: 366.795, y: 574.03, size: 9 },
+    { text: 'Daňová', x: 416.776, y: 584.83, size: 9 },
+    { text: 'sazba', x: 420.777, y: 574.03, size: 9 },
+    { text: 'Daňová', x: 469.619, y: 584.83, size: 9 },
+    { text: 'částka', x: 471.846, y: 574.03, size: 9 },
+    { text: 'Brutto', x: 525.439, y: 584.83, size: 9 },
+    { text: 'částka', x: 525.16, y: 574.03, size: 9 },
+  ]
+
+  headerLabels.forEach((label) => {
+    drawStrongText({
+      page,
+      font: regularFont,
+      text: label.text,
+      x: label.x,
+      y: label.y,
+      size: label.size,
+    })
+  })
+
+  for (let i = 1; i < TEMPLATE_TABLE_BORDERS_X.length - 1; i += 1) {
+    page.drawLine({
+      start: { x: TEMPLATE_TABLE_BORDERS_X[i], y: TEMPLATE_TABLE_BODY_START_Y },
+      end: { x: TEMPLATE_TABLE_BORDERS_X[i], y: TEMPLATE_TABLE_BODY_START_Y + TEMPLATE_TABLE_HEADER_HEIGHT },
+      thickness: 1,
+      color: rgb(0.15, 0.15, 0.15),
+    })
+  }
+
+  invoiceLines.forEach((line, index) => {
+    const rowTop = TEMPLATE_TABLE_BODY_START_Y - index * TEMPLATE_TABLE_ROW_HEIGHT
+    const rowBottom = rowTop - TEMPLATE_TABLE_ROW_HEIGHT
+
+    page.drawRectangle({
+      x: tableLeft,
+      y: rowBottom,
+      width: tableWidth,
+      height: TEMPLATE_TABLE_ROW_HEIGHT,
+      borderColor: rgb(0.15, 0.15, 0.15),
+      borderWidth: 1,
+    })
+
+    for (let i = 1; i < TEMPLATE_TABLE_BORDERS_X.length - 1; i += 1) {
+      page.drawLine({
+        start: { x: TEMPLATE_TABLE_BORDERS_X[i], y: rowBottom },
+        end: { x: TEMPLATE_TABLE_BORDERS_X[i], y: rowTop },
+        thickness: 1,
+        color: rgb(0.15, 0.15, 0.15),
+      })
+    }
+
+    const nameLines = wrapLineByWidth(regularFont, line.name, 8, 145).slice(0, 2)
+    const firstLineY = rowTop - 9.6
+
+    page.drawText(line.index, {
+      x: TEMPLATE_TABLE_TEXT.indexX,
+      y: firstLineY,
+      size: 8,
+      font: regularFont,
+      color: rgb(0, 0, 0),
+    })
+
+    nameLines.forEach((nameLine, lineIndex) => {
+      page.drawText(nameLine, {
+        x: TEMPLATE_TABLE_TEXT.nameX,
+        y: firstLineY - lineIndex * 9.6,
+        size: 8,
+        font: regularFont,
+        color: rgb(0, 0, 0),
+      })
+    })
+
+    drawMoneyRight({
+      font: regularFont,
+      page,
+      size: 8,
+      text: line.quantity,
+      x: TEMPLATE_TABLE_TEXT.quantityRightX,
+      y: firstLineY,
+    })
+
+    page.drawText(line.unit, {
+      x: TEMPLATE_TABLE_TEXT.unitX,
+      y: firstLineY,
+      size: 8,
+      font: regularFont,
+      color: rgb(0, 0, 0),
+    })
+
+    drawMoneyRight({
+      font: regularFont,
+      page,
+      size: 8,
+      text: line.netUnitPrice,
+      x: TEMPLATE_TABLE_TEXT.netPriceRightX,
+      y: firstLineY,
+    })
+
+    drawMoneyRight({
+      font: regularFont,
+      page,
+      size: 8,
+      text: line.netLineTotal,
+      x: TEMPLATE_TABLE_TEXT.netTotalRightX,
+      y: firstLineY,
+    })
+
+    drawMoneyRight({
+      font: regularFont,
+      page,
+      size: 8,
+      text: line.taxRateLabel,
+      x: TEMPLATE_TABLE_TEXT.taxRateRightX,
+      y: firstLineY,
+    })
+
+    drawMoneyRight({
+      font: regularFont,
+      page,
+      size: 8,
+      text: line.taxAmount,
+      x: TEMPLATE_TABLE_TEXT.taxAmountRightX,
+      y: firstLineY,
+    })
+
+    drawMoneyRight({
+      font: regularFont,
+      page,
+      size: 8,
+      text: line.grossLineTotal,
+      x: TEMPLATE_TABLE_TEXT.grossRightX,
+      y: firstLineY,
+    })
+  })
+
+  const summaryTop = TEMPLATE_TABLE_BODY_START_Y - invoiceLines.length * TEMPLATE_TABLE_ROW_HEIGHT
+  const summaryRightStart = TEMPLATE_TABLE_BORDERS_X[4]
+  const summaryTopBottom = summaryTop - TEMPLATE_TABLE_ROW_HEIGHT
+
+  page.drawRectangle({
+    x: summaryRightStart,
+    y: summaryTopBottom,
+    width: TEMPLATE_TABLE_BORDERS_X[TEMPLATE_TABLE_BORDERS_X.length - 1] - summaryRightStart,
+    height: TEMPLATE_TABLE_ROW_HEIGHT,
+    borderColor: rgb(0.15, 0.15, 0.15),
+    borderWidth: 1,
+  })
+
+  ;[5, 6, 7, 8].forEach((borderIndex) => {
+    page.drawLine({
+      start: { x: TEMPLATE_TABLE_BORDERS_X[borderIndex], y: summaryTopBottom },
+      end: { x: TEMPLATE_TABLE_BORDERS_X[borderIndex], y: summaryTop },
+      thickness: 1,
+      color: rgb(0.15, 0.15, 0.15),
+    })
+  })
+
+  drawStrongText({
+    page,
+    font: regularFont,
+    text: 'CELKEM',
+    x: TEMPLATE_TOTAL_LABEL_X,
+    y: summaryTop - 9.4,
+    size: 8,
+  })
+
+  drawMoneyWithOptionalWrappedCurrency({
+    font: regularFont,
+    page,
+    size: 8,
+    text: formatMoney(netAmount, currency),
+    x: TEMPLATE_TABLE_TEXT.netTotalRightX,
+    y: summaryTop - 9.4,
+    wrapCurrencyThreshold: 34,
+  })
+
+  drawStrongText({
+    page,
+    font: regularFont,
+    text: 'X',
+    x: 449.754,
+    y: summaryTop - 9.4,
+    size: 8,
+  })
+
+  drawMoneyRight({
+    font: regularFont,
+    page,
+    size: 8,
+    text: formatMoney(taxAmount, currency),
+    x: TEMPLATE_TABLE_TEXT.taxAmountRightX,
+    y: summaryTop - 9.4,
+  })
+
+  drawMoneyWithOptionalWrappedCurrency({
+    font: regularFont,
+    page,
+    size: 8,
+    text: formatMoney(grossAmount, currency),
+    x: TEMPLATE_TABLE_TEXT.grossRightX,
+    y: summaryTop - 9.4,
+    wrapCurrencyThreshold: 34,
+  })
+
+  const breakdownRows = getSummaryBreakdownRows(invoiceLines, currency)
+
+  breakdownRows.forEach((row, index) => {
+    const rowTop = summaryTopBottom - index * TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT
+    const rowBottom = rowTop - TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT
+
+    page.drawRectangle({
+      x: TEMPLATE_TABLE_BORDERS_X[5],
+      y: rowBottom,
+      width: TEMPLATE_TABLE_BORDERS_X[TEMPLATE_TABLE_BORDERS_X.length - 1] - TEMPLATE_TABLE_BORDERS_X[5],
+      height: TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT,
+      borderColor: rgb(0.15, 0.15, 0.15),
+      borderWidth: 1,
+    })
+
+    ;[6, 7, 8].forEach((borderIndex) => {
+      page.drawLine({
+        start: { x: TEMPLATE_TABLE_BORDERS_X[borderIndex], y: rowBottom },
+        end: { x: TEMPLATE_TABLE_BORDERS_X[borderIndex], y: rowTop },
+        thickness: 1,
+        color: rgb(0.15, 0.15, 0.15),
+      })
+    })
+
+    page.drawText(row.prefix, {
+      x: 325.761,
+      y: rowTop - 9.8,
+      size: 8,
+      font: regularFont,
+      color: rgb(0, 0, 0),
+    })
+
+    drawMoneyRight({
+      font: regularFont,
+      page,
+      size: 8,
+      text: row.net,
+      x: TEMPLATE_TABLE_TEXT.netTotalRightX,
+      y: rowTop - 10.3,
+    })
+
+    drawMoneyRight({
+      font: regularFont,
+      page,
+      size: 8,
+      text: row.taxLabel,
+      x: TEMPLATE_TABLE_TEXT.taxRateRightX,
+      y: rowTop - 10.3,
+    })
+
+    drawMoneyRight({
+      font: regularFont,
+      page,
+      size: 8,
+      text: row.tax,
+      x: TEMPLATE_TABLE_TEXT.taxAmountRightX,
+      y: rowTop - 10.3,
+    })
+
+    drawMoneyRight({
+      font: regularFont,
+      page,
+      size: 8,
+      text: row.gross,
+      x: TEMPLATE_TABLE_TEXT.grossRightX,
+      y: rowTop - 10.3,
+    })
+  })
+}
+
+const drawTemplateFooter = ({
+  amountDue,
+  currency,
+  font,
+  grossAmount,
+  page,
+  paidAmount,
+}: {
+  amountDue: number
+  currency: string
+  font: PDFFont
+  grossAmount: number
+  page: PDFPage
+  paidAmount: number
+}) => {
+  drawWhiteRect(page, 24, 412, 545, 12)
+
+  const footerGroups = [
+    { label: 'Celkem:', labelX: 28.346, value: formatMoney(grossAmount, currency) },
+    { label: 'Zaplaceno:', labelX: 261.394, value: formatMoney(paidAmount, currency) },
+    { label: 'K úhradě:', labelX: 484.598, value: formatMoney(amountDue, currency) },
+  ]
+
+  footerGroups.forEach((group) => {
+    page.drawText(group.label, {
+      x: group.labelX,
+      y: TEMPLATE_FOOTER_Y,
+      size: 8,
+      font,
+      color: rgb(0, 0, 0),
+    })
+
+    const valueX = group.labelX + font.widthOfTextAtSize(group.label, 8) + 2.288
+    drawStrongText({
+      page,
+      font,
+      text: group.value,
+      x: valueX,
+      y: TEMPLATE_FOOTER_Y,
+      size: 8,
+    })
+  })
+}
+
 const loadInvoiceAssets = async (): Promise<LoadedInvoiceAssets> => {
   if (!loadedAssetsPromise) {
     loadedAssetsPromise = (async () => {
       const logoPath = path.resolve(dirname, '..', '..', 'public', 'assets', 'invoice-logo.webp')
       const fontPath = path.resolve(dirname, '..', '..', 'public', 'assets', 'invoice-font.ttf')
+      const templatePath = path.resolve(dirname, '..', '..', 'public', 'assets', 'invoice-template.pdf')
 
-      const [logoExists, fontExists] = await Promise.all([
+      const [logoExists, fontExists, templateExists] = await Promise.all([
         fs
           .access(logoPath)
           .then(() => true)
@@ -761,9 +1421,13 @@ const loadInvoiceAssets = async (): Promise<LoadedInvoiceAssets> => {
           .access(fontPath)
           .then(() => true)
           .catch(() => false),
+        fs
+          .access(templatePath)
+          .then(() => true)
+          .catch(() => false),
       ])
 
-      const [logoPngBytes, regularFontBytes] = await Promise.all([
+      const [logoPngBytes, regularFontBytes, templatePdfBytes] = await Promise.all([
         logoExists
           ? sharp(await fs.readFile(logoPath))
               .png()
@@ -771,11 +1435,15 @@ const loadInvoiceAssets = async (): Promise<LoadedInvoiceAssets> => {
               .then((buffer) => new Uint8Array(buffer))
           : Promise.resolve(undefined),
         fontExists ? fs.readFile(fontPath).then((buffer) => new Uint8Array(buffer)) : Promise.resolve(undefined),
+        templateExists
+          ? fs.readFile(templatePath).then((buffer) => new Uint8Array(buffer))
+          : Promise.resolve(undefined),
       ])
 
       return {
         logoPngBytes,
         regularFontBytes,
+        templatePdfBytes,
       }
     })()
   }
@@ -804,139 +1472,57 @@ const findOrderByDocumentId = async (
 }
 
 const buildOrderInvoicePdf = async (order: PayloadOrderDoc) => {
-  const pdfDoc = await PDFDocument.create()
+  const assets = await loadInvoiceAssets()
+  const pdfDoc = assets.templatePdfBytes
+    ? await PDFDocument.load(assets.templatePdfBytes)
+    : await PDFDocument.create()
   pdfDoc.registerFontkit(fontkit)
 
-  const assets = await loadInvoiceAssets()
   const regularFont = assets.regularFontBytes
     ? await pdfDoc.embedFont(assets.regularFontBytes, { subset: true })
     : await pdfDoc.embedFont(StandardFonts.Helvetica)
-  const logoImage = assets.logoPngBytes ? await pdfDoc.embedPng(assets.logoPngBytes) : null
-
-  const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+  const page =
+    pdfDoc.getPageCount() > 0 ? pdfDoc.getPage(0) : pdfDoc.addPage([TEMPLATE_PAGE_WIDTH, TEMPLATE_PAGE_HEIGHT])
   const currency = sanitizeString(order.currency) || 'CZK'
   const orderId = sanitizeString(order.orderId) || String(order.id)
   const issuedAt = new Date()
   const saleDate = getSafeDate(order.createdAt, issuedAt)
   const paymentMethod = getPaymentMethodLabel(order)
   const dueDate = getDueDate(saleDate, paymentMethod === 'Dobírka')
-  const buyer = resolveBuyerLines(order)
+  const buyerLines = buildBuyerLinesForTemplate(order)
   const invoiceLines = buildInvoiceLines(order, currency)
   const grossAmount = getInvoiceGrossAmount(order)
   const totals = calculateVatBreakdown(grossAmount)
   const paidAmount = order.paymentStatus === 'paid' ? grossAmount : 0
   const amountDue = roundMoney(Math.max(0, grossAmount - paidAmount))
 
-  if (logoImage) {
-    const dimensions = logoImage.scaleToFit(155, 74)
-
-    page.drawImage(logoImage, {
-      x: PAGE_MARGIN,
-      y: PAGE_HEIGHT - PAGE_MARGIN - dimensions.height + 6,
-      width: dimensions.width,
-      height: dimensions.height,
-    })
-  }
-
-  const headerLines = [
-    `Datum prodeje: ${formatDate(saleDate)}`,
-    `Datum vystavení: ${formatDate(issuedAt)}`,
-    `Datum splatnosti: ${formatDate(dueDate)}`,
-    `Způsob platby: ${paymentMethod}`,
-  ]
-
-  headerLines.forEach((line, index) => {
-    const textWidth = regularFont.widthOfTextAtSize(line, BODY_FONT_SIZE + 1)
-    drawStrongText({
-      page,
-      font: regularFont,
-      text: line,
-      x: PAGE_WIDTH - PAGE_MARGIN - textWidth,
-      y: PAGE_HEIGHT - PAGE_MARGIN - index * 17,
-      size: BODY_FONT_SIZE + 1,
-    })
-  })
-
-  drawPartyBlock({
+  drawTemplateHeader({
+    currency,
+    dueDate,
+    issuedAt,
+    order,
     page,
-    font: regularFont,
-    title: SELLER_BLOCK.title,
-    lines: SELLER_BLOCK.lines,
-    x: PAGE_MARGIN,
-    y: PAGE_HEIGHT - 170,
+    regularFont,
+    saleDate,
   })
-
-  drawPartyBlock({
-    page,
-    font: regularFont,
-    title: buyer.title,
-    lines: buyer.lines,
-    x: PAGE_WIDTH / 2 + 10,
-    y: PAGE_HEIGHT - 170,
-  })
-
-  const titleText = `Faktura ${orderId}`
-  const titleWidth = regularFont.widthOfTextAtSize(titleText, TITLE_FONT_SIZE)
-  drawStrongText({
-    page,
-    font: regularFont,
-    text: titleText,
-    x: (PAGE_WIDTH - titleWidth) / 2,
-    y: PAGE_HEIGHT - 268,
-    size: TITLE_FONT_SIZE,
-  })
-
-  let currentPage = page
-  let currentTableTopY = PAGE_HEIGHT - 305
-
-  drawTableHeader(currentPage, regularFont, currentTableTopY)
-  currentTableTopY -= TABLE_HEADER_HEIGHT
-
-  for (const row of invoiceLines) {
-    const rowHeight = getRowHeight(regularFont, row)
-
-    if (currentTableTopY - rowHeight < 120) {
-      currentPage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
-      addContinuationHeader(currentPage, regularFont, orderId)
-      currentTableTopY = PAGE_HEIGHT - 82
-      drawTableHeader(currentPage, regularFont, currentTableTopY)
-      currentTableTopY -= TABLE_HEADER_HEIGHT
-    }
-
-    const renderedRowHeight = drawTableRow(currentPage, regularFont, row, currentTableTopY)
-    currentTableTopY -= renderedRowHeight
-  }
-
-  if (currentTableTopY < 140) {
-    currentPage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
-    addContinuationHeader(currentPage, regularFont, orderId)
-    currentTableTopY = PAGE_HEIGHT - 82
-  }
-
-  const summaryBottomY = drawSummaryBox({
-    page: currentPage,
-    font: regularFont,
+  drawTemplateBuyer({ buyerLines, page, regularFont })
+  drawTemplateTitle({ orderId, page, regularFont })
+  drawTemplateTable({
     currency,
     grossAmount: totals.grossAmount,
+    invoiceLines,
     netAmount: totals.netAmount,
+    page,
+    regularFont,
     taxAmount: totals.taxAmount,
-    topY: currentTableTopY - 18,
   })
-
-  drawFooterTotals({
-    page: currentPage,
-    font: regularFont,
-    currency,
-    grossAmount: totals.grossAmount,
-    paidAmount,
+  drawTemplateFooter({
     amountDue,
-  })
-
-  currentPage.drawLine({
-    start: { x: PAGE_MARGIN, y: summaryBottomY - 18 },
-    end: { x: PAGE_WIDTH - PAGE_MARGIN, y: summaryBottomY - 18 },
-    thickness: 1,
-    color: rgb(0.82, 0.82, 0.82),
+    currency,
+    font: regularFont,
+    grossAmount: totals.grossAmount,
+    page,
+    paidAmount,
   })
 
   return pdfDoc.save()

@@ -1,5 +1,6 @@
 import type { CollectionConfig, PayloadRequest } from 'payload'
 
+import { normalizeDocumentId } from '@/lib/commerce'
 import { downloadOrderInvoice } from '@/lib/order-invoice-pdf'
 import { downloadPplOrderLabel, syncPplOrderLabel } from '@/lib/ppl-labels'
 import { cancelOrder, confirmOrder, getOrderDecision } from '@/lib/orders'
@@ -41,6 +42,47 @@ const parseOrderDocId = (req: PayloadRequest) => {
   }
 
   throw new Error('Missing order document ID.')
+}
+
+const extractDocumentId = (value: unknown) => {
+  if (value && typeof value === 'object' && 'id' in value) {
+    return normalizeDocumentId(value.id)
+  }
+
+  return normalizeDocumentId(value)
+}
+
+const canAccessOrderInvoice = async (req: PayloadRequest, documentId: number | string) => {
+  if (isAdminRequest(req)) {
+    return true
+  }
+
+  const userRecord = req.user && typeof req.user === 'object' ? req.user : null
+  const userId = extractDocumentId(userRecord && 'id' in userRecord ? userRecord.id : null)
+
+  if (!userId) {
+    return false
+  }
+
+  try {
+    const order = (await req.payload.findByID({
+      collection: 'orders' as never,
+      id: documentId,
+      depth: 0,
+      overrideAccess: true,
+    })) as {
+      user?: unknown
+    }
+
+    const orderUserId = extractDocumentId(order?.user)
+    return orderUserId !== null && String(orderUserId) === String(userId)
+  } catch (error) {
+    if (error instanceof Error && /not found/i.test(error.message)) {
+      return false
+    }
+
+    throw error
+  }
 }
 
 export const Orders: CollectionConfig = {
@@ -120,12 +162,15 @@ export const Orders: CollectionConfig = {
       path: '/:id/invoice',
       method: 'get',
       handler: async (req) => {
-        if (!isAdminRequest(req)) {
-          return Response.json({ error: 'Forbidden.' }, { status: 403 })
-        }
-
         try {
-          const result = await downloadOrderInvoice(req.payload, parseOrderDocId(req))
+          const documentId = parseOrderDocId(req)
+          const hasAccess = await canAccessOrderInvoice(req, documentId)
+
+          if (!hasAccess) {
+            return Response.json({ error: 'Order not found.' }, { status: 404 })
+          }
+
+          const result = await downloadOrderInvoice(req.payload, documentId)
 
           if (!result) {
             return Response.json({ error: 'Order not found.' }, { status: 404 })
