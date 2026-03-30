@@ -44,6 +44,10 @@ type OrderPaymentStatus = 'pending' | 'paid' | 'failed' | 'canceled'
 type PayloadOrderDoc = {
   id: number | string
   orderId?: string | null
+  invoiceGeneratedAt?: string | null
+  invoiceFileName?: string | null
+  invoiceContentType?: string | null
+  invoiceData?: string | null
   provider?: OrderPaymentProvider | null
   paymentStatus?: OrderPaymentStatus | null
   createdAt?: string | null
@@ -1894,6 +1898,9 @@ const buildOrderInvoicePdf = async (order: PayloadOrderDoc) => {
 export const downloadOrderInvoice = async (
   payload: Payload,
   documentId: number | string,
+  options?: {
+    persistIfMissing?: boolean
+  },
 ): Promise<InvoiceDownloadResult | null> => {
   const order = await findOrderByDocumentId(payload, documentId)
 
@@ -1901,13 +1908,44 @@ export const downloadOrderInvoice = async (
     return null
   }
 
+  const storedInvoiceData = sanitizeString(order.invoiceData)
+  const storedInvoiceFileName = sanitizeString(order.invoiceFileName)
+  const storedInvoiceContentType = sanitizeString(order.invoiceContentType) || 'application/pdf'
+
+  if (storedInvoiceData && storedInvoiceFileName) {
+    return {
+      contentType: storedInvoiceContentType,
+      data: new Uint8Array(Buffer.from(storedInvoiceData, 'base64')),
+      fileName: storedInvoiceFileName,
+    }
+  }
+
+  if (options?.persistIfMissing === false) {
+    return null
+  }
+
   const orderId = sanitizeString(order.orderId) || String(order.id)
   const safeOrderId = getSafeFileName(orderId)
   const data = await buildOrderInvoicePdf(order)
+  const contentType = 'application/pdf'
+  const fileName = `${safeOrderId}-faktura.pdf`
+
+  await payload.update({
+    collection: 'orders' as never,
+    id: order.id,
+    depth: 0,
+    overrideAccess: true,
+    data: {
+      invoiceGeneratedAt: new Date().toISOString(),
+      invoiceFileName: fileName,
+      invoiceContentType: contentType,
+      invoiceData: Buffer.from(data).toString('base64'),
+    },
+  } as never)
 
   return {
-    contentType: 'application/pdf',
+    contentType,
     data,
-    fileName: `${safeOrderId}-faktura.pdf`,
+    fileName,
   }
 }

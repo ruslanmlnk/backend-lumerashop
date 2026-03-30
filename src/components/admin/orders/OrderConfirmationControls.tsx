@@ -233,7 +233,7 @@ export default function OrderConfirmationControls() {
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => ({}))) as { error?: string }
-        throw new Error(payload.error || 'Failed to generate invoice PDF.')
+        throw new Error(payload.error || 'Failed to prepare invoice PDF.')
       }
 
       const blob = await response.blob()
@@ -253,9 +253,9 @@ export default function OrderConfirmationControls() {
         URL.revokeObjectURL(downloadUrl)
       }, 5000)
 
-      toast.success('Invoice PDF generated.')
+      toast.success('Invoice PDF ready.')
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to generate invoice PDF.'
+      const message = error instanceof Error ? error.message : 'Failed to prepare invoice PDF.'
       toast.error(message)
     } finally {
       setBusyAction(null)
@@ -282,7 +282,7 @@ export default function OrderConfirmationControls() {
       <div style={{ display: 'grid', gap: 4 }}>
         <strong style={{ fontSize: 14 }}>Order status</strong>
         <span style={{ color: 'var(--theme-elevation-600)', fontSize: 13 }}>
-          Accept or cancel the order, notify the customer, and generate the invoice PDF.
+          Accept or cancel the order, notify the customer, and save the invoice PDF for later downloads.
         </span>
       </div>
 
@@ -325,7 +325,7 @@ export default function OrderConfirmationControls() {
             fontWeight: 600,
           }}
         >
-          {busyAction === 'invoice' ? 'Generating...' : 'Generate Invoice PDF'}
+          {busyAction === 'invoice' ? 'Preparing...' : 'Download Invoice PDF'}
         </button>
       </div>
 

@@ -3,10 +3,17 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { downloadOrderInvoice } from '@/lib/order-invoice-pdf'
 
-const createPayload = (result: unknown) =>
-  ({
+const createPayload = (result: unknown) => {
+  const payload = {
     findByID: vi.fn().mockResolvedValue(result),
-  }) as unknown as Payload
+    update: vi.fn().mockResolvedValue(result),
+  }
+
+  return payload as unknown as Payload & {
+    findByID: ReturnType<typeof vi.fn>
+    update: ReturnType<typeof vi.fn>
+  }
+}
 
 describe('downloadOrderInvoice', () => {
   it('returns a generated PDF for an existing order', async () => {
@@ -49,6 +56,7 @@ describe('downloadOrderInvoice', () => {
     expect(result?.contentType).toBe('application/pdf')
     expect(result?.fileName).toBe('LMR-7-faktura.pdf')
     expect(Buffer.from(result?.data || []).subarray(0, 4).toString()).toBe('%PDF')
+    expect(payload.update).toHaveBeenCalledTimes(1)
   })
 
   it('returns null when the order does not exist', async () => {
@@ -58,5 +66,26 @@ describe('downloadOrderInvoice', () => {
       }) as unknown as Payload
 
     await expect(downloadOrderInvoice(payload, 404)).resolves.toBeNull()
+  })
+
+  it('returns a stored invoice without regenerating it', async () => {
+    const storedPdf = Buffer.from('%PDF-stored').toString('base64')
+    const payload = createPayload({
+      id: 8,
+      orderId: 'LMR-8',
+      invoiceGeneratedAt: '2026-03-30T09:00:00.000Z',
+      invoiceFileName: 'LMR-8-faktura.pdf',
+      invoiceContentType: 'application/pdf',
+      invoiceData: storedPdf,
+    })
+
+    const result = await downloadOrderInvoice(payload, 8, {
+      persistIfMissing: false,
+    })
+
+    expect(result).not.toBeNull()
+    expect(result?.fileName).toBe('LMR-8-faktura.pdf')
+    expect(Buffer.from(result?.data || []).toString()).toBe('%PDF-stored')
+    expect(payload.update).not.toHaveBeenCalled()
   })
 })

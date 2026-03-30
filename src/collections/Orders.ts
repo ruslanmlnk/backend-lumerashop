@@ -164,16 +164,24 @@ export const Orders: CollectionConfig = {
       handler: async (req) => {
         try {
           const documentId = parseOrderDocId(req)
+          const isAdminUser = isAdminRequest(req)
           const hasAccess = await canAccessOrderInvoice(req, documentId)
 
           if (!hasAccess) {
             return Response.json({ error: 'Order not found.' }, { status: 404 })
           }
 
-          const result = await downloadOrderInvoice(req.payload, documentId)
+          const result = await downloadOrderInvoice(req.payload, documentId, {
+            persistIfMissing: isAdminUser,
+          })
 
           if (!result) {
-            return Response.json({ error: 'Order not found.' }, { status: 404 })
+            return Response.json(
+              {
+                error: isAdminUser ? 'Order not found.' : 'Invoice has not been generated yet.',
+              },
+              { status: 404 },
+            )
           }
 
           return new Response(result.data, {
@@ -374,6 +382,30 @@ export const Orders: CollectionConfig = {
       name: 'cancellationEmailSentAt',
       type: 'date',
       label: 'Cancellation email sent at',
+      admin: hiddenReadOnlyAdmin,
+    },
+    {
+      name: 'invoiceGeneratedAt',
+      type: 'date',
+      label: 'Invoice generated at',
+      admin: hiddenReadOnlyAdmin,
+    },
+    {
+      name: 'invoiceFileName',
+      type: 'text',
+      label: 'Invoice file name',
+      admin: hiddenReadOnlyAdmin,
+    },
+    {
+      name: 'invoiceContentType',
+      type: 'text',
+      label: 'Invoice content type',
+      admin: hiddenReadOnlyAdmin,
+    },
+    {
+      name: 'invoiceData',
+      type: 'textarea',
+      label: 'Invoice file data',
       admin: hiddenReadOnlyAdmin,
     },
     {
