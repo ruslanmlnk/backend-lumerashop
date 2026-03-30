@@ -26,6 +26,7 @@ import { ReturnsAndComplaintsPage } from './globals/ReturnsAndComplaintsPage'
 import { TermsAndConditionsPage } from './globals/TermsAndConditionsPage'
 import { PrivacyPolicyPage } from './globals/PrivacyPolicyPage'
 import { CookiesPage } from './globals/CookiesPage'
+import { FirstPurchasePromo } from './globals/FirstPurchasePromo'
 
 
 const filename = fileURLToPath(import.meta.url)
@@ -56,6 +57,7 @@ export default buildConfig({
   globals: [
     HomePage,
     LoyaltySettings,
+    FirstPurchasePromo,
     ShippingAndPaymentPage,
     ReturnsAndComplaintsPage,
     TermsAndConditionsPage,

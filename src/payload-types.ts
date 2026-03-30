@@ -119,6 +119,7 @@ export interface Config {
   globals: {
     'home-page': HomePage;
     'loyalty-settings': LoyaltySetting;
+    'first-purchase-promo': FirstPurchasePromo;
     'shipping-and-payment-page': ShippingAndPaymentPage;
     'returns-and-complaints-page': ReturnsAndComplaintsPage;
     'terms-and-conditions-page': TermsAndConditionsPage;
@@ -128,6 +129,7 @@ export interface Config {
   globalsSelect: {
     'home-page': HomePageSelect<false> | HomePageSelect<true>;
     'loyalty-settings': LoyaltySettingsSelect<false> | LoyaltySettingsSelect<true>;
+    'first-purchase-promo': FirstPurchasePromoSelect<false> | FirstPurchasePromoSelect<true>;
     'shipping-and-payment-page': ShippingAndPaymentPageSelect<false> | ShippingAndPaymentPageSelect<true>;
     'returns-and-complaints-page': ReturnsAndComplaintsPageSelect<false> | ReturnsAndComplaintsPageSelect<true>;
     'terms-and-conditions-page': TermsAndConditionsPageSelect<false> | TermsAndConditionsPageSelect<true>;
@@ -1377,6 +1379,17 @@ export interface LoyaltySetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "first-purchase-promo".
+ */
+export interface FirstPurchasePromo {
+  id: number;
+  discountAmount: number;
+  icon?: (number | null) | Media;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "shipping-and-payment-page".
  */
 export interface ShippingAndPaymentPage {
@@ -1642,6 +1655,17 @@ export interface LoyaltySettingsSelect<T extends boolean = true> {
         bonusUnits?: T;
         discountAmount?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "first-purchase-promo_select".
+ */
+export interface FirstPurchasePromoSelect<T extends boolean = true> {
+  discountAmount?: T;
+  icon?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
