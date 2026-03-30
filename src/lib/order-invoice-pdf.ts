@@ -758,6 +758,337 @@ const getSafeFileName = (orderId: string) => {
   return sanitized || 'order'
 }
 
+const FIRST_PAGE_TABLE_TOP_Y = 284
+const CONTINUATION_TABLE_TOP_Y = PAGE_HEIGHT - 64
+const SUMMARY_ROW_HEIGHT = 30
+const SUMMARY_BREAKDOWN_ROW_HEIGHT = 22
+const LAST_PAGE_BOTTOM_RESERVE = PAGE_MARGIN + 14 + SUMMARY_ROW_HEIGHT + SUMMARY_BREAKDOWN_ROW_HEIGHT * 2
+const REGULAR_PAGE_BOTTOM_RESERVE = PAGE_MARGIN + 14
+
+const getSummaryColumnMetrics = () => {
+  const summaryColumns = TABLE_COLUMNS.slice(4)
+  const summaryStartX =
+    PAGE_MARGIN +
+    TABLE_COLUMNS.slice(0, 4).reduce((sum, column) => sum + column.width, 0)
+
+  return {
+    startX: summaryStartX,
+    widths: summaryColumns.map((column) => column.width),
+  }
+}
+
+const drawInvoiceLogo = async ({
+  assets,
+  page,
+  pdfDoc,
+}: {
+  assets: LoadedInvoiceAssets
+  page: PDFPage
+  pdfDoc: PDFDocument
+}) => {
+  if (!assets.logoPngBytes) {
+    return
+  }
+
+  const logoImage = await pdfDoc.embedPng(assets.logoPngBytes)
+  const maxWidth = 118
+  const maxHeight = 78
+  const scale = Math.min(maxWidth / logoImage.width, maxHeight / logoImage.height)
+  const width = logoImage.width * scale
+  const height = logoImage.height * scale
+
+  page.drawImage(logoImage, {
+    x: PAGE_MARGIN + 4,
+    y: PAGE_HEIGHT - PAGE_MARGIN - height + 10,
+    width,
+    height,
+  })
+}
+
+const drawInvoiceMetaBlock = ({
+  dueDate,
+  font,
+  issuedAt,
+  page,
+  paymentMethod,
+  saleDate,
+}: {
+  dueDate: Date
+  font: PDFFont
+  issuedAt: Date
+  page: PDFPage
+  paymentMethod: string
+  saleDate: Date
+}) => {
+  const rows = [
+    ['Datum prodeje:', formatDate(saleDate)],
+    ['Datum vystaveni:', formatDate(issuedAt)],
+    ['Datum splatnosti:', formatDate(dueDate)],
+    ['Zpusob platby:', paymentMethod],
+  ] as const
+
+  const startY = PAGE_HEIGHT - PAGE_MARGIN + 4
+  const rowGap = 20
+
+  rows.forEach(([label, value], index) => {
+    const y = startY - index * rowGap
+    const labelWidth = font.widthOfTextAtSize(label, BODY_FONT_SIZE + 1)
+    const valueWidth = font.widthOfTextAtSize(value, BODY_FONT_SIZE + 1)
+    const rowX = PAGE_WIDTH - PAGE_MARGIN - labelWidth - 6 - valueWidth
+
+    page.drawText(label, {
+      x: rowX,
+      y,
+      size: BODY_FONT_SIZE + 1,
+      font,
+      color: rgb(0, 0, 0),
+    })
+
+    drawStrongText({
+      page,
+      font,
+      text: value,
+      x: rowX + labelWidth + 6,
+      y,
+      size: BODY_FONT_SIZE + 1,
+    })
+  })
+}
+
+const drawInvoiceOpeningPage = async ({
+  assets,
+  buyer,
+  dueDate,
+  font,
+  issuedAt,
+  orderId,
+  page,
+  paymentMethod,
+  pdfDoc,
+  saleDate,
+}: {
+  assets: LoadedInvoiceAssets
+  buyer: ReturnType<typeof resolveBuyerLines>
+  dueDate: Date
+  font: PDFFont
+  issuedAt: Date
+  orderId: string
+  page: PDFPage
+  paymentMethod: string
+  pdfDoc: PDFDocument
+  saleDate: Date
+}) => {
+  await drawInvoiceLogo({ assets, page, pdfDoc })
+  drawInvoiceMetaBlock({
+    dueDate,
+    font,
+    issuedAt,
+    page,
+    paymentMethod,
+    saleDate,
+  })
+
+  drawPartyBlock({
+    font,
+    page,
+    title: SELLER_BLOCK.title,
+    lines: SELLER_BLOCK.lines,
+    x: PAGE_MARGIN + 4,
+    y: 395,
+  })
+
+  drawPartyBlock({
+    font,
+    page,
+    title: buyer.title,
+    lines: buyer.lines,
+    x: PAGE_WIDTH / 2 + 28,
+    y: 395,
+  })
+
+  const titleText = `Faktura${orderId}`
+  const titleWidth = font.widthOfTextAtSize(titleText, TITLE_FONT_SIZE)
+
+  drawStrongText({
+    page,
+    font,
+    text: titleText,
+    x: (PAGE_WIDTH - titleWidth) / 2,
+    y: 300,
+    size: TITLE_FONT_SIZE,
+  })
+
+  return FIRST_PAGE_TABLE_TOP_Y
+}
+
+const drawInvoiceSummarySection = ({
+  currency,
+  font,
+  grossAmount,
+  invoiceLines,
+  netAmount,
+  page,
+  taxAmount,
+  topY,
+}: {
+  currency: string
+  font: PDFFont
+  grossAmount: number
+  invoiceLines: InvoiceLine[]
+  netAmount: number
+  page: PDFPage
+  taxAmount: number
+  topY: number
+}) => {
+  const { startX, widths } = getSummaryColumnMetrics()
+  const totalRowValues = ['CELKEM', formatMoney(netAmount, currency), 'X', formatMoney(taxAmount, currency), formatMoney(grossAmount, currency)]
+  const totalRowAlignments: Array<'left' | 'center' | 'right'> = ['left', 'right', 'center', 'right', 'right']
+  const breakdownRows = getSummaryBreakdownRows(invoiceLines, currency)
+
+  let cursorX = startX
+
+  totalRowValues.forEach((value, index) => {
+    const width = widths[index] || 0
+
+    page.drawRectangle({
+      x: cursorX,
+      y: topY - SUMMARY_ROW_HEIGHT,
+      width,
+      height: SUMMARY_ROW_HEIGHT,
+      borderColor: rgb(0.15, 0.15, 0.15),
+      borderWidth: 1,
+    })
+
+    drawAlignedText({
+      align: totalRowAlignments[index],
+      font,
+      page,
+      size: TABLE_FONT_SIZE,
+      text: value,
+      width: width - 12,
+      x: cursorX + 6,
+      y: topY - 19,
+    })
+
+    cursorX += width
+  })
+
+  breakdownRows.forEach((row, rowIndex) => {
+    const rowTop = topY - SUMMARY_ROW_HEIGHT - rowIndex * SUMMARY_BREAKDOWN_ROW_HEIGHT
+    const rowValues = [row.prefix, row.net, row.taxLabel, row.tax, row.gross]
+    const rowAlignments: Array<'left' | 'center' | 'right'> = ['left', 'right', 'center', 'right', 'right']
+
+    let rowX = startX
+
+    rowValues.forEach((value, columnIndex) => {
+      const width = widths[columnIndex] || 0
+
+      page.drawRectangle({
+        x: rowX,
+        y: rowTop - SUMMARY_BREAKDOWN_ROW_HEIGHT,
+        width,
+        height: SUMMARY_BREAKDOWN_ROW_HEIGHT,
+        borderColor: rgb(0.15, 0.15, 0.15),
+        borderWidth: 1,
+      })
+
+      drawAlignedText({
+        align: rowAlignments[columnIndex],
+        font,
+        page,
+        size: TABLE_FONT_SIZE,
+        text: value,
+        width: width - 12,
+        x: rowX + 6,
+        y: rowTop - 15,
+      })
+
+      rowX += width
+    })
+  })
+}
+
+const buildProgrammaticInvoicePdf = async (order: PayloadOrderDoc) => {
+  const assets = await loadInvoiceAssets()
+  const pdfDoc = await PDFDocument.create()
+  pdfDoc.registerFontkit(fontkit)
+
+  const regularFont = assets.regularFontBytes
+    ? await pdfDoc.embedFont(assets.regularFontBytes, { subset: true })
+    : await pdfDoc.embedFont(StandardFonts.Helvetica)
+
+  const currency = sanitizeString(order.currency) || 'CZK'
+  const orderId = sanitizeString(order.orderId) || String(order.id)
+  const issuedAt = new Date()
+  const saleDate = getSafeDate(order.createdAt, issuedAt)
+  const paymentMethod = getPaymentMethodLabel(order)
+  const dueDate = getDueDate(
+    saleDate,
+    order.shipping?.cashOnDelivery === true || order.provider === 'cash-on-delivery',
+  )
+  const buyer = resolveBuyerLines(order)
+  const invoiceLines = buildInvoiceLines(order, currency)
+  const grossAmount = getInvoiceGrossAmount(order)
+  const totals = calculateVatBreakdown(grossAmount)
+  const paidAmount = order.paymentStatus === 'paid' ? grossAmount : 0
+  const amountDue = roundMoney(Math.max(0, grossAmount - paidAmount))
+
+  let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+  let tableTopY = await drawInvoiceOpeningPage({
+    assets,
+    buyer,
+    dueDate,
+    font: regularFont,
+    issuedAt,
+    orderId,
+    page,
+    paymentMethod,
+    pdfDoc,
+    saleDate,
+  })
+
+  drawTableHeader(page, regularFont, tableTopY)
+  let cursorY = tableTopY - TABLE_HEADER_HEIGHT
+
+  invoiceLines.forEach((line, index) => {
+    const rowHeight = getRowHeight(regularFont, line)
+    const isLastLine = index === invoiceLines.length - 1
+    const bottomReserve = isLastLine ? LAST_PAGE_BOTTOM_RESERVE : REGULAR_PAGE_BOTTOM_RESERVE
+
+    if (cursorY - rowHeight < bottomReserve) {
+      page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+      addContinuationHeader(page, regularFont, orderId)
+      tableTopY = CONTINUATION_TABLE_TOP_Y
+      drawTableHeader(page, regularFont, tableTopY)
+      cursorY = tableTopY - TABLE_HEADER_HEIGHT
+    }
+
+    cursorY -= drawTableRow(page, regularFont, line, cursorY)
+  })
+
+  drawInvoiceSummarySection({
+    currency,
+    font: regularFont,
+    grossAmount: totals.grossAmount,
+    invoiceLines,
+    netAmount: totals.netAmount,
+    page,
+    taxAmount: totals.taxAmount,
+    topY: cursorY,
+  })
+
+  drawFooterTotals({
+    amountDue,
+    currency,
+    font: regularFont,
+    grossAmount: totals.grossAmount,
+    page,
+    paidAmount,
+  })
+
+  return pdfDoc.save()
+}
+
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const TEMPLATE_PAGE_WIDTH = 595.28
@@ -947,6 +1278,7 @@ const getTemplateTableMetrics = (lineCount: number, breakdownRowCount: number) =
     rowHeight,
     rowTextTopOffset: Math.max(8, Math.min(10.4, rowHeight * 0.38)),
     rowTextLineHeight: Math.max(7.2, Math.min(9.6, rowHeight * 0.36)),
+    summaryTextBaselineOffset: Math.max(8.2, Math.min(10.2, rowHeight * 0.42)),
     maxNameLines: rowHeight < 23 ? 1 : 2,
   }
 }
@@ -1007,7 +1339,8 @@ const drawTemplateBuyer = ({
   page: PDFPage
   regularFont: PDFFont
 }) => {
-  drawWhiteRect(page, 292, 660, 150, 60)
+  drawWhiteRect(page, 292, 660, 150, 46)
+  if (false) {
 
   drawStrongText({
     page,
@@ -1017,6 +1350,7 @@ const drawTemplateBuyer = ({
     y: TEMPLATE_BUYER_HEADING.y,
     size: 12,
   })
+  }
 
   TEMPLATE_BUYER_LINES_Y.forEach((y, index) => {
     const text = buyerLines[index] || ''
@@ -1497,6 +1831,9 @@ const findOrderByDocumentId = async (
 }
 
 const buildOrderInvoicePdf = async (order: PayloadOrderDoc) => {
+  return buildProgrammaticInvoicePdf(order)
+
+  /*
   const assets = await loadInvoiceAssets()
   const pdfDoc = assets.templatePdfBytes
     ? await PDFDocument.load(assets.templatePdfBytes)
@@ -1551,6 +1888,7 @@ const buildOrderInvoicePdf = async (order: PayloadOrderDoc) => {
   })
 
   return pdfDoc.save()
+  */
 }
 
 export const downloadOrderInvoice = async (
