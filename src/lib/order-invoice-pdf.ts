@@ -775,8 +775,10 @@ const TEMPLATE_TABLE_BORDERS_X = [28.346, 44.132, 206.409, 257.251, 301.251, 350
 const TEMPLATE_TABLE_HEADER_TOP_Y = 596.43
 const TEMPLATE_TABLE_HEADER_HEIGHT = 31.6
 const TEMPLATE_TABLE_ROW_HEIGHT = 28.2
+const TEMPLATE_MIN_TABLE_ROW_HEIGHT = 20.4
 const TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT = 18.6
 const TEMPLATE_TABLE_BODY_START_Y = TEMPLATE_TABLE_HEADER_TOP_Y - TEMPLATE_TABLE_HEADER_HEIGHT
+const TEMPLATE_TABLE_SAFE_BOTTOM_Y = 424
 const TEMPLATE_TABLE_TEXT = {
   indexX: 34.451,
   nameX: 49.132,
@@ -929,6 +931,26 @@ const getSummaryBreakdownRows = (invoiceLines: InvoiceLine[], currency: string) 
   ]
 }
 
+const getTemplateTableMetrics = (lineCount: number, breakdownRowCount: number) => {
+  const safeLineCount = Math.max(1, lineCount)
+  const availableHeight = TEMPLATE_TABLE_BODY_START_Y - TEMPLATE_TABLE_SAFE_BOTTOM_Y
+  const breakdownHeight = breakdownRowCount * TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT
+  const rowHeight = Math.min(
+    TEMPLATE_TABLE_ROW_HEIGHT,
+    Math.max(
+      TEMPLATE_MIN_TABLE_ROW_HEIGHT,
+      (availableHeight - breakdownHeight) / (safeLineCount + 1),
+    ),
+  )
+
+  return {
+    rowHeight,
+    rowTextTopOffset: Math.max(8, Math.min(10.4, rowHeight * 0.38)),
+    rowTextLineHeight: Math.max(7.2, Math.min(9.6, rowHeight * 0.36)),
+    maxNameLines: rowHeight < 23 ? 1 : 2,
+  }
+}
+
 const drawTemplateHeader = ({
   currency,
   dueDate,
@@ -1054,17 +1076,24 @@ const drawTemplateTable = ({
 }) => {
   const tableLeft = TEMPLATE_TABLE_BORDERS_X[0]
   const tableWidth = TEMPLATE_TABLE_BORDERS_X[TEMPLATE_TABLE_BORDERS_X.length - 1] - tableLeft
+  const breakdownRows = getSummaryBreakdownRows(invoiceLines, currency)
+  const tableMetrics = getTemplateTableMetrics(invoiceLines.length, breakdownRows.length)
+  const sectionBottomY =
+    TEMPLATE_TABLE_BODY_START_Y -
+    invoiceLines.length * tableMetrics.rowHeight -
+    tableMetrics.rowHeight -
+    breakdownRows.length * TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT
   const dynamicSectionHeight =
     TEMPLATE_TABLE_HEADER_HEIGHT +
-    invoiceLines.length * TEMPLATE_TABLE_ROW_HEIGHT +
-    TEMPLATE_TABLE_ROW_HEIGHT +
-    2 * TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT +
-    36
+    invoiceLines.length * tableMetrics.rowHeight +
+    tableMetrics.rowHeight +
+    breakdownRows.length * TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT +
+    4
 
   drawWhiteRect(
     page,
     tableLeft - 1,
-    TEMPLATE_TABLE_BODY_START_Y - invoiceLines.length * TEMPLATE_TABLE_ROW_HEIGHT - 58,
+    sectionBottomY - 2,
     tableWidth + 2,
     dynamicSectionHeight,
   )
@@ -1117,14 +1146,14 @@ const drawTemplateTable = ({
   }
 
   invoiceLines.forEach((line, index) => {
-    const rowTop = TEMPLATE_TABLE_BODY_START_Y - index * TEMPLATE_TABLE_ROW_HEIGHT
-    const rowBottom = rowTop - TEMPLATE_TABLE_ROW_HEIGHT
+    const rowTop = TEMPLATE_TABLE_BODY_START_Y - index * tableMetrics.rowHeight
+    const rowBottom = rowTop - tableMetrics.rowHeight
 
     page.drawRectangle({
       x: tableLeft,
       y: rowBottom,
       width: tableWidth,
-      height: TEMPLATE_TABLE_ROW_HEIGHT,
+      height: tableMetrics.rowHeight,
       borderColor: rgb(0.15, 0.15, 0.15),
       borderWidth: 1,
     })
@@ -1138,8 +1167,8 @@ const drawTemplateTable = ({
       })
     }
 
-    const nameLines = wrapLineByWidth(regularFont, line.name, 8, 145).slice(0, 2)
-    const firstLineY = rowTop - 9.6
+    const nameLines = wrapLineByWidth(regularFont, line.name, 8, 145).slice(0, tableMetrics.maxNameLines)
+    const firstLineY = rowTop - tableMetrics.rowTextTopOffset
 
     page.drawText(line.index, {
       x: TEMPLATE_TABLE_TEXT.indexX,
@@ -1152,7 +1181,7 @@ const drawTemplateTable = ({
     nameLines.forEach((nameLine, lineIndex) => {
       page.drawText(nameLine, {
         x: TEMPLATE_TABLE_TEXT.nameX,
-        y: firstLineY - lineIndex * 9.6,
+        y: firstLineY - lineIndex * tableMetrics.rowTextLineHeight,
         size: 8,
         font: regularFont,
         color: rgb(0, 0, 0),
@@ -1222,15 +1251,15 @@ const drawTemplateTable = ({
     })
   })
 
-  const summaryTop = TEMPLATE_TABLE_BODY_START_Y - invoiceLines.length * TEMPLATE_TABLE_ROW_HEIGHT
+  const summaryTop = TEMPLATE_TABLE_BODY_START_Y - invoiceLines.length * tableMetrics.rowHeight
   const summaryRightStart = TEMPLATE_TABLE_BORDERS_X[4]
-  const summaryTopBottom = summaryTop - TEMPLATE_TABLE_ROW_HEIGHT
+  const summaryTopBottom = summaryTop - tableMetrics.rowHeight
 
   page.drawRectangle({
     x: summaryRightStart,
     y: summaryTopBottom,
     width: TEMPLATE_TABLE_BORDERS_X[TEMPLATE_TABLE_BORDERS_X.length - 1] - summaryRightStart,
-    height: TEMPLATE_TABLE_ROW_HEIGHT,
+    height: tableMetrics.rowHeight,
     borderColor: rgb(0.15, 0.15, 0.15),
     borderWidth: 1,
   })
@@ -1249,18 +1278,17 @@ const drawTemplateTable = ({
     font: regularFont,
     text: 'CELKEM',
     x: TEMPLATE_TOTAL_LABEL_X,
-    y: summaryTop - 9.4,
+    y: summaryTop - tableMetrics.rowTextTopOffset,
     size: 8,
   })
 
-  drawMoneyWithOptionalWrappedCurrency({
+  drawMoneyRight({
     font: regularFont,
     page,
     size: 8,
     text: formatMoney(netAmount, currency),
     x: TEMPLATE_TABLE_TEXT.netTotalRightX,
-    y: summaryTop - 9.4,
-    wrapCurrencyThreshold: 34,
+    y: summaryTop - tableMetrics.rowTextTopOffset,
   })
 
   drawStrongText({
@@ -1268,7 +1296,7 @@ const drawTemplateTable = ({
     font: regularFont,
     text: 'X',
     x: 449.754,
-    y: summaryTop - 9.4,
+    y: summaryTop - tableMetrics.rowTextTopOffset,
     size: 8,
   })
 
@@ -1278,20 +1306,17 @@ const drawTemplateTable = ({
     size: 8,
     text: formatMoney(taxAmount, currency),
     x: TEMPLATE_TABLE_TEXT.taxAmountRightX,
-    y: summaryTop - 9.4,
+    y: summaryTop - tableMetrics.rowTextTopOffset,
   })
 
-  drawMoneyWithOptionalWrappedCurrency({
+  drawMoneyRight({
     font: regularFont,
     page,
     size: 8,
     text: formatMoney(grossAmount, currency),
     x: TEMPLATE_TABLE_TEXT.grossRightX,
-    y: summaryTop - 9.4,
-    wrapCurrencyThreshold: 34,
+    y: summaryTop - tableMetrics.rowTextTopOffset,
   })
-
-  const breakdownRows = getSummaryBreakdownRows(invoiceLines, currency)
 
   breakdownRows.forEach((row, index) => {
     const rowTop = summaryTopBottom - index * TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT
