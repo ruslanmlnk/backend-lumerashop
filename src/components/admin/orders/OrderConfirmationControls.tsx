@@ -20,6 +20,31 @@ type EndpointResponse = OrderDecisionState & {
   error?: string
 }
 
+const getDownloadFileName = (contentDisposition: string | null) => {
+  if (!contentDisposition) {
+    return 'invoice.pdf'
+  }
+
+  const utfMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+
+  if (utfMatch?.[1]) {
+    try {
+      return decodeURIComponent(utfMatch[1])
+    } catch {
+      return utfMatch[1]
+    }
+  }
+
+  const quotedMatch = contentDisposition.match(/filename="([^"]+)"/i)
+
+  if (quotedMatch?.[1]) {
+    return quotedMatch[1]
+  }
+
+  const plainMatch = contentDisposition.match(/filename=([^;]+)/i)
+  return plainMatch?.[1]?.trim() || 'invoice.pdf'
+}
+
 const readOrderDecisionState = (value: unknown): OrderDecisionState => {
   const source = value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
   const isConfirmed = source.isConfirmed === true
@@ -89,7 +114,7 @@ const mergeDecisionIntoDocument = (value: unknown, decision: OrderDecisionState)
 
 export default function OrderConfirmationControls() {
   const { data, setData } = useDocumentInfo()
-  const [busyAction, setBusyAction] = useState<'confirm' | 'cancel' | null>(null)
+  const [busyAction, setBusyAction] = useState<'confirm' | 'cancel' | 'invoice' | null>(null)
   const [isRefreshingDecision, setIsRefreshingDecision] = useState(false)
   const [hasLoadedPersistedDecision, setHasLoadedPersistedDecision] = useState(false)
   const [decision, setDecision] = useState<OrderDecisionState>(() => readOrderDecisionState(data))
@@ -197,6 +222,46 @@ export default function OrderConfirmationControls() {
     }
   }
 
+  const handleInvoiceDownload = async () => {
+    setBusyAction('invoice')
+
+    try {
+      const response = await fetch(`/api/orders/${encodeURIComponent(docId)}/invoice`, {
+        method: 'GET',
+        cache: 'no-store',
+      })
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string }
+        throw new Error(payload.error || 'Failed to generate invoice PDF.')
+      }
+
+      const blob = await response.blob()
+      const fileName = getDownloadFileName(response.headers.get('content-disposition'))
+      const downloadUrl = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+
+      link.href = downloadUrl
+      link.download = fileName
+      link.target = '_blank'
+      link.rel = 'noreferrer'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+
+      window.setTimeout(() => {
+        URL.revokeObjectURL(downloadUrl)
+      }, 5000)
+
+      toast.success('Invoice PDF generated.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to generate invoice PDF.'
+      toast.error(message)
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
   const canConfirm = decision.isConfirmed !== true && decision.isCanceled !== true
   const canCancel = decision.isCanceled !== true
   const isBusy = busyAction !== null || isRefreshingDecision
@@ -216,7 +281,7 @@ export default function OrderConfirmationControls() {
       <div style={{ display: 'grid', gap: 4 }}>
         <strong style={{ fontSize: 14 }}>Order status</strong>
         <span style={{ color: 'var(--theme-elevation-600)', fontSize: 13 }}>
-          Accept or cancel the order and notify the customer by email right away.
+          Accept or cancel the order, notify the customer, and generate the invoice PDF.
         </span>
       </div>
 
@@ -283,6 +348,23 @@ export default function OrderConfirmationControls() {
               {busyAction === 'cancel' ? 'Sending...' : isRefreshingDecision ? 'Refreshing...' : 'Cancel'}
             </button>
           ) : null}
+
+          <button
+            type="button"
+            onClick={handleInvoiceDownload}
+            disabled={isBusy}
+            style={{
+              border: '1px solid var(--theme-elevation-300)',
+              borderRadius: 999,
+              padding: '10px 16px',
+              background: isBusy ? 'var(--theme-elevation-150)' : 'var(--theme-elevation-0)',
+              color: 'var(--theme-text)',
+              cursor: isBusy ? 'not-allowed' : 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            {busyAction === 'invoice' ? 'Generating...' : isRefreshingDecision ? 'Refreshing...' : 'Generate Invoice PDF'}
+          </button>
         </div>
       ) : null}
     </div>

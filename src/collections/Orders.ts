@@ -1,5 +1,6 @@
 import type { CollectionConfig, PayloadRequest } from 'payload'
 
+import { downloadOrderInvoice } from '@/lib/order-invoice-pdf'
 import { downloadPplOrderLabel, syncPplOrderLabel } from '@/lib/ppl-labels'
 import { cancelOrder, confirmOrder, getOrderDecision } from '@/lib/orders'
 import { downloadZasilkovnaOrderLabel, syncZasilkovnaOrderLabel } from '@/lib/zasilkovna-labels'
@@ -111,6 +112,35 @@ export const Orders: CollectionConfig = {
           return Response.json(result)
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to cancel order.'
+          return Response.json({ error: message }, { status: 400 })
+        }
+      },
+    },
+    {
+      path: '/:id/invoice',
+      method: 'get',
+      handler: async (req) => {
+        if (!isAdminRequest(req)) {
+          return Response.json({ error: 'Forbidden.' }, { status: 403 })
+        }
+
+        try {
+          const result = await downloadOrderInvoice(req.payload, parseOrderDocId(req))
+
+          if (!result) {
+            return Response.json({ error: 'Order not found.' }, { status: 404 })
+          }
+
+          return new Response(result.data, {
+            status: 200,
+            headers: {
+              'Content-Type': result.contentType,
+              'Content-Disposition': `inline; filename="${result.fileName}"`,
+              'Cache-Control': 'no-store',
+            },
+          })
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to generate invoice PDF.'
           return Response.json({ error: message }, { status: 400 })
         }
       },
