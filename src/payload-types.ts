@@ -567,6 +567,10 @@ export interface Order {
   isCanceled?: boolean | null;
   canceledAt?: string | null;
   cancellationEmailSentAt?: string | null;
+  invoiceGeneratedAt?: string | null;
+  invoiceFileName?: string | null;
+  invoiceContentType?: string | null;
+  invoiceData?: string | null;
   user?: (number | null) | User;
   customerEmail: string;
   customerPhone?: string | null;
@@ -1121,6 +1125,10 @@ export interface OrdersSelect<T extends boolean = true> {
   isCanceled?: T;
   canceledAt?: T;
   cancellationEmailSentAt?: T;
+  invoiceGeneratedAt?: T;
+  invoiceFileName?: T;
+  invoiceContentType?: T;
+  invoiceData?: T;
   user?: T;
   customerEmail?: T;
   customerPhone?: T;
