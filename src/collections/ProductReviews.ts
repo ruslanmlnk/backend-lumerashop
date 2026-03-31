@@ -142,6 +142,39 @@ export const ProductReviews: CollectionConfig = {
             overrideAccess: true,
           })
 
+          // Check if purchase is required for reviews
+          const homePage = await req.payload.findGlobal({
+            slug: 'home-page',
+            depth: 0,
+          })
+
+          if (homePage.requirePurchaseForReview) {
+            // Check if user has purchased this product
+            const orders = await req.payload.find({
+              collection: 'orders',
+              depth: 1,
+              where: {
+                user: {
+                  equals: numericReviewerId,
+                },
+                status: {
+                  in: ['completed', 'shipped', 'delivered'],
+                },
+                'items.product': {
+                  equals: numericProductId,
+                },
+              },
+              limit: 1,
+            })
+
+            if (orders.docs.length === 0) {
+              return Response.json(
+                { error: 'You can only review products you have purchased.' },
+                { status: 403 },
+              )
+            }
+          }
+
           const review = await req.payload.create({
             collection: 'product-reviews',
             depth: 0,

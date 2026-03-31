@@ -222,6 +222,15 @@ export const HomePage: GlobalConfig = {
         },
       ],
     },
+    {
+      name: 'requirePurchaseForReview',
+      type: 'checkbox',
+      label: 'Require purchase before review',
+      defaultValue: false,
+      admin: {
+        description: 'If enabled, users can only leave reviews on products they have purchased.',
+      },
+    },
     seo,
   ],
 }

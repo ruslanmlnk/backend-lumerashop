@@ -1354,6 +1354,7 @@ export interface HomePage {
      */
     featuredArticles?: (number | Article)[] | null;
   };
+  requirePurchaseForReview?: boolean | null;
   seo?: {
     title?: string | null;
     description?: string | null;
@@ -1635,6 +1636,7 @@ export interface HomePageSelect<T extends boolean = true> {
         description?: T;
         featuredArticles?: T;
       };
+  requirePurchaseForReview?: T;
   seo?:
     | T
     | {
