@@ -9,6 +9,7 @@ import * as migration_20260326_000000_add_order_confirmation_fields from './2026
 import * as migration_20260326_010000_add_order_cancellation_fields from './20260326_010000_add_order_cancellation_fields';
 import * as migration_20260330_120000_add_first_purchase_promo_global from './20260330_120000_add_first_purchase_promo_global';
 import * as migration_20260330_161500_add_order_invoice_storage from './20260330_161500_add_order_invoice_storage';
+import * as migration_20260401_120000_add_require_purchase_for_review from './20260401_120000_add_require_purchase_for_review';
 
 export const migrations = [
   {
@@ -65,5 +66,10 @@ export const migrations = [
     up: migration_20260330_161500_add_order_invoice_storage.up,
     down: migration_20260330_161500_add_order_invoice_storage.down,
     name: '20260330_161500_add_order_invoice_storage',
+  },
+  {
+    up: migration_20260401_120000_add_require_purchase_for_review.up,
+    down: migration_20260401_120000_add_require_purchase_for_review.down,
+    name: '20260401_120000_add_require_purchase_for_review',
   },
 ];
