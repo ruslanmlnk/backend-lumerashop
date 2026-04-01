@@ -167,8 +167,8 @@ export const ProductReviews: CollectionConfig = {
                 user: {
                   equals: numericReviewerId,
                 },
-                status: {
-                  in: ['completed', 'shipped', 'delivered'],
+                paymentStatus: {
+                  equals: 'paid',
                 },
                 'items.product': {
                   equals: numericProductId,
@@ -179,7 +179,7 @@ export const ProductReviews: CollectionConfig = {
 
             if (orders.docs.length === 0) {
               return Response.json(
-                { error: 'You can only review products you have purchased.' },
+                { error: 'Pro přidání recenze si tento produkt musíte nejprve zakoupit.' },
                 { status: 403 },
               )
             }
