@@ -92,7 +92,7 @@ export const ProductReviews: CollectionConfig = {
             { show: { equals: true } },
             { user: { equals: user.id } },
           ],
-        }
+        } as any
       }
 
       return {
