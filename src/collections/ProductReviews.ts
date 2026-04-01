@@ -85,6 +85,24 @@ export const ProductReviews: CollectionConfig = {
         return true
       }
 
+      // Allow users to read their own reviews
+      if (user && typeof user === 'object' && 'id' in user) {
+        return {
+          or: [
+            {
+              show: {
+                equals: true,
+              },
+            },
+            {
+              user: {
+                equals: user.id,
+              },
+            },
+          ],
+        }
+      }
+
       return {
         show: {
           equals: true,
