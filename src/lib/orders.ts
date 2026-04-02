@@ -136,6 +136,7 @@ type PayloadOrderDoc = {
   cancellationEmailSentAt?: string | null
   purchaseCountRecorded?: boolean | null
   bonusLedgerRecorded?: boolean | null
+  stockDecremented?: boolean | null
   shippingAddress?: {
     country?: string | null
     address?: string | null
@@ -419,6 +420,100 @@ const incrementPurchaseCounts = async (payload: Payload, order: PayloadOrderDoc)
   }
 }
 
+const decrementStockQuantities = async (payload: Payload, order: PayloadOrderDoc) => {
+  if (!Array.isArray(order.items) || order.items.length === 0) {
+    return
+  }
+
+  const quantities = new Map<number, number>()
+
+  for (const item of order.items) {
+    const productId =
+      typeof item?.product === 'object' && item.product
+        ? toProductId(item.product.id)
+        : toProductId(item?.product)
+
+    if (!productId) {
+      continue
+    }
+
+    const quantity = Math.max(0, Math.floor(toPositiveNumber(item?.quantity)))
+    if (quantity <= 0) {
+      continue
+    }
+
+    quantities.set(productId, (quantities.get(productId) || 0) + quantity)
+  }
+
+  for (const [productId, quantity] of quantities.entries()) {
+    const product = await payload.findByID({
+      collection: 'products' as never,
+      id: productId,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    const currentStock = toPositiveNumber((product as { stockQuantity?: unknown }).stockQuantity)
+
+    await payload.update({
+      collection: 'products' as never,
+      id: productId,
+      data: {
+        stockQuantity: Math.max(0, currentStock - quantity),
+      } as never,
+      depth: 0,
+      overrideAccess: true,
+    })
+  }
+}
+
+const restoreStockQuantities = async (payload: Payload, order: PayloadOrderDoc) => {
+  if (!Array.isArray(order.items) || order.items.length === 0) {
+    return
+  }
+
+  const quantities = new Map<number, number>()
+
+  for (const item of order.items) {
+    const productId =
+      typeof item?.product === 'object' && item.product
+        ? toProductId(item.product.id)
+        : toProductId(item?.product)
+
+    if (!productId) {
+      continue
+    }
+
+    const quantity = Math.max(0, Math.floor(toPositiveNumber(item?.quantity)))
+    if (quantity <= 0) {
+      continue
+    }
+
+    quantities.set(productId, (quantities.get(productId) || 0) + quantity)
+  }
+
+  for (const [productId, quantity] of quantities.entries()) {
+    const product = await payload.findByID({
+      collection: 'products' as never,
+      id: productId,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    const currentStock = toPositiveNumber((product as { stockQuantity?: unknown }).stockQuantity)
+
+    await payload.update({
+      collection: 'products' as never,
+      id: productId,
+      data: {
+        stockQuantity: currentStock + quantity,
+      } as never,
+      depth: 0,
+      overrideAccess: true,
+    })
+  }
+}
+
 const syncUserBonusLedger = async (payload: Payload, order: PayloadOrderDoc) => {
   const userId = extractDocumentId(order.user)
 
@@ -584,10 +679,28 @@ export const createOrder = async (payload: Payload, input: InternalOrderCreateIn
       },
       purchaseCountRecorded: false,
       bonusLedgerRecorded: false,
+      stockDecremented: false,
     } as never,
   })
 
-  const createdOrder = created as PayloadOrderDoc
+  let createdOrder = created as PayloadOrderDoc
+
+  if (createdOrder.stockDecremented !== true) {
+    try {
+      await decrementStockQuantities(payload, createdOrder)
+      
+      const res = await payload.update({
+        collection: 'orders' as never,
+        id: createdOrder.id,
+        data: { stockDecremented: true } as never,
+        depth: 0,
+        overrideAccess: true,
+      })
+      createdOrder = res as PayloadOrderDoc
+    } catch (e) {
+      console.error('Failed to decrement stock for new order', createdOrder.id, e)
+    }
+  }
 
   if (input.provider === 'cash-on-delivery') {
     await sendOrderNotificationSafely(createdOrder, 'cash-on-delivery-created')
@@ -630,6 +743,18 @@ export const updateOrder = async (payload: Payload, orderId: string, input: Inte
     nextPaymentStatus === 'paid' &&
     existing.paymentStatus !== 'paid' &&
     toPositiveNumber(existing.discounts?.firstPurchaseDiscountAmount) > 0
+  const shouldRestoreStockQuantities =
+    nextPaymentStatus === 'canceled' &&
+    existing.paymentStatus !== 'canceled' &&
+    existing.stockDecremented === true
+
+  if (shouldRestoreStockQuantities) {
+    try {
+      await restoreStockQuantities(payload, existing)
+    } catch (e) {
+      console.error('Failed to restore stock for cancelled order', existing.id, e)
+    }
+  }
 
   if (shouldRecordPurchaseCount) {
     await incrementPurchaseCounts(payload, existing)
@@ -652,6 +777,7 @@ export const updateOrder = async (payload: Payload, orderId: string, input: Inte
       paymentStatus: nextPaymentStatus,
       purchaseCountRecorded: existing.purchaseCountRecorded === true || shouldRecordPurchaseCount,
       bonusLedgerRecorded: existing.bonusLedgerRecorded === true || shouldRecordBonusLedger,
+      stockDecremented: shouldRestoreStockQuantities ? false : existing.stockDecremented,
       providerData: {
         stripeSessionId: sanitizeString(input.stripeSessionId) || existing.providerData?.stripeSessionId || undefined,
         stripePaymentIntentId:
@@ -733,6 +859,14 @@ export const cancelOrder = async (
     throw new Error('Order is missing customer email.')
   }
 
+  if (existing.stockDecremented === true) {
+    try {
+      await restoreStockQuantities(payload, existing)
+    } catch (e) {
+      console.error('Failed to restore stock for cancelled order via API', existing.id, e)
+    }
+  }
+
   await sendOrderCanceledEmailToCustomer(existing)
 
   const timestamp = new Date().toISOString()
@@ -745,6 +879,7 @@ export const cancelOrder = async (
       isCanceled: true,
       canceledAt: timestamp,
       cancellationEmailSentAt: timestamp,
+      stockDecremented: false,
     } as never,
   })
 
