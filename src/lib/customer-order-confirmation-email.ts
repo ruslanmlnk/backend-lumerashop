@@ -134,7 +134,7 @@ const buildCustomerName = (order: OrderStatusEmailDoc) =>
 const buildShippingLines = (order: OrderStatusEmailDoc) => {
   const lines = [
     sanitizeText(order.shipping?.label),
-    order.shipping?.cashOnDelivery ? 'Platba probiha pri prevzeti zasilky.' : '',
+    order.shipping?.cashOnDelivery ? 'Platba probíhá při převzetí zásilky.' : '',
     sanitizeText(order.shipping?.pickupPointName) ? `Vydejni misto: ${sanitizeText(order.shipping?.pickupPointName)}` : '',
     sanitizeText(order.shipping?.pickupPointAddress),
   ].filter(Boolean)
@@ -154,13 +154,13 @@ const buildShippingLines = (order: OrderStatusEmailDoc) => {
       .trim()
 
     if (addressLine) {
-      lines.push(`Doruceni: ${addressLine}`)
+      lines.push(`Doručení: ${addressLine}`)
     }
   }
 
   const notes = sanitizeText(order.shippingAddress?.notes)
   if (notes) {
-    lines.push(`Poznamka: ${notes}`)
+    lines.push(`Poznámka: ${notes}`)
   }
 
   return lines
@@ -168,7 +168,7 @@ const buildShippingLines = (order: OrderStatusEmailDoc) => {
 
 const buildBillingLines = (order: OrderStatusEmailDoc) => {
   if (order.billing?.sameAsShipping) {
-    return ['Fakturacni adresa je stejna jako dorucovaci.']
+    return ['Fakturační adresa je stejná jako doručovací.']
   }
 
   const person = [sanitizeText(order.billing?.firstName), sanitizeText(order.billing?.lastName)]
@@ -176,8 +176,8 @@ const buildBillingLines = (order: OrderStatusEmailDoc) => {
     .join(' ')
   const company = [
     sanitizeText(order.billing?.companyName),
-    sanitizeText(order.billing?.companyId) ? `IC ${sanitizeText(order.billing?.companyId)}` : '',
-    sanitizeText(order.billing?.vatId) ? `DIC ${sanitizeText(order.billing?.vatId)}` : '',
+    sanitizeText(order.billing?.companyId) ? `IČ ${sanitizeText(order.billing?.companyId)}` : '',
+    sanitizeText(order.billing?.vatId) ? `DIČ ${sanitizeText(order.billing?.vatId)}` : '',
   ]
     .filter(Boolean)
     .join(' | ')
@@ -198,7 +198,7 @@ const buildItemsText = (order: OrderStatusEmailDoc, currency: string) => {
   const items = Array.isArray(order.items) ? order.items : []
 
   if (items.length === 0) {
-    return 'Bez polozek'
+    return 'Bez položek'
   }
 
   return items
@@ -222,7 +222,7 @@ const buildItemsHtml = (order: OrderStatusEmailDoc, currency: string) => {
   if (items.length === 0) {
     return `
       <tr>
-        <td style="padding:0;font-size:15px;line-height:1.7;color:#6b6258">Bez polozek</td>
+        <td style="padding:0;font-size:15px;line-height:1.7;color:#6b6258">Bez položek</td>
       </tr>
     `
   }
@@ -241,7 +241,7 @@ const buildItemsHtml = (order: OrderStatusEmailDoc, currency: string) => {
               <tr>
                 <td class="item-info-cell" style="padding:0 14px 0 0;vertical-align:top;font-size:15px;line-height:1.6;color:#2f2a24">
                   <div style="font-weight:700;color:#111111">${escapeHtml(sanitizeText(item.name) || 'Produkt')}</div>
-                  <div style="margin-top:6px;font-size:13px;color:#6b6258">Mnozstvi: ${quantity}</div>
+                  <div style="margin-top:6px;font-size:13px;color:#6b6258">Množství: ${quantity}</div>
                   ${extras ? `<div style="margin-top:4px;font-size:13px;color:#6b6258">${escapeHtml(extras)}</div>` : ''}
                 </td>
                 <td class="item-price-cell" align="right" valign="top" style="white-space:nowrap;font-size:15px;line-height:1.6;font-weight:700;color:#111111">
@@ -315,43 +315,43 @@ const buildEmailStyles = () => `
 const getStatusCopy = (status: OrderCustomerEmailStatus, order: OrderStatusEmailDoc) => {
   if (status === 'canceled') {
     return {
-      title: 'Objednavka zrusena',
-      hero: 'Vasi objednavku jsme zrusili.',
-      intro: 'vasi objednavku jsme zrusili.',
+      title: 'Objednávka zrušena',
+      hero: 'Vaši objednávku jsme zrušili.',
+      intro: 'vaši objednávku jsme zrušili.',
       detail:
         order.paymentStatus === 'paid'
-          ? 'Pokud uz byla platba provedena, ozveme se vam s dalsim postupem ohledne vraceni platby.'
-          : 'Pokud budete chtit vytvorit novou objednavku, staci se vratit zpet na web a objednat znovu.',
-      subject: `Lumera: objednavka ${sanitizeText(order.orderId) || ''} byla zrusena`,
+          ? 'Pokud už byla platba provedena, ozveme se vám s dalším postupem ohledně vrácení platby.'
+          : 'Pokud budete chtít vytvořit novou objednávku, stačí se vrátit zpět na web a objednat znovu.',
+      subject: `Lumera: objednávka ${sanitizeText(order.orderId) || ''} byla zrušena`,
     }
   }
 
   if (order.provider === 'cash-on-delivery' || order.shipping?.cashOnDelivery) {
     return {
-      title: 'Objednavka prijata',
-      hero: 'Vasi objednavku jsme prijali a nyni ji pripravujeme k odeslani.',
-      intro: 'vasi objednavku jsme uspesne prijali.',
-      detail: 'Zvolili jste dobirku. Uhradu provedete pri prevzeti zasilky.',
-      subject: `Lumera: objednavka ${sanitizeText(order.orderId) || ''} byla prijata`,
+      title: 'Objednávka přijata',
+      hero: 'Vaši objednávku jsme přijali a nyní ji připravujeme k odeslání.',
+      intro: 'vaši objednávku jsme úspěšně přijali.',
+      detail: 'Zvolili jste dobírku. Úhradu provedete při převzetí zásilky.',
+      subject: `Lumera: objednávka ${sanitizeText(order.orderId) || ''} byla přijata`,
     }
   }
 
   if (order.paymentStatus === 'paid') {
     return {
-      title: 'Objednavka prijata',
-      hero: 'Vasi objednavku jsme prijali a nyni ji pripravujeme k odeslani.',
-      intro: 'vasi objednavku jsme uspesne prijali.',
-      detail: 'Platba byla prijata a objednavka je pripravena k dalsimu zpracovani.',
-      subject: `Lumera: objednavka ${sanitizeText(order.orderId) || ''} byla prijata`,
+      title: 'Objednávka přijata',
+      hero: 'Vaši objednávku jsme přijali a nyní ji připravujeme k odeslání.',
+      intro: 'vaši objednávku jsme úspěšně přijali.',
+      detail: 'Platba byla přijata a objednávka je připravena k dalšímu zpracování.',
+      subject: `Lumera: objednávka ${sanitizeText(order.orderId) || ''} byla přijata`,
     }
   }
 
   return {
-    title: 'Objednavka prijata',
-    hero: 'Vasi objednavku jsme prijali a nyni ji pripravujeme k odeslani.',
-    intro: 'vasi objednavku jsme uspesne prijali.',
-    detail: 'Objednavku jsme prijali a budeme ji dale zpracovavat podle zvolene platby a dopravy.',
-    subject: `Lumera: objednavka ${sanitizeText(order.orderId) || ''} byla prijata`,
+    title: 'Objednávka přijata',
+    hero: 'Vaši objednávku jsme přijali a nyní ji připravujeme k odeslání.',
+    intro: 'vaši objednávku jsme úspěšně přijali.',
+    detail: 'Objednávku jsme přijali a budeme ji dále zpracovávat podle zvolené platby a dopravy.',
+    subject: `Lumera: objednávka ${sanitizeText(order.orderId) || ''} byla přijata`,
   }
 }
 
@@ -362,29 +362,29 @@ const buildTextBody = (order: OrderStatusEmailDoc, status: OrderCustomerEmailSta
   const copy = getStatusCopy(status, order)
 
   return [
-    `Dobry den, ${buildCustomerName(order)},`,
+    `Dobrý den, ${buildCustomerName(order)},`,
     '',
     copy.intro,
     copy.detail,
     '',
-    `Cislo objednavky: ${sanitizeText(order.orderId) || '-'}`,
+    `Číslo objednávky: ${sanitizeText(order.orderId) || '-'}`,
     `E-mail: ${sanitizeText(order.customerEmail) || '-'}`,
     `Telefon: ${sanitizeText(order.customerPhone) || '-'}`,
     '',
-    `Mezisoucet: ${formatMoney(order.subtotal, currency)}`,
+    `Mezisoučet: ${formatMoney(order.subtotal, currency)}`,
     `Doprava: ${formatMoney(order.shippingTotal, currency)}`,
     `Celkem: ${formatMoney(order.total, currency)}`,
     '',
     'Doprava:',
     shippingLines || '-',
     '',
-    'Fakturacni udaje:',
+    'Fakturační údaje:',
     billingLines || '-',
     '',
     'Objednane produkty:',
     buildItemsText(order, currency),
     '',
-    'Dekujeme,',
+    'Děkujeme,',
     'Lumera',
   ].join('\n')
 }
@@ -471,7 +471,7 @@ const buildHtmlBody = (order: OrderStatusEmailDoc, status: OrderCustomerEmailSta
                 <tr>
                   <td class="email-section" style="padding:32px 36px">
                     <p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:#2f2a24">
-                      Dobry den, <strong>${escapeHtml(buildCustomerName(order))}</strong>,
+                      Dobrý den, <strong>${escapeHtml(buildCustomerName(order))}</strong>,
                     </p>
                     <p style="margin:0 0 24px;font-size:15px;line-height:1.8;color:#4a433b">
                       ${escapeHtml(copy.detail)}
@@ -480,7 +480,7 @@ const buildHtmlBody = (order: OrderStatusEmailDoc, status: OrderCustomerEmailSta
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 24px">
                       <tr>
                         <td class="summary-cell" width="33.333%" style="padding:0 8px 12px 0;vertical-align:top">
-                          ${buildSummaryCard('Objednavka', sanitizeText(order.orderId) || '-')}
+                          ${buildSummaryCard('Objednávka', sanitizeText(order.orderId) || '-')}
                         </td>
                         <td class="summary-cell" width="33.333%" style="padding:0 8px 12px;vertical-align:top">
                           ${buildSummaryCard('Celkem', formatMoney(order.total, currency))}
@@ -510,7 +510,7 @@ const buildHtmlBody = (order: OrderStatusEmailDoc, status: OrderCustomerEmailSta
                           ${buildSectionCard('Doprava', buildHtmlLines(shippingLines))}
                         </td>
                         <td class="detail-cell" width="50%" style="padding:0 0 0 8px;vertical-align:top">
-                          ${buildSectionCard('Fakturacni udaje', buildHtmlLines(billingLines))}
+                          ${buildSectionCard('Fakturační údaje', buildHtmlLines(billingLines))}
                         </td>
                       </tr>
                     </table>
@@ -529,7 +529,7 @@ const buildHtmlBody = (order: OrderStatusEmailDoc, status: OrderCustomerEmailSta
                               <td style="padding:0 0 8px"><strong>Telefon:</strong> ${escapeHtml(sanitizeText(order.customerPhone) || '-')}</td>
                             </tr>
                             <tr>
-                              <td style="padding:0 0 8px"><strong>Mezisoucet:</strong> ${escapeHtml(formatMoney(order.subtotal, currency))}</td>
+                              <td style="padding:0 0 8px"><strong>Mezisoučet:</strong> ${escapeHtml(formatMoney(order.subtotal, currency))}</td>
                             </tr>
                             <tr>
                               <td style="padding:0 0 8px"><strong>Doprava:</strong> ${escapeHtml(formatMoney(order.shippingTotal, currency))}</td>

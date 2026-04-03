@@ -40,7 +40,7 @@ export const ShippingMethods: CollectionConfig = {
     {
       name: 'cashOnDelivery',
       type: 'checkbox',
-      label: 'Na dobirku',
+      label: 'Na dobírku',
       defaultValue: false,
     },
     {
