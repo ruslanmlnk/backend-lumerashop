@@ -49,6 +49,8 @@ type ZasilkovnaOrderDoc = {
     pickupPointCode?: string | null
     pickupPointName?: string | null
     pickupPointAddress?: string | null
+    pickupPointType?: string | null
+    pickupPointCarrierId?: string | null
   } | null
   items?: ZasilkovnaOrderItem[] | null
   zasilkovnaShipment?: ZasilkovnaShipmentDoc | null
@@ -78,7 +80,8 @@ type DownloadedLabel = {
 }
 
 const DEFAULT_API_BASE_URL = 'https://www.zasilkovna.cz/api/rest'
-const DEFAULT_LABEL_FORMAT = 'pdf'
+const DEFAULT_PACKET_LABEL_FORMAT = 'A7 on A4'
+const DEFAULT_PACKET_LABEL_OFFSET = 0
 const DEFAULT_WEIGHT_KG = 1
 
 const readEnv = (name: string) => process.env[name]?.trim() || ''
@@ -139,11 +142,30 @@ const getRequiredEnv = (name: string) => {
 
 const getApiBaseUrl = () => readEnv('PACKETA_API_BASE_URL') || DEFAULT_API_BASE_URL
 
+const getPacketaEshopLabel = () => sanitizeText(readEnv('PACKETA_ESHOP') || readEnv('PACKETA_ESHOP_ID'), 250)
+
+const getPacketaPacketLabelFormat = () => readEnv('PACKETA_LABEL_PDF_FORMAT') || DEFAULT_PACKET_LABEL_FORMAT
+
+const getPacketaPacketLabelOffset = () => {
+  const numeric = Number(readEnv('PACKETA_LABEL_PDF_OFFSET'))
+  return Number.isFinite(numeric) && numeric >= 0 ? Math.floor(numeric) : DEFAULT_PACKET_LABEL_OFFSET
+}
+
 const isZasilkovnaShippingMethod = (methodId: unknown) =>
   typeof methodId === 'string' && methodId.startsWith('zasilkovna-')
 
 const isZasilkovnaPickupMethod = (methodId: unknown) =>
   typeof methodId === 'string' && methodId.includes('pickup')
+
+const isExternalPickupPoint = (
+  shipping:
+    | {
+        pickupPointType?: string | null
+        pickupPointCarrierId?: string | null
+      }
+    | null
+    | undefined,
+) => sanitizeText(shipping?.pickupPointType, 20).toLowerCase() === 'external' || Boolean(asCleanString(shipping?.pickupPointCarrierId))
 
 const isCashOnDeliveryMethod = (
   shipping:
@@ -178,8 +200,8 @@ const assertZasilkovnaOrder = (order: ZasilkovnaOrderDoc) => {
 
 const getRecipientName = (order: ZasilkovnaOrderDoc) => {
   const firstName =
-    sanitizeText(order.customerFirstName, 50) || sanitizeText(order.billing?.firstName, 50) || 'Customer'
-  const lastName = sanitizeText(order.customerLastName, 50) || sanitizeText(order.billing?.lastName, 50) || '.'
+    sanitizeText(order.customerFirstName, 32) || sanitizeText(order.billing?.firstName, 32) || 'Customer'
+  const lastName = sanitizeText(order.customerLastName, 32) || sanitizeText(order.billing?.lastName, 32) || '.'
 
   return {
     firstName,
@@ -187,26 +209,105 @@ const getRecipientName = (order: ZasilkovnaOrderDoc) => {
   }
 }
 
+const splitStreetAndHouseNumber = (value: unknown) => {
+  const normalized = sanitizeText(value, 80)
+
+  if (!normalized) {
+    return {
+      street: '',
+      houseNumber: '',
+    }
+  }
+
+  const compact = normalized.replace(/\s*,\s*/g, ' ').replace(/\s+/g, ' ').trim()
+  const patterns = [
+    /^(.*\S)\s+(\d+[A-Za-z]?(?:[/-]\d+[A-Za-z]?)?)$/,
+    /^(.*\S)\s+((?:ev\.|c\.p\.)\s*\d+[A-Za-z]?(?:[/-]\d+[A-Za-z]?)?)$/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = compact.match(pattern)
+    if (!match) {
+      continue
+    }
+
+    return {
+      street: sanitizeText(match[1], 32),
+      houseNumber: sanitizeText(match[2], 16),
+    }
+  }
+
+  return {
+    street: sanitizeText(compact, 32),
+    houseNumber: '',
+  }
+}
+
 const getRecipientAddress = (order: ZasilkovnaOrderDoc) => {
-  const street = sanitizeText(order.shippingAddress?.address || order.billing?.address, 80)
-  const city = sanitizeText(order.shippingAddress?.city || order.billing?.city, 60)
+  const streetAndNumber = splitStreetAndHouseNumber(order.shippingAddress?.address || order.billing?.address)
+  const city = sanitizeText(order.shippingAddress?.city || order.billing?.city, 32)
   const zip = sanitizeZip(order.shippingAddress?.zip || order.billing?.zip)
   const country = sanitizeCountry(order.shippingAddress?.country || order.billing?.country || 'CZ')
 
-  if (!street || !city || !zip) {
+  if (!streetAndNumber.street || !city || !zip) {
     throw new Error('Order is missing address data required for Zasilkovna shipment.')
   }
 
   return {
-    street,
+    ...streetAndNumber,
     city,
     zip,
     country,
   }
 }
 
-const getPickupPointId = (order: ZasilkovnaOrderDoc) =>
-  sanitizeText(order.shipping?.pickupPointId || order.shipping?.pickupPointCode, 50)
+const getPickupDestination = (order: ZasilkovnaOrderDoc) => {
+  const shipping = order.shipping
+
+  if (isExternalPickupPoint(shipping)) {
+    const addressId = sanitizeText(shipping?.pickupPointCarrierId, 20)
+    const carrierPickupPoint = sanitizeText(shipping?.pickupPointCode || shipping?.pickupPointId, 32)
+
+    if (!addressId) {
+      throw new Error('Selected external Zasilkovna pickup point is missing carrier ID.')
+    }
+
+    if (!carrierPickupPoint) {
+      throw new Error('Selected external Zasilkovna pickup point is missing its carrier pickup code.')
+    }
+
+    return {
+      addressId,
+      carrierPickupPoint,
+    }
+  }
+
+  const addressId = sanitizeText(shipping?.pickupPointId || shipping?.pickupPointCode, 20)
+
+  if (!addressId) {
+    throw new Error('Zasilkovna pickup shipment requires a pickup point ID.')
+  }
+
+  return {
+    addressId,
+    carrierPickupPoint: '',
+  }
+}
+
+const getCourierAddressId = (order: ZasilkovnaOrderDoc) => {
+  const country = sanitizeCountry(order.shippingAddress?.country || order.billing?.country || 'CZ')
+  const countrySpecific = readEnv(`PACKETA_COURIER_ADDRESS_ID_${country}`)
+  const fallback = readEnv('PACKETA_COURIER_ADDRESS_ID')
+  const addressId = sanitizeText(countrySpecific || fallback, 20)
+
+  if (!addressId) {
+    throw new Error(
+      `Missing Packeta courier carrier ID for ${country}. Set PACKETA_COURIER_ADDRESS_ID_${country} or PACKETA_COURIER_ADDRESS_ID.`,
+    )
+  }
+
+  return addressId
+}
 
 const toPositiveNumber = (value: unknown) => {
   const numeric = typeof value === 'number' ? value : Number(value)
@@ -295,7 +396,11 @@ const getTagContent = (xml: string, tagName: string) => {
 }
 
 const getFaultMessage = (xml: string) =>
-  getTagContent(xml, 'string') || getTagContent(xml, 'fault') || 'Packeta API request failed.'
+  getTagContent(xml, 'string') ||
+  getTagContent(xml, 'faultstring') ||
+  getTagContent(xml, 'message') ||
+  getTagContent(xml, 'fault') ||
+  'Packeta API request failed.'
 
 const getResultContent = (xml: string) => getTagContent(xml, 'result')
 
@@ -329,7 +434,6 @@ const buildCreatePacketInnerXml = async (payload: Payload, order: ZasilkovnaOrde
   const email = asCleanString(order.customerEmail)
   const insuredValue = Math.max(1, Math.round(toPositiveNumber(order.total) * 100) / 100)
   const currency = sanitizeText(order.currency || 'CZK', 8) || 'CZK'
-  const eshopId = getRequiredEnv('PACKETA_ESHOP_ID')
   const weightKg = await estimateOrderWeightKg(payload, order)
 
   if (!phone) {
@@ -340,47 +444,51 @@ const buildCreatePacketInnerXml = async (payload: Payload, order: ZasilkovnaOrde
     throw new Error('Order is missing customer email required for Zasilkovna shipment.')
   }
 
-  const baseFields = [
-    tag('number', sanitizeText(order.orderId, 40)),
+  const fields = [
+    tag('number', sanitizeText(order.orderId, 36)),
     tag('name', recipient.firstName),
     tag('surname', recipient.lastName),
-    tag('company', sanitizeText(order.billing?.companyName, 80)),
+    tag('company', sanitizeText(order.billing?.companyName, 32)),
     tag('email', email),
     tag('phone', phone),
     tag('value', insuredValue.toFixed(2)),
     tag('currency', currency),
-    tag('eshop_id', eshopId),
     tag('weight', weightKg.toFixed(3)),
+    tag('note', sanitizeText(order.shipping?.label || order.shippingAddress?.notes, 128)),
+    tag('eshop', getPacketaEshopLabel()),
   ]
 
   if (isCashOnDeliveryMethod(order.shipping)) {
-    baseFields.push(tag('cod', insuredValue.toFixed(2)))
+    fields.push(tag('cod', insuredValue.toFixed(2)))
   }
 
   if (isZasilkovnaPickupMethod(order.shipping?.methodId)) {
-    const addressId = getPickupPointId(order)
-    if (!addressId) {
-      throw new Error('Zasilkovna pickup shipment requires a pickup point ID.')
-    }
+    const destination = getPickupDestination(order)
+    fields.push(tag('addressId', destination.addressId))
 
-    baseFields.push(tag('addressId', addressId))
+    if (destination.carrierPickupPoint) {
+      fields.push(tag('carrierPickupPoint', destination.carrierPickupPoint))
+    }
   } else {
     const address = getRecipientAddress(order)
-    baseFields.push(tag('homeDelivery', '1'))
-    baseFields.push(tag('street', address.street))
-    baseFields.push(tag('city', address.city))
-    baseFields.push(tag('zip', address.zip))
-    baseFields.push(tag('country', address.country))
+    fields.push(tag('addressId', getCourierAddressId(order)))
+    fields.push(tag('street', address.street))
+    fields.push(tag('houseNumber', address.houseNumber))
+    fields.push(tag('city', address.city))
+    fields.push(tag('zip', address.zip))
   }
 
-  return `<packet>${baseFields.join('')}</packet>`
+  return `<packetAttributes>${fields.join('')}</packetAttributes>`
 }
 
 const parseCreatedPacket = (xml: string) => {
   const result = getResultContent(xml)
   const packetId = getTagContent(result, 'id') || getTagContent(result, 'packetId') || getTagContent(xml, 'id')
   const packetNumber =
-    getTagContent(result, 'barcode') || getTagContent(result, 'number') || getTagContent(xml, 'barcode')
+    getTagContent(result, 'barcode') ||
+    getTagContent(result, 'number') ||
+    getTagContent(xml, 'barcode') ||
+    getTagContent(xml, 'number')
 
   if (!packetId) {
     throw new Error('Packeta did not return a packet ID.')
@@ -402,17 +510,35 @@ const fetchCourierNumber = async (packetId: string) => {
   return getResultContent(xml) || getTagContent(xml, 'number')
 }
 
-const fetchLabelPdf = async (packetId: string, courier: boolean) => {
-  const methodName = courier ? 'packetCourierLabelPdf' : 'packetLabelPdf'
-  const xml = await callPacketaApi(methodName, tag('packetId', packetId))
-  const result = getResultContent(xml)
-  const normalized = result.replace(/\s+/g, '')
+const readPdfPayload = (xml: string) => {
+  const result = getResultContent(xml).replace(/\s+/g, '')
 
-  if (!normalized) {
+  if (!result) {
     throw new Error('Packeta did not return a label payload.')
   }
 
-  return normalized
+  return result
+}
+
+const fetchPacketaLabelPdf = async (packetId: string) => {
+  const xml = await callPacketaApi(
+    'packetLabelPdf',
+    `${tag('packetId', packetId)}${tag('format', getPacketaPacketLabelFormat())}${tag(
+      'offset',
+      getPacketaPacketLabelOffset(),
+    )}`,
+  )
+
+  return readPdfPayload(xml)
+}
+
+const fetchCourierLabelPdf = async (packetId: string, courierNumber: string) => {
+  const xml = await callPacketaApi(
+    'packetCourierLabelPdf',
+    `${tag('packetId', packetId)}${tag('courierNumber', courierNumber)}`,
+  )
+
+  return readPdfPayload(xml)
 }
 
 const persistShipmentState = async (payload: Payload, order: ZasilkovnaOrderDoc, shipment: ZasilkovnaShipmentDoc) =>
@@ -438,8 +564,10 @@ const persistShipmentError = async (payload: Payload, order: ZasilkovnaOrderDoc,
         packetId: asCleanString(order.zasilkovnaShipment?.packetId),
         packetNumber: asCleanString(order.zasilkovnaShipment?.packetNumber),
         carrierNumber: asCleanString(order.zasilkovnaShipment?.carrierNumber),
-        labelFormat: asCleanString(order.zasilkovnaShipment?.labelFormat) || DEFAULT_LABEL_FORMAT,
-        labelMode: asCleanString(order.zasilkovnaShipment?.labelMode) || '',
+        labelFormat: asCleanString(order.zasilkovnaShipment?.labelFormat) || getPacketaPacketLabelFormat(),
+        labelMode:
+          asCleanString(order.zasilkovnaShipment?.labelMode) ||
+          (isZasilkovnaPickupMethod(order.shipping?.methodId) ? 'pickup' : 'courier'),
         generatedAt: order.zasilkovnaShipment?.generatedAt || new Date().toISOString(),
         lastCheckedAt: new Date().toISOString(),
         lastError: message,
@@ -447,16 +575,28 @@ const persistShipmentError = async (payload: Payload, order: ZasilkovnaOrderDoc,
     } as never,
   })
 
-const normalizeShipmentState = (order: ZasilkovnaOrderDoc, created: { packetId: string; packetNumber?: string }, carrierNumber: string) => ({
+const normalizeShipmentState = (
+  order: ZasilkovnaOrderDoc,
+  created: { packetId: string; packetNumber?: string },
+  carrierNumber: string,
+): ZasilkovnaShipmentDoc => ({
   packetId: created.packetId,
   packetNumber: created.packetNumber || asCleanString(order.zasilkovnaShipment?.packetNumber),
   carrierNumber: carrierNumber || asCleanString(order.zasilkovnaShipment?.carrierNumber),
-  labelFormat: DEFAULT_LABEL_FORMAT,
+  labelFormat: getPacketaPacketLabelFormat(),
   labelMode: isZasilkovnaPickupMethod(order.shipping?.methodId) ? 'pickup' : 'courier',
   generatedAt: order.zasilkovnaShipment?.generatedAt || new Date().toISOString(),
   lastCheckedAt: new Date().toISOString(),
   lastError: '',
 })
+
+const maybeRefreshCourierNumber = async (packetId: string, fallbackValue: string) => {
+  try {
+    return asCleanString(await fetchCourierNumber(packetId)) || fallbackValue
+  } catch {
+    return fallbackValue
+  }
+}
 
 export const syncZasilkovnaOrderLabel = async (payload: Payload, id: number | string): Promise<ZasilkovnaSyncResult> => {
   const order = await getOrderById(payload, id)
@@ -474,8 +614,9 @@ export const syncZasilkovnaOrderLabel = async (payload: Payload, id: number | st
       wasCreated = true
     }
 
-    const carrierNumber =
-      isZasilkovnaPickupMethod(order.shipping?.methodId) ? '' : await fetchCourierNumber(packetId)
+    const carrierNumber = isZasilkovnaPickupMethod(order.shipping?.methodId)
+      ? ''
+      : await maybeRefreshCourierNumber(packetId, asCleanString(order.zasilkovnaShipment?.carrierNumber))
 
     const shipment = normalizeShipmentState(
       order,
@@ -490,7 +631,7 @@ export const syncZasilkovnaOrderLabel = async (payload: Payload, id: number | st
 
     return {
       shipment,
-      labelReady: true,
+      labelReady: Boolean(shipment.packetId),
       wasCreated,
     }
   } catch (error) {
@@ -502,14 +643,24 @@ export const syncZasilkovnaOrderLabel = async (payload: Payload, id: number | st
 
 export const downloadZasilkovnaOrderLabel = async (payload: Payload, id: number | string): Promise<DownloadedLabel> => {
   const syncResult = await syncZasilkovnaOrderLabel(payload, id)
-  const courier = syncResult.shipment.labelMode === 'courier'
   const packetId = asCleanString(syncResult.shipment.packetId)
 
   if (!packetId) {
     throw new Error('Zasilkovna packet ID is missing.')
   }
 
-  const pdfBase64 = await fetchLabelPdf(packetId, courier)
+  let pdfBase64 = ''
+
+  if (syncResult.shipment.labelMode === 'courier' && asCleanString(syncResult.shipment.carrierNumber)) {
+    try {
+      pdfBase64 = await fetchCourierLabelPdf(packetId, asCleanString(syncResult.shipment.carrierNumber))
+    } catch {
+      pdfBase64 = await fetchPacketaLabelPdf(packetId)
+    }
+  } else {
+    pdfBase64 = await fetchPacketaLabelPdf(packetId)
+  }
+
   const order = await getOrderById(payload, id)
   const safeOrderId = sanitizeText(order.orderId || 'lumera-order', 40).replace(/\s+/g, '-').toLowerCase()
 
