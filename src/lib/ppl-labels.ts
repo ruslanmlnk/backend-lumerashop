@@ -342,6 +342,59 @@ const getPplAccessToken = async (forceRefresh = false) => {
     }
   }
 
+  // If still not authenticated, try alternate parameter names (camelCase) and JSON body
+  if ((!response.ok || !data.access_token) && getRequiredEnv('PPL_CLIENT_ID') && getRequiredEnv('PPL_CLIENT_SECRET')) {
+    try {
+      // try camelCase form fields
+      response = await fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'client_credentials',
+          clientId: getRequiredEnv('PPL_CLIENT_ID'),
+          clientSecret: getRequiredEnv('PPL_CLIENT_SECRET'),
+          scope: 'myapi2',
+        } as any),
+        cache: 'no-store',
+      })
+
+      data = (await response.json().catch(() => ({}))) as {
+        access_token?: string
+        expires_in?: number
+        detail?: string
+        title?: string
+      }
+
+      // try JSON body if still not successful
+      if ((!response.ok || !data.access_token)) {
+        response = await fetch(tokenEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            grant_type: 'client_credentials',
+            clientId: getRequiredEnv('PPL_CLIENT_ID'),
+            clientSecret: getRequiredEnv('PPL_CLIENT_SECRET'),
+            scope: 'myapi2',
+          }),
+          cache: 'no-store',
+        })
+
+        data = (await response.json().catch(() => ({}))) as {
+          access_token?: string
+          expires_in?: number
+          detail?: string
+          title?: string
+        }
+      }
+    } catch (err) {
+      // ignore and fall through to error handling below
+    }
+  }
+
   if (!response.ok || !data.access_token) {
     const status = response.status
     const text = await response.text().catch(() => '')
