@@ -290,29 +290,63 @@ const getPplAccessToken = async (forceRefresh = false) => {
     return cachedToken
   }
 
-  const response = await fetch(`${getPplApiBaseUrl()}/login/getAccessToken`, {
+  const tokenEndpoint = `${getPplApiBaseUrl()}/login/getAccessToken`
+
+  const body = new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_id: getRequiredEnv('PPL_CLIENT_ID'),
+    client_secret: getRequiredEnv('PPL_CLIENT_SECRET'),
+    scope: 'myapi2',
+  })
+
+  // Try form-encoded client credentials first
+  let response = await fetch(tokenEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: getRequiredEnv('PPL_CLIENT_ID'),
-      client_secret: getRequiredEnv('PPL_CLIENT_SECRET'),
-      scope: 'myapi2',
-    }),
+    body,
     cache: 'no-store',
   })
 
-  const data = (await response.json().catch(() => ({}))) as {
+  let data = (await response.json().catch(() => ({}))) as {
     access_token?: string
     expires_in?: number
     detail?: string
     title?: string
   }
 
+  // If the API didn't accept the form params, try Basic auth fallback
+  if ((!response.ok || !data.access_token) && getRequiredEnv('PPL_CLIENT_ID') && getRequiredEnv('PPL_CLIENT_SECRET')) {
+    try {
+      const basic = Buffer.from(`${getRequiredEnv('PPL_CLIENT_ID')}:${getRequiredEnv('PPL_CLIENT_SECRET')}`).toString('base64')
+
+      response = await fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${basic}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ grant_type: 'client_credentials', scope: 'myapi2' }),
+        cache: 'no-store',
+      })
+
+      data = (await response.json().catch(() => ({}))) as {
+        access_token?: string
+        expires_in?: number
+        detail?: string
+        title?: string
+      }
+    } catch (err) {
+      // ignore and fall through to error handling below
+    }
+  }
+
   if (!response.ok || !data.access_token) {
-    throw new Error(data.detail || data.title || 'Failed to authenticate with PPL.')
+    const status = response.status
+    const text = await response.text().catch(() => '')
+    const detail = data.detail || data.title || text
+    throw new Error(`Failed to authenticate with PPL (status: ${status}) - ${detail || 'no details'})`)
   }
 
   cachedToken = data.access_token
