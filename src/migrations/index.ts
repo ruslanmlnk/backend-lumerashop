@@ -11,6 +11,7 @@ import * as migration_20260330_120000_add_first_purchase_promo_global from './20
 import * as migration_20260330_161500_add_order_invoice_storage from './20260330_161500_add_order_invoice_storage';
 import * as migration_20260401_120000_add_require_purchase_for_review from './20260401_120000_add_require_purchase_for_review';
 import * as migration_20260408_150000_add_order_pickup_point_metadata from './20260408_150000_add_order_pickup_point_metadata';
+import * as migration_20260408_180000_add_product_discount_schedule_and_remove_description from './20260408_180000_add_product_discount_schedule_and_remove_description';
 
 export const migrations = [
   {
@@ -77,5 +78,10 @@ export const migrations = [
     up: migration_20260408_150000_add_order_pickup_point_metadata.up,
     down: migration_20260408_150000_add_order_pickup_point_metadata.down,
     name: '20260408_150000_add_order_pickup_point_metadata',
+  },
+  {
+    up: migration_20260408_180000_add_product_discount_schedule_and_remove_description.up,
+    down: migration_20260408_180000_add_product_discount_schedule_and_remove_description.down,
+    name: '20260408_180000_add_product_discount_schedule_and_remove_description',
   },
 ];

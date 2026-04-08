@@ -247,29 +247,29 @@ export interface Category {
   generateSlug?: boolean | null;
   slug: string;
   /**
-   * Legacy visibility flag kept only for backward compatibility.
+   * Původní přepínač viditelnosti ponechaný jen kvůli zpětné kompatibilitě.
    */
   showInMenu?: boolean | null;
   /**
-   * Display this category in the main header category menu on desktop.
+   * Zobrazí tuto kategorii v hlavním menu kategorií na desktopu.
    */
   showInDesktopMenu?: boolean | null;
   /**
-   * Move this desktop-visible category out of the main header row and into the additional desktop dropdown menu.
+   * Přesune tuto desktopovou kategorii z hlavní řady hlavičky do doplňkového rozbalovacího menu.
    */
   showInDesktopDropdownMenu?: boolean | null;
   /**
-   * Display this category in the mobile navigation menu.
+   * Zobrazí tuto kategorii v mobilní navigaci.
    */
   showInMobileMenu?: boolean | null;
   sortOrder?: number | null;
   description?: string | null;
   /**
-   * Hide entire filter groups such as Material or Barva on this category level in the storefront.
+   * Skryje celé skupiny filtrů, například Materiál nebo Barva, na této úrovni kategorie ve storefrontu.
    */
   hiddenFilterGroups?: (number | FilterGroup)[] | null;
   /**
-   * Hide only specific filter options such as Cerná while keeping the rest of the filter visible.
+   * Skryje jen konkrétní možnosti filtrů, například Černá, a ostatní část filtru zůstane viditelná.
    */
   hiddenFilterOptions?: (number | FilterOption)[] | null;
   image?: (number | null) | Media;
@@ -320,30 +320,30 @@ export interface CategoryGroup {
   id: number;
   name: string;
   /**
-   * Generated from the parent category and group name to keep menu URLs unique.
+   * Generuje se z nadřazené kategorie a názvu skupiny, aby byly URL v menu jedinečné.
    */
   slug: string;
   /**
-   * Legacy visibility flag kept only for backward compatibility.
+   * Původní přepínač viditelnosti ponechaný jen kvůli zpětné kompatibilitě.
    */
   showInMenu?: boolean | null;
   /**
-   * Display this group in the desktop header dropdown under its parent category.
+   * Zobrazí tuto skupinu v desktopovém rozbalovacím menu pod nadřazenou kategorií.
    */
   showInDesktopMenu?: boolean | null;
   /**
-   * Display this group in the mobile navigation menu.
+   * Zobrazí tuto skupinu v mobilní navigaci.
    */
   showInMobileMenu?: boolean | null;
   sortOrder?: number | null;
   category: number | Category;
   description?: string | null;
   /**
-   * Hide entire filter groups such as Material or Barva on this category level in the storefront.
+   * Skryje celé skupiny filtrů, například Materiál nebo Barva, na této úrovni kategorie ve storefrontu.
    */
   hiddenFilterGroups?: (number | FilterGroup)[] | null;
   /**
-   * Hide only specific filter options such as Cerná while keeping the rest of the filter visible.
+   * Skryje jen konkrétní možnosti filtrů, například Černá, a ostatní část filtru zůstane viditelná.
    */
   hiddenFilterOptions?: (number | FilterOption)[] | null;
   image?: (number | null) | Media;
@@ -358,19 +358,19 @@ export interface Subcategory {
   id: number;
   name: string;
   /**
-   * Generated from the parent group and subcategory name to keep storefront URLs unique.
+   * Generuje se z nadřazené skupiny a názvu podkategorie, aby byly URL na webu jedinečné.
    */
   slug: string;
   /**
-   * Legacy visibility flag kept only for backward compatibility.
+   * Původní přepínač viditelnosti ponechaný jen kvůli zpětné kompatibilitě.
    */
   showInMenu?: boolean | null;
   /**
-   * Display this subcategory in the desktop nested menu under its parent category group.
+   * Zobrazí tuto podkategorii v desktopovém vnořeném menu pod nadřazenou skupinou kategorií.
    */
   showInDesktopMenu?: boolean | null;
   /**
-   * Display this subcategory in the mobile navigation menu.
+   * Zobrazí tuto podkategorii v mobilní navigaci.
    */
   showInMobileMenu?: boolean | null;
   sortOrder?: number | null;
@@ -378,11 +378,11 @@ export interface Subcategory {
   categoryGroup: number | CategoryGroup;
   description?: string | null;
   /**
-   * Hide entire filter groups such as Material or Barva on this category level in the storefront.
+   * Skryje celé skupiny filtrů, například Materiál nebo Barva, na této úrovni kategorie ve storefrontu.
    */
   hiddenFilterGroups?: (number | FilterGroup)[] | null;
   /**
-   * Hide only specific filter options such as Cerná while keeping the rest of the filter visible.
+   * Skryje jen konkrétní možnosti filtrů, například Černá, a ostatní část filtru zůstane viditelná.
    */
   hiddenFilterOptions?: (number | FilterOption)[] | null;
   image?: (number | null) | Media;
@@ -401,24 +401,39 @@ export interface Product {
    */
   generateSlug?: boolean | null;
   slug: string;
+  /**
+   * Běžná cena bez slevy.
+   */
   price: number;
+  /**
+   * Vyberte, zda se sleva zadává akční cenou nebo procenty.
+   */
+  discountType?: ('price' | 'percent') | null;
+  /**
+   * Finální cena, která se zobrazí zákazníkovi během slevy.
+   */
+  discountPrice?: number | null;
+  /**
+   * Sleva se počítá z běžné ceny produktu.
+   */
+  discountPercent?: number | null;
+  /**
+   * Po tomto datu a čase se znovu zobrazí běžná cena.
+   */
+  discountValidUntil?: string | null;
   oldPrice?: number | null;
   sku?: string | null;
   stockQuantity?: number | null;
   /**
-   * Used for popularity sorting on the storefront.
+   * Používá se pro řazení produktů podle oblíbenosti na webu.
    */
   purchaseCount?: number | null;
   /**
-   * Compact intro shown next to the product title.
+   * Krátký úvod zobrazený vedle názvu produktu.
    */
   shortDescription?: string | null;
   /**
-   * Plain text used for summaries, fallbacks and feeds.
-   */
-  description?: string | null;
-  /**
-   * Fully editable content for the first "Popis" tab on the product page.
+   * Plně upravitelný obsah pro první záložku „Popis“ na stránce produktu.
    */
   descriptionContent?: {
     root: {
@@ -437,13 +452,13 @@ export interface Product {
   } | null;
   category: number | Category;
   /**
-   * Second navigation level used for grouped catalog menus and category landing pages.
+   * Druhá úroveň navigace používaná pro seskupená katalogová menu a landing pages kategorií.
    */
   categoryGroup?: (number | null) | CategoryGroup;
   subcategories?: (number | Subcategory)[] | null;
   mainImage?: (number | null) | Media;
   /**
-   * Add images or videos shown in the product gallery on the storefront.
+   * Přidejte obrázky nebo videa zobrazovaná v galerii produktu na webu.
    */
   gallery?:
     | {
@@ -452,7 +467,7 @@ export interface Product {
       }[]
     | null;
   /**
-   * Bullets shown under shipping/returns on the product page. Separate from the "Specifications / Další informace" tab.
+   * Odrážky zobrazené pod dopravou a vrácením na stránce produktu. Oddělené od záložky „Specifikace / Další informace“.
    */
   highlights?:
     | {
@@ -473,18 +488,18 @@ export interface Product {
     totalDocs?: number;
   };
   /**
-   * Pick products that should appear in the color/variant block on the product page.
+   * Vyberte produkty, které se mají zobrazit v bloku barev a variant na stránce produktu.
    */
   variantProducts?: (number | Product)[] | null;
   /**
-   * Pick all filter options that apply to this product.
+   * Vyberte všechny možnosti filtrů, které se vztahují k tomuto produktu.
    */
   filterOptions?: (number | FilterOption)[] | null;
   status?: ('draft' | 'published') | null;
   isFeatured?: boolean | null;
   isRecommended?: boolean | null;
   /**
-   * If set, displays "Do X dnů" on the storefront.
+   * Pokud je vyplněno, zobrazí se na webu text „Do X dnů“.
    */
   deliveryTime?: number | null;
   updatedAt: string;
@@ -502,7 +517,7 @@ export interface ProductReview {
   authorEmail: string;
   rating: number;
   /**
-   * Publish this review on the product page.
+   * Zveřejní tuto recenzi na stránce produktu.
    */
   show?: boolean | null;
   submittedAt?: string | null;
@@ -518,16 +533,16 @@ export interface Coupon {
   id: number;
   name: string;
   /**
-   * Leave empty to auto-generate a random code.
+   * Ponechte prázdné pro automatické vygenerování náhodného kódu.
    */
   code: string;
   discountPercent: number;
   /**
-   * Use a full URL like https://lumerashop.cz/checkout or an internal path like /checkout. The coupon code is appended automatically.
+   * Použijte plnou URL adresu jako https://lumerashop.cz/checkout nebo interní cestu jako /checkout. Kód kupónu se přidá automaticky.
    */
   websiteLink?: string | null;
   /**
-   * Choose which coupon details should appear on the branded QR card preview.
+   * Vyberte, které údaje o kupónu se mají zobrazit v náhledu značkové QR karty.
    */
   qrCard?: {
     showTitle?: boolean | null;
@@ -535,7 +550,7 @@ export interface Coupon {
     showCode?: boolean | null;
     showSubtitle?: boolean | null;
     /**
-     * Leave empty to use the coupon name automatically.
+     * Ponechte prázdné, pokud se má automaticky použít název kupónu.
      */
     title?: string | null;
     subtitle?: string | null;
@@ -1016,12 +1031,15 @@ export interface ProductsSelect<T extends boolean = true> {
   generateSlug?: T;
   slug?: T;
   price?: T;
+  discountType?: T;
+  discountPrice?: T;
+  discountPercent?: T;
+  discountValidUntil?: T;
   oldPrice?: T;
   sku?: T;
   stockQuantity?: T;
   purchaseCount?: T;
   shortDescription?: T;
-  description?: T;
   descriptionContent?: T;
   category?: T;
   categoryGroup?: T;
@@ -1177,7 +1195,7 @@ export interface OrdersSelect<T extends boolean = true> {
       };
   shipping?:
     | T
-      | {
+    | {
         methodId?: T;
         label?: T;
         price?: T;
@@ -1354,10 +1372,13 @@ export interface HomePage {
     title?: string | null;
     description?: string | null;
     /**
-     * Choose and order the articles for the homepage blog section. Leave empty to hide the block.
+     * Vyberte a seřaďte články pro blogovou sekci na domovské stránce. Ponechte prázdné, pokud se blok nemá zobrazit.
      */
     featuredArticles?: (number | Article)[] | null;
   };
+  /**
+   * Pokud je zapnuto, uživatelé mohou psát recenze jen k produktům, které si zakoupili.
+   */
   requirePurchaseForReview?: boolean | null;
   seo?: {
     title?: string | null;
@@ -1375,7 +1396,7 @@ export interface LoyaltySetting {
   bonusesEnabled?: boolean | null;
   earningRule: {
     /**
-     * For every X CZK paid for products, award bonus units.
+     * Za každých X Kč zaplacených za produkty připište bonusové body.
      */
     spendAmount: number;
     bonusUnits: number;
@@ -1383,7 +1404,7 @@ export interface LoyaltySetting {
   redemptionRule: {
     bonusUnits: number;
     /**
-     * How much money the selected bonus block removes from product subtotal.
+     * Kolik peněz odečte vybraný bonusový blok z mezisoučtu produktů.
      */
     discountAmount: number;
   };
@@ -1409,11 +1430,11 @@ export interface ShippingAndPaymentPage {
   id: number;
   title: string;
   /**
-   * Image shown in the large hero banner above the page content.
+   * Obrázek zobrazený ve velkém hero banneru nad obsahem stránky.
    */
   heroImage?: (number | null) | Media;
   /**
-   * This page is rendered on the storefront footer route and uses the Lexical editor.
+   * Tato stránka se zobrazuje ve footer routě storefrontu a používá editor Lexical.
    */
   content: {
     root: {
@@ -1445,11 +1466,11 @@ export interface ReturnsAndComplaintsPage {
   id: number;
   title: string;
   /**
-   * Image shown in the large hero banner above the page content.
+   * Obrázek zobrazený ve velkém hero banneru nad obsahem stránky.
    */
   heroImage?: (number | null) | Media;
   /**
-   * This page is rendered on the storefront footer route and uses the Lexical editor.
+   * Tato stránka se zobrazuje ve footer routě storefrontu a používá editor Lexical.
    */
   content: {
     root: {
@@ -1481,11 +1502,11 @@ export interface TermsAndConditionsPage {
   id: number;
   title: string;
   /**
-   * Image shown in the large hero banner above the page content.
+   * Obrázek zobrazený ve velkém hero banneru nad obsahem stránky.
    */
   heroImage?: (number | null) | Media;
   /**
-   * This page is rendered on the storefront footer route and uses the Lexical editor.
+   * Tato stránka se zobrazuje ve footer routě storefrontu a používá editor Lexical.
    */
   content: {
     root: {
@@ -1517,11 +1538,11 @@ export interface PrivacyPolicyPage {
   id: number;
   title: string;
   /**
-   * Image shown in the large hero banner above the page content.
+   * Obrázek zobrazený ve velkém hero banneru nad obsahem stránky.
    */
   heroImage?: (number | null) | Media;
   /**
-   * This page is rendered on the storefront footer route and uses the Lexical editor.
+   * Tato stránka se zobrazuje ve footer routě storefrontu a používá editor Lexical.
    */
   content: {
     root: {
@@ -1553,11 +1574,11 @@ export interface CookiesPage {
   id: number;
   title: string;
   /**
-   * Image shown in the large hero banner above the page content.
+   * Obrázek zobrazený ve velkém hero banneru nad obsahem stránky.
    */
   heroImage?: (number | null) | Media;
   /**
-   * This page is rendered on the storefront footer route and uses the Lexical editor.
+   * Tato stránka se zobrazuje ve footer routě storefrontu a používá editor Lexical.
    */
   content: {
     root: {

@@ -1,4 +1,6 @@
 import { SlugField as SlugField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { default as default_15c4833324bacff2a99a2d5deef1838c } from '@/components/admin/products/ProductNameCell'
+import { default as default_086e5f94c1f4969b651e6c492528ceb1 } from '@/components/admin/products/ProductPriceCell'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { LexicalDiffComponent as LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -23,6 +25,7 @@ import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997e
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { default as default_9306fadb3a53aeb427bf662bec5d2667 } from '@/components/admin/products/ProductMainImageCell'
+import { default as default_2bb5582fe8ceb14dd70c93ccbd1c6486 } from '@/components/admin/products/ProductBulkDiscountPanel'
 import { default as default_7498ceaf0f5a036fc90322c188923b78 } from '@/components/admin/coupons/CouponPreview'
 import { default as default_717921db146e1c924e41bcddff90b5e0 } from '@/components/admin/orders/OrderConfirmationControls'
 import { default as default_d9b1919bf53c4ad40104ed46e7a2b852 } from '@/components/admin/orders/PPLLabelControls'
@@ -31,6 +34,8 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 
 export const importMap = {
   "@payloadcms/next/client#SlugField": SlugField_2b8867833a34864a02ddf429b0728a40,
+  "@/components/admin/products/ProductNameCell#default": default_15c4833324bacff2a99a2d5deef1838c,
+  "@/components/admin/products/ProductPriceCell#default": default_086e5f94c1f4969b651e6c492528ceb1,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#LexicalDiffComponent": LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e,
@@ -55,6 +60,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/components/admin/products/ProductMainImageCell#default": default_9306fadb3a53aeb427bf662bec5d2667,
+  "@/components/admin/products/ProductBulkDiscountPanel#default": default_2bb5582fe8ceb14dd70c93ccbd1c6486,
   "@/components/admin/coupons/CouponPreview#default": default_7498ceaf0f5a036fc90322c188923b78,
   "@/components/admin/orders/OrderConfirmationControls#default": default_717921db146e1c924e41bcddff90b5e0,
   "@/components/admin/orders/PPLLabelControls#default": default_d9b1919bf53c4ad40104ed46e7a2b852,

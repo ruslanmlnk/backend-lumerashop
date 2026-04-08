@@ -454,10 +454,6 @@ const resolveShortDescription = (row: CSVRow) => {
   return truncate(stripHtml(cleanString(row.post_content)), 400)
 }
 
-const resolveDescription = (row: CSVRow) => {
-  return stripHtml(cleanString(row.post_content))
-}
-
 const resolveDescriptionContent = (row: CSVRow) => {
   const html = cleanString(row.post_content)
 
@@ -499,14 +495,16 @@ const resolvePrice = (row: CSVRow) => {
 
   if (typeof salePrice === 'number' && salePrice > 0 && salePrice < regularPrice) {
     return {
-      price: salePrice,
-      oldPrice: regularPrice,
+      discountPrice: salePrice,
+      discountType: 'price' as const,
+      price: regularPrice,
     }
   }
 
   return {
     price: regularPrice,
-    oldPrice: undefined,
+    discountPrice: undefined,
+    discountType: undefined,
   }
 }
 
@@ -897,11 +895,10 @@ async function importWooProducts() {
       const uniqueFilterOptionIds = Array.from(
         new Map(filterOptionIds.map((value) => [String(value), value])).values(),
       )
-      const { price, oldPrice } = resolvePrice(row)
+      const { discountPrice, discountType, price } = resolvePrice(row)
       const highlights = buildHighlights(row)
       const specifications = buildSpecifications(row)
       const shortDescription = resolveShortDescription(row)
-      const description = resolveDescription(row)
       const descriptionContent = resolveDescriptionContent(row)
       const purchaseCount = parseInteger(cleanString(row['meta:total_sales'])) ?? 0
       const status = getProductStatus(cleanString(row.post_status))
@@ -913,13 +910,13 @@ async function importWooProducts() {
         generateSlug: false,
         slug,
         price,
-        oldPrice,
+        discountPrice,
+        discountType,
         sku: sku || undefined,
         stockQuantity: parseInteger(cleanString(row.stock)) ?? 0,
         purchaseCount,
         stockStatus: getStockStatus(row),
         shortDescription: shortDescription || undefined,
-        description: description || undefined,
         descriptionContent,
         category: categoryDoc.id,
         categoryGroup: categoryGroupDoc?.id,

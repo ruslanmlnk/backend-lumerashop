@@ -1,6 +1,14 @@
 import type { CollectionConfig, Where } from 'payload'
 import { slugField } from 'payload'
 
+import {
+  clampProductDiscountPercent,
+  normalizeProductDiscountType,
+  normalizeProductDiscountValidUntil,
+  normalizeProductPricingData,
+  resolveStoredProductRegularPrice,
+} from '@/lib/product-pricing'
+
 const requireUploadedMedia = (value: unknown) => {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return true
@@ -17,6 +25,61 @@ const requireUploadedMedia = (value: unknown) => {
   return 'Nahrajte soubor média.'
 }
 
+type AdminUser = {
+  role?: string
+} | null
+
+type ProductBulkDiscountBody = {
+  discountPercent?: unknown
+  discountPrice?: unknown
+  discountType?: unknown
+  discountValidUntil?: unknown
+  ids?: unknown
+}
+
+const asUser = (value: unknown): AdminUser => {
+  if (typeof value !== 'object' || value === null) {
+    return null
+  }
+
+  return value as AdminUser
+}
+
+const hasAdminRole = (user: unknown) => asUser(user)?.role === 'admin'
+
+const parseSelectedIDs = (value: unknown) => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .map((entry) => {
+      if (typeof entry === 'number' && Number.isInteger(entry)) {
+        return entry
+      }
+
+      if (typeof entry === 'string' && entry.trim().length > 0) {
+        const trimmed = entry.trim()
+        const numeric = Number(trimmed)
+
+        return Number.isInteger(numeric) ? numeric : trimmed
+      }
+
+      return null
+    })
+    .filter((entry): entry is number | string => entry !== null)
+}
+
+const parseMoney = (value: unknown) => {
+  const numeric = typeof value === 'number' ? value : Number(value)
+
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return 0
+  }
+
+  return Math.round((numeric + Number.EPSILON) * 100) / 100
+}
+
 export const Products: CollectionConfig = {
   slug: 'products',
   labels: {
@@ -25,8 +88,10 @@ export const Products: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
+    components: {
+      beforeListTable: ['@/components/admin/products/ProductBulkDiscountPanel'],
+    },
     defaultColumns: [
-      'mainImage',
       'name',
       'price',
       'category',
@@ -37,15 +102,125 @@ export const Products: CollectionConfig = {
       'updatedAt',
     ],
   },
+  hooks: {
+    beforeChange: [
+      ({ data, originalDoc }) => {
+        if (!data || typeof data !== 'object') {
+          return data
+        }
+
+        return normalizeProductPricingData(
+          data as Record<string, unknown>,
+          originalDoc && typeof originalDoc === 'object'
+            ? (originalDoc as Record<string, unknown>)
+            : undefined,
+        )
+      },
+    ],
+  },
   access: {
     read: () => true,
   },
+  endpoints: [
+    {
+      path: '/bulk-discount',
+      method: 'post',
+      handler: async (req) => {
+        if (!hasAdminRole(req.user)) {
+          return Response.json({ error: 'Forbidden.' }, { status: 403 })
+        }
+
+        let body: ProductBulkDiscountBody
+
+        try {
+          body = (await req.json?.()) as ProductBulkDiscountBody
+        } catch {
+          return Response.json({ error: 'Invalid request body.' }, { status: 400 })
+        }
+
+        const ids = parseSelectedIDs(body.ids)
+
+        if (ids.length === 0) {
+          return Response.json({ error: 'Select at least one product.' }, { status: 400 })
+        }
+
+        const discountType = normalizeProductDiscountType(body.discountType)
+        const discountPrice = parseMoney(body.discountPrice)
+        const discountPercent = clampProductDiscountPercent(body.discountPercent)
+        const discountValidUntil = normalizeProductDiscountValidUntil(body.discountValidUntil)
+
+        const products = await req.payload.find({
+          collection: 'products' as never,
+          where: {
+            id: {
+              in: ids,
+            },
+          },
+          depth: 0,
+          limit: ids.length,
+          overrideAccess: true,
+        })
+
+        let skippedCount = 0
+        let updatedCount = 0
+
+        for (const doc of products.docs as Array<Record<string, unknown>>) {
+          const regularPrice = resolveStoredProductRegularPrice(doc)
+
+          if (regularPrice <= 0) {
+            skippedCount += 1
+            continue
+          }
+
+          if (discountType === 'price' && !(discountPrice > 0 && discountPrice < regularPrice)) {
+            skippedCount += 1
+            continue
+          }
+
+          if (discountType === 'percent' && !(discountPercent > 0 && discountPercent <= 100)) {
+            skippedCount += 1
+            continue
+          }
+
+          await req.payload.update({
+            collection: 'products' as never,
+            data: {
+              discountPercent: discountType === 'percent' ? discountPercent : null,
+              discountPrice: discountType === 'price' ? discountPrice : null,
+              discountType,
+              discountValidUntil: discountType ? discountValidUntil : null,
+              oldPrice: null,
+              price: regularPrice,
+            } as never,
+            depth: 0,
+            id: doc.id as number | string,
+            overrideAccess: true,
+          })
+
+          updatedCount += 1
+        }
+
+        return Response.json(
+          {
+            skippedCount,
+            updatedCount,
+          },
+          { status: 200 },
+        )
+      },
+    },
+  ],
   fields: [
     {
       name: 'name',
       type: 'text',
       required: true,
       label: 'Název produktu',
+      admin: {
+        components: {
+          Cell: '@/components/admin/products/ProductNameCell',
+        },
+      },
     },
     slugField({
       useAsSlug: 'name',
@@ -58,13 +233,81 @@ export const Products: CollectionConfig = {
           type: 'number',
           required: true,
           label: 'Cena (Kč)',
+          admin: {
+            components: {
+              Cell: '@/components/admin/products/ProductPriceCell',
+            },
+            description: 'Běžná cena bez slevy.',
+            width: '50%',
+          },
         },
         {
-          name: 'oldPrice',
-          type: 'number',
-          label: 'Původní cena',
+          name: 'discountType',
+          type: 'select',
+          label: 'Typ slevy',
+          options: [
+            {
+              label: 'Akční cena',
+              value: 'price',
+            },
+            {
+              label: 'Sleva v %',
+              value: 'percent',
+            },
+          ],
+          admin: {
+            description: 'Vyberte, zda se sleva zadává akční cenou nebo procenty.',
+            width: '50%',
+          },
         },
       ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'discountPrice',
+          type: 'number',
+          label: 'Akční cena (Kč)',
+          admin: {
+            condition: (data) => data?.discountType === 'price',
+            description: 'Finální cena, která se zobrazí zákazníkovi během slevy.',
+            width: '33%',
+          },
+        },
+        {
+          name: 'discountPercent',
+          type: 'number',
+          label: 'Sleva (%)',
+          admin: {
+            condition: (data) => data?.discountType === 'percent',
+            description: 'Sleva se počítá z běžné ceny produktu.',
+            width: '33%',
+          },
+        },
+        {
+          name: 'discountValidUntil',
+          type: 'date',
+          label: 'Sleva platí do',
+          admin: {
+            condition: (data) => Boolean(data?.discountType),
+            date: {
+              pickerAppearance: 'dayAndTime',
+              timeIntervals: 15,
+            },
+            description: 'Po tomto datu a čase se znovu zobrazí běžná cena.',
+            width: '34%',
+          },
+        },
+      ],
+    },
+    {
+      name: 'oldPrice',
+      type: 'number',
+      admin: {
+        hidden: true,
+        readOnly: true,
+      },
     },
     {
       type: 'row',
@@ -102,14 +345,6 @@ export const Products: CollectionConfig = {
       label: 'Krátký popis',
       admin: {
         description: 'Krátký úvod zobrazený vedle názvu produktu.',
-      },
-    },
-    {
-      name: 'description',
-      type: 'textarea',
-      label: 'Textový popis',
-      admin: {
-        description: 'Prostý text používaný pro shrnutí, fallbacky a feedy.',
       },
     },
     {
@@ -211,7 +446,8 @@ export const Products: CollectionConfig = {
       type: 'array',
       label: 'Horní odrážky',
       admin: {
-        description: 'Odrážky zobrazené pod dopravou a vrácením na stránce produktu. Oddělené od záložky „Specifikace / Další informace“.',
+        description:
+          'Odrážky zobrazené pod dopravou a vrácením na stránce produktu. Oddělené od záložky „Specifikace / Další informace“.',
       },
       fields: [
         {

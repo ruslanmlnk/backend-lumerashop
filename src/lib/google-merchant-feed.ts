@@ -1,5 +1,7 @@
 import type { Product } from '../types/site'
 
+import { resolveProductPricing } from './product-pricing'
+
 type PayloadListResponse<T> = {
   docs?: T[]
 }
@@ -14,24 +16,27 @@ type PayloadGalleryItem = {
 }
 
 export type PayloadFeedProductDoc = {
-  id?: unknown
-  name?: unknown
-  slug?: unknown
-  price?: unknown
-  oldPrice?: unknown
-  sku?: unknown
-  description?: unknown
-  shortDescription?: unknown
-  stockStatus?: unknown
-  imageUrl?: unknown
-  mainImage?: PayloadMediaDoc | number | null
-  gallery?: PayloadGalleryItem[] | null
   category?:
     | {
         name?: unknown
       }
     | number
     | null
+  discountPercent?: unknown
+  discountPrice?: unknown
+  discountType?: unknown
+  discountValidUntil?: unknown
+  gallery?: PayloadGalleryItem[] | null
+  id?: unknown
+  imageUrl?: unknown
+  mainImage?: PayloadMediaDoc | number | null
+  name?: unknown
+  oldPrice?: unknown
+  price?: unknown
+  shortDescription?: unknown
+  sku?: unknown
+  slug?: unknown
+  stockStatus?: unknown
 }
 
 const DEFAULT_SITE_URL = 'http://localhost:3000'
@@ -132,31 +137,25 @@ export const mapPayloadFeedProduct = (doc: PayloadFeedProductDoc, baseUrl: strin
     return null
   }
 
-  const numericPrice = typeof doc.price === 'number' ? doc.price : Number(doc.price)
-  const safePrice = Number.isFinite(numericPrice) ? numericPrice : 0
+  const pricing = resolveProductPricing(doc)
   const category =
     typeof doc.category === 'object' && doc.category && typeof doc.category.name === 'string'
       ? doc.category.name
       : 'Uncategorized'
 
   return {
-    id,
-    name,
-    slug,
-    image: resolvePrimaryImage(doc, baseUrl),
-    price: `${new Intl.NumberFormat('cs-CZ').format(Math.max(0, Math.round(safePrice)))} Kč`,
-    oldPrice:
-      (() => {
-        const numericOldPrice = typeof doc.oldPrice === 'number' ? doc.oldPrice : Number(doc.oldPrice)
-        return Number.isFinite(numericOldPrice) && numericOldPrice > 0
-          ? `${new Intl.NumberFormat('cs-CZ').format(Math.max(0, Math.round(numericOldPrice)))} Kč`
-          : undefined
-      })(),
     category,
-    sku: typeof doc.sku === 'string' ? doc.sku : undefined,
-    description: typeof doc.description === 'string' ? doc.description : undefined,
-    shortDescription: typeof doc.shortDescription === 'string' ? doc.shortDescription : undefined,
     gallery: resolvePayloadGallery(doc.gallery, baseUrl),
+    id,
+    image: resolvePrimaryImage(doc, baseUrl),
+    name,
+    oldPrice: pricing.compareAtPrice
+      ? `${new Intl.NumberFormat('cs-CZ').format(Math.max(0, Math.round(pricing.compareAtPrice)))} Kč`
+      : undefined,
+    price: `${new Intl.NumberFormat('cs-CZ').format(Math.max(0, Math.round(pricing.currentPrice)))} Kč`,
+    shortDescription: typeof doc.shortDescription === 'string' ? doc.shortDescription : undefined,
+    sku: typeof doc.sku === 'string' ? doc.sku : undefined,
+    slug,
     stockStatus:
       doc.stockStatus === 'in-stock' || doc.stockStatus === 'low-stock' || doc.stockStatus === 'out-of-stock'
         ? doc.stockStatus
@@ -191,7 +190,7 @@ const fetchMerchantProducts = async (): Promise<Product[]> => {
 }
 
 const buildProductItemXml = (product: Product, siteUrl: string, populatedCategories: Set<string>) => {
-  const descriptionSource = normalizeText(product.description || product.shortDescription || product.name)
+  const descriptionSource = normalizeText(product.shortDescription || product.name)
   const description = descriptionSource || product.name
   const category = typeof product.category === 'string' ? product.category.trim() : ''
   const productType = populatedCategories.has(category) ? category : ''
