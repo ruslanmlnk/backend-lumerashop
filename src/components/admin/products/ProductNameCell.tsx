@@ -7,8 +7,11 @@ export default async function ProductNameCell(props: DefaultServerCellComponentP
   const imageSource = getImageSource(media)
   const alt = media?.alt || String(props.cellData || props.rowData?.name || 'Produkt')
   const name = typeof props.cellData === 'string' ? props.cellData : String(props.rowData?.name || '')
+  const href =
+    props.linkURL ||
+    `/admin/collections/${encodeURIComponent(props.collectionConfig.slug)}${props.viewType === 'trash' ? '/trash' : ''}/${encodeURIComponent(String(props.rowData?.id || ''))}`
 
-  return (
+  const content = (
     <div
       style={{
         alignItems: 'center',
@@ -51,10 +54,29 @@ export default async function ProductNameCell(props: DefaultServerCellComponentP
           minWidth: 0,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
         }}
       >
         {name}
       </span>
     </div>
+  )
+
+  if (!props.link || !props.rowData?.id) {
+    return content
+  }
+
+  return (
+    <a
+      href={href}
+      style={{
+        color: 'inherit',
+        display: 'block',
+        minWidth: 0,
+        textDecoration: 'none',
+      }}
+    >
+      {content}
+    </a>
   )
 }

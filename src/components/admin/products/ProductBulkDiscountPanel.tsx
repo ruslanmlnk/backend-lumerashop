@@ -18,7 +18,8 @@ const inputStyle: CSSProperties = {
   borderRadius: 10,
   color: 'inherit',
   fontSize: 13,
-  minHeight: 40,
+  height: 38,
+  minWidth: 0,
   padding: '8px 12px',
   width: '100%',
 }
@@ -28,7 +29,21 @@ const labelStyle: CSSProperties = {
   fontSize: 12,
   fontWeight: 600,
   gap: 6,
+  minWidth: 0,
 }
+
+const pillButton = (active: boolean): CSSProperties => ({
+  background: active ? '#1f2937' : 'var(--theme-elevation-0)',
+  border: active ? '1px solid #1f2937' : '1px solid var(--theme-elevation-200)',
+  borderRadius: 999,
+  color: active ? '#ffffff' : 'inherit',
+  cursor: 'pointer',
+  fontSize: 12,
+  fontWeight: 700,
+  height: 36,
+  padding: '0 14px',
+  whiteSpace: 'nowrap',
+})
 
 export default function ProductBulkDiscountPanel() {
   const { count, selectedIDs } = useSelection()
@@ -42,14 +57,14 @@ export default function ProductBulkDiscountPanel() {
   const hasConcreteSelection = concreteSelectionCount > 0
   const selectionLabel = useMemo(() => {
     if (hasConcreteSelection) {
-      return `Vybráno ${concreteSelectionCount} produktů.`
+      return `Vybráno ${concreteSelectionCount} produktů`
     }
 
     if (count > 0) {
-      return 'Pro tuto akci označte konkrétní produkty v tabulce.'
+      return 'Vyberte konkrétní produkty v tabulce'
     }
 
-    return 'Označte produkty v seznamu a pak na ně použijte slevu.'
+    return 'Označte produkty a použijte slevu'
   }, [count, concreteSelectionCount, hasConcreteSelection])
 
   const handleApply = async (action: 'apply' | 'clear') => {
@@ -80,10 +95,6 @@ export default function ProductBulkDiscountPanel() {
 
     try {
       const response = await fetch('/api/products/bulk-discount', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           discountPercent: action === 'apply' && mode === 'percent' ? Number(discountPercent) : null,
           discountPrice: action === 'apply' && mode === 'price' ? Number(discountPrice) : null,
@@ -91,6 +102,10 @@ export default function ProductBulkDiscountPanel() {
           discountValidUntil: action === 'apply' && discountValidUntil ? new Date(discountValidUntil).toISOString() : null,
           ids: selectedIDs,
         }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
       })
 
       const payload = (await response.json().catch(() => ({}))) as BulkDiscountResponse
@@ -123,79 +138,65 @@ export default function ProductBulkDiscountPanel() {
   return (
     <div
       style={{
+        alignItems: 'end',
         background: 'var(--theme-elevation-0)',
         border: '1px solid var(--theme-elevation-150)',
-        borderRadius: 18,
+        borderRadius: 14,
         display: 'grid',
-        gap: 12,
-        marginBottom: 14,
-        padding: 16,
+        gap: 10,
+        marginBottom: 12,
+        padding: 12,
       }}
     >
-      <div style={{ display: 'grid', gap: 4 }}>
-        <strong style={{ fontSize: 14 }}>Hromadná sleva pro vybrané produkty</strong>
-        <span
-          style={{
-            color: 'var(--theme-elevation-600)',
-            fontSize: 13,
-            lineHeight: 1.5,
-          }}
-        >
-          {selectionLabel}
-        </span>
-      </div>
-
       <div
         style={{
+          alignItems: 'baseline',
           display: 'flex',
           flexWrap: 'wrap',
           gap: 8,
+          justifyContent: 'space-between',
         }}
       >
-        <button
-          type="button"
-          onClick={() => setMode('price')}
+        <div style={{ display: 'grid', gap: 2 }}>
+          <strong style={{ fontSize: 13 }}>Hromadná sleva</strong>
+          <span
+            style={{
+              color: 'var(--theme-elevation-600)',
+              fontSize: 12,
+              lineHeight: 1.4,
+            }}
+          >
+            {selectionLabel}
+          </span>
+        </div>
+
+        <div
           style={{
-            background: mode === 'price' ? 'var(--theme-text)' : 'var(--theme-elevation-0)',
-            border: '1px solid var(--theme-elevation-200)',
-            borderRadius: 999,
-            color: mode === 'price' ? 'var(--theme-base-0)' : 'inherit',
-            cursor: 'pointer',
-            fontSize: 12,
-            fontWeight: 700,
-            padding: '8px 12px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 8,
           }}
         >
-          Akční cena
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('percent')}
-          style={{
-            background: mode === 'percent' ? 'var(--theme-text)' : 'var(--theme-elevation-0)',
-            border: '1px solid var(--theme-elevation-200)',
-            borderRadius: 999,
-            color: mode === 'percent' ? 'var(--theme-base-0)' : 'inherit',
-            cursor: 'pointer',
-            fontSize: 12,
-            fontWeight: 700,
-            padding: '8px 12px',
-          }}
-        >
-          Sleva v %
-        </button>
+          <button type="button" onClick={() => setMode('price')} style={pillButton(mode === 'price')}>
+            Akční cena
+          </button>
+          <button type="button" onClick={() => setMode('percent')} style={pillButton(mode === 'percent')}>
+            Sleva v %
+          </button>
+        </div>
       </div>
 
       <div
         style={{
-          display: 'grid',
-          gap: 12,
-          gridTemplateColumns: mode === 'price' ? 'minmax(180px, 220px) minmax(220px, 260px)' : 'minmax(180px, 220px) minmax(220px, 260px)',
+          alignItems: 'end',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 10,
         }}
       >
-        {mode === 'price' ? (
-          <label style={labelStyle}>
-            Akční cena (Kč)
+        <label style={{ ...labelStyle, width: 170 }}>
+          {mode === 'price' ? 'Akční cena (Kč)' : 'Sleva (%)'}
+          {mode === 'price' ? (
             <input
               inputMode="decimal"
               onChange={(event) => setDiscountPrice(event.target.value)}
@@ -204,10 +205,7 @@ export default function ProductBulkDiscountPanel() {
               type="number"
               value={discountPrice}
             />
-          </label>
-        ) : (
-          <label style={labelStyle}>
-            Sleva (%)
+          ) : (
             <input
               inputMode="decimal"
               max={100}
@@ -218,10 +216,10 @@ export default function ProductBulkDiscountPanel() {
               type="number"
               value={discountPercent}
             />
-          </label>
-        )}
+          )}
+        </label>
 
-        <label style={labelStyle}>
+        <label style={{ ...labelStyle, width: 220 }}>
           Sleva platí do
           <input
             onChange={(event) => setDiscountValidUntil(event.target.value)}
@@ -230,52 +228,57 @@ export default function ProductBulkDiscountPanel() {
             value={discountValidUntil}
           />
         </label>
-      </div>
 
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 8,
-        }}
-      >
-        <button
-          type="button"
-          disabled={!hasConcreteSelection || isSubmitting}
-          onClick={() => void handleApply('apply')}
+        <div
           style={{
-            background: 'var(--theme-success-600)',
-            border: '1px solid transparent',
-            borderRadius: 999,
-            color: 'white',
-            cursor: !hasConcreteSelection || isSubmitting ? 'not-allowed' : 'pointer',
-            fontSize: 12,
-            fontWeight: 700,
-            opacity: !hasConcreteSelection || isSubmitting ? 0.6 : 1,
-            padding: '10px 14px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 8,
+            marginLeft: 'auto',
           }}
         >
-          {isSubmitting ? 'Ukládám...' : 'Použít slevu'}
-        </button>
+          <button
+            type="button"
+            disabled={!hasConcreteSelection || isSubmitting}
+            onClick={() => void handleApply('apply')}
+            style={{
+              background: '#0f6b9a',
+              border: '1px solid #0f6b9a',
+              borderRadius: 999,
+              color: '#ffffff',
+              cursor: !hasConcreteSelection || isSubmitting ? 'not-allowed' : 'pointer',
+              fontSize: 12,
+              fontWeight: 700,
+              height: 38,
+              opacity: !hasConcreteSelection || isSubmitting ? 0.6 : 1,
+              padding: '0 14px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {isSubmitting ? 'Ukládám...' : 'Použít slevu'}
+          </button>
 
-        <button
-          type="button"
-          disabled={!hasConcreteSelection || isSubmitting}
-          onClick={() => void handleApply('clear')}
-          style={{
-            background: 'var(--theme-elevation-0)',
-            border: '1px solid var(--theme-elevation-200)',
-            borderRadius: 999,
-            color: 'inherit',
-            cursor: !hasConcreteSelection || isSubmitting ? 'not-allowed' : 'pointer',
-            fontSize: 12,
-            fontWeight: 700,
-            opacity: !hasConcreteSelection || isSubmitting ? 0.6 : 1,
-            padding: '10px 14px',
-          }}
-        >
-          Odebrat slevu
-        </button>
+          <button
+            type="button"
+            disabled={!hasConcreteSelection || isSubmitting}
+            onClick={() => void handleApply('clear')}
+            style={{
+              background: 'var(--theme-elevation-0)',
+              border: '1px solid var(--theme-elevation-200)',
+              borderRadius: 999,
+              color: 'inherit',
+              cursor: !hasConcreteSelection || isSubmitting ? 'not-allowed' : 'pointer',
+              fontSize: 12,
+              fontWeight: 700,
+              height: 38,
+              opacity: !hasConcreteSelection || isSubmitting ? 0.6 : 1,
+              padding: '0 14px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Odebrat slevu
+          </button>
+        </div>
       </div>
     </div>
   )
