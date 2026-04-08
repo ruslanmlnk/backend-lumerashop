@@ -617,6 +617,8 @@ export interface Order {
     pickupCarrier?: string | null;
     pickupPointId?: string | null;
     pickupPointCode?: string | null;
+    pickupPointType?: string | null;
+    pickupPointCarrierId?: string | null;
     pickupPointName?: string | null;
     pickupPointAddress?: string | null;
   };
@@ -1175,7 +1177,7 @@ export interface OrdersSelect<T extends boolean = true> {
       };
   shipping?:
     | T
-    | {
+      | {
         methodId?: T;
         label?: T;
         price?: T;
@@ -1183,6 +1185,8 @@ export interface OrdersSelect<T extends boolean = true> {
         pickupCarrier?: T;
         pickupPointId?: T;
         pickupPointCode?: T;
+        pickupPointType?: T;
+        pickupPointCarrierId?: T;
         pickupPointName?: T;
         pickupPointAddress?: T;
       };

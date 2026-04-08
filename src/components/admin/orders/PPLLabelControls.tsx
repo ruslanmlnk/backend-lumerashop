@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast, useDocumentInfo } from '@payloadcms/ui'
 
+import { isPplShippingSelection } from '@/lib/shipping-carriers'
+
 type ShipmentState = {
   batchId?: string
   shipmentNumber?: string
@@ -34,10 +36,18 @@ const readShipmentState = (value: unknown): ShipmentState => {
   }
 }
 
+const hasText = (value: unknown) => typeof value === 'string' && value.trim().length > 0
+
 const isPplOrder = (data: unknown) => {
   const source = data && typeof data === 'object' ? (data as Record<string, unknown>) : {}
-  const shipping = source.shipping && typeof source.shipping === 'object' ? (source.shipping as Record<string, unknown>) : {}
-  return typeof shipping.methodId === 'string' && shipping.methodId.startsWith('ppl-')
+  const shipment = source.pplShipment && typeof source.pplShipment === 'object' ? (source.pplShipment as Record<string, unknown>) : {}
+
+  return (
+    isPplShippingSelection(source.shipping) ||
+    hasText(shipment.batchId) ||
+    hasText(shipment.shipmentNumber) ||
+    hasText(shipment.lastError)
+  )
 }
 
 export default function PPLLabelControls() {

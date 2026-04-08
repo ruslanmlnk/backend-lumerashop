@@ -4,6 +4,7 @@ import { normalizeDocumentId } from '@/lib/commerce'
 import { downloadOrderInvoice } from '@/lib/order-invoice-pdf'
 import { downloadPplOrderLabel, syncPplOrderLabel } from '@/lib/ppl-labels'
 import { cancelOrder, confirmOrder, getOrderDecision } from '@/lib/orders'
+import { isPplShippingSelection, isZasilkovnaShippingSelection } from '@/lib/shipping-carriers'
 import { downloadZasilkovnaOrderLabel, syncZasilkovnaOrderLabel } from '@/lib/zasilkovna-labels'
 
 const hasAdminRole = (user: unknown) =>
@@ -691,6 +692,16 @@ export const Orders: CollectionConfig = {
           label: 'Pickup point code',
         },
         {
+          name: 'pickupPointType',
+          type: 'text',
+          label: 'Pickup point type',
+        },
+        {
+          name: 'pickupPointCarrierId',
+          type: 'text',
+          label: 'Pickup point carrier ID',
+        },
+        {
           name: 'pickupPointName',
           type: 'text',
           label: 'Pickup point name',
@@ -998,7 +1009,8 @@ export const Orders: CollectionConfig = {
       type: 'ui',
       admin: {
         position: 'sidebar',
-        condition: (data) => typeof data?.shipping?.methodId === 'string' && data.shipping.methodId.startsWith('ppl-'),
+        condition: (data) =>
+          isPplShippingSelection(data?.shipping) || Boolean(data?.pplShipment?.batchId || data?.pplShipment?.lastError),
         components: {
           Field: '@/components/admin/orders/PPLLabelControls',
         },
@@ -1009,7 +1021,9 @@ export const Orders: CollectionConfig = {
       type: 'ui',
       admin: {
         position: 'sidebar',
-        condition: (data) => typeof data?.shipping?.methodId === 'string' && data.shipping.methodId.startsWith('zasilkovna-'),
+        condition: (data) =>
+          isZasilkovnaShippingSelection(data?.shipping) ||
+          Boolean(data?.zasilkovnaShipment?.packetId || data?.zasilkovnaShipment?.lastError),
         components: {
           Field: '@/components/admin/orders/ZasilkovnaLabelControls',
         },

@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast, useDocumentInfo } from '@payloadcms/ui'
 
+import { isZasilkovnaShippingSelection } from '@/lib/shipping-carriers'
+
 type ShipmentState = {
   packetId?: string
   packetNumber?: string
@@ -32,10 +34,21 @@ const readShipmentState = (value: unknown): ShipmentState => {
   }
 }
 
+const hasText = (value: unknown) => typeof value === 'string' && value.trim().length > 0
+
 const isZasilkovnaOrder = (data: unknown) => {
   const source = data && typeof data === 'object' ? (data as Record<string, unknown>) : {}
-  const shipping = source.shipping && typeof source.shipping === 'object' ? (source.shipping as Record<string, unknown>) : {}
-  return typeof shipping.methodId === 'string' && shipping.methodId.startsWith('zasilkovna-')
+  const shipment =
+    source.zasilkovnaShipment && typeof source.zasilkovnaShipment === 'object'
+      ? (source.zasilkovnaShipment as Record<string, unknown>)
+      : {}
+
+  return (
+    isZasilkovnaShippingSelection(source.shipping) ||
+    hasText(shipment.packetId) ||
+    hasText(shipment.packetNumber) ||
+    hasText(shipment.lastError)
+  )
 }
 
 export default function ZasilkovnaLabelControls() {

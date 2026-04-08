@@ -1,5 +1,7 @@
 import type { Payload } from 'payload'
 
+import { isPplShippingSelection, isShipmentPickupSelection } from '@/lib/shipping-carriers'
+
 type PplShipmentDoc = {
   batchId?: string | null
   shipmentNumber?: string | null
@@ -140,14 +142,8 @@ const getSenderConfig = () => ({
   depot: sanitizePplText(getRequiredEnv('PPL_DEPOT'), 10),
 })
 
-const isPplShippingMethod = (methodId: unknown) =>
-  typeof methodId === 'string' && methodId.startsWith('ppl-')
-
-const isPplPickupMethod = (methodId: unknown) =>
-  typeof methodId === 'string' && methodId.includes('pickup')
-
 const getProductTypeForOrder = (order: PplOrderDoc) => {
-  if (isPplPickupMethod(order.shipping?.methodId)) {
+  if (isShipmentPickupSelection(order.shipping, 'ppl')) {
     return readEnv('PPL_PRODUCT_TYPE_PICKUP') || 'BUSS'
   }
 
@@ -244,7 +240,7 @@ const buildShipmentPayload = (order: PplOrderDoc) => {
   }
 
   const accessPointCode = sanitizePplText(order.shipping?.pickupPointCode || order.shipping?.pickupPointId, 40)
-  if (isPplPickupMethod(order.shipping?.methodId)) {
+  if (isShipmentPickupSelection(order.shipping, 'ppl')) {
     if (!accessPointCode) {
       throw new Error('PPL pickup shipment requires a pickup point code.')
     }
@@ -578,7 +574,7 @@ const assertPplOrder = (order: PplOrderDoc) => {
     throw new Error('Order not found.')
   }
 
-  if (!isPplShippingMethod(order.shipping?.methodId)) {
+  if (!isPplShippingSelection(order.shipping)) {
     throw new Error('This order does not use a PPL shipping method.')
   }
 }

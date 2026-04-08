@@ -66,6 +66,8 @@ export type InternalOrderCreateInput = {
       carrier?: string
       id?: string
       code?: string
+      type?: string
+      carrierId?: string
       name?: string
       street?: string
       city?: string
@@ -165,6 +167,8 @@ type PayloadOrderDoc = {
     pickupCarrier?: string | null
     pickupPointId?: string | null
     pickupPointCode?: string | null
+    pickupPointType?: string | null
+    pickupPointCarrierId?: string | null
     pickupPointName?: string | null
     pickupPointAddress?: string | null
   } | null
@@ -656,6 +660,8 @@ export const createOrder = async (payload: Payload, input: InternalOrderCreateIn
         pickupCarrier: sanitizeString(input.shipping?.pickupPoint?.carrier) || undefined,
         pickupPointId: sanitizeString(input.shipping?.pickupPoint?.id) || undefined,
         pickupPointCode: sanitizeString(input.shipping?.pickupPoint?.code) || undefined,
+        pickupPointType: sanitizeString(input.shipping?.pickupPoint?.type) || undefined,
+        pickupPointCarrierId: sanitizeString(input.shipping?.pickupPoint?.carrierId) || undefined,
         pickupPointName: sanitizeString(input.shipping?.pickupPoint?.name) || undefined,
         pickupPointAddress: getPickupPointAddress(input.shipping?.pickupPoint),
       },

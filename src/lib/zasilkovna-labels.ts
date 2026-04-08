@@ -1,5 +1,7 @@
 import type { Payload } from 'payload'
 
+import { isShipmentPickupSelection, isZasilkovnaShippingSelection } from '@/lib/shipping-carriers'
+
 type ZasilkovnaShipmentDoc = {
   packetId?: string | null
   packetNumber?: string | null
@@ -151,12 +153,6 @@ const getPacketaPacketLabelOffset = () => {
   return Number.isFinite(numeric) && numeric >= 0 ? Math.floor(numeric) : DEFAULT_PACKET_LABEL_OFFSET
 }
 
-const isZasilkovnaShippingMethod = (methodId: unknown) =>
-  typeof methodId === 'string' && methodId.startsWith('zasilkovna-')
-
-const isZasilkovnaPickupMethod = (methodId: unknown) =>
-  typeof methodId === 'string' && methodId.includes('pickup')
-
 const isExternalPickupPoint = (
   shipping:
     | {
@@ -193,7 +189,7 @@ const assertZasilkovnaOrder = (order: ZasilkovnaOrderDoc) => {
     throw new Error('Order not found.')
   }
 
-  if (!isZasilkovnaShippingMethod(order.shipping?.methodId)) {
+  if (!isZasilkovnaShippingSelection(order.shipping)) {
     throw new Error('This order does not use a Zasilkovna shipping method.')
   }
 }
@@ -462,7 +458,7 @@ const buildCreatePacketInnerXml = async (payload: Payload, order: ZasilkovnaOrde
     fields.push(tag('cod', insuredValue.toFixed(2)))
   }
 
-  if (isZasilkovnaPickupMethod(order.shipping?.methodId)) {
+  if (isShipmentPickupSelection(order.shipping, 'zasilkovna')) {
     const destination = getPickupDestination(order)
     fields.push(tag('addressId', destination.addressId))
 
@@ -567,7 +563,7 @@ const persistShipmentError = async (payload: Payload, order: ZasilkovnaOrderDoc,
         labelFormat: asCleanString(order.zasilkovnaShipment?.labelFormat) || getPacketaPacketLabelFormat(),
         labelMode:
           asCleanString(order.zasilkovnaShipment?.labelMode) ||
-          (isZasilkovnaPickupMethod(order.shipping?.methodId) ? 'pickup' : 'courier'),
+          (isShipmentPickupSelection(order.shipping, 'zasilkovna') ? 'pickup' : 'courier'),
         generatedAt: order.zasilkovnaShipment?.generatedAt || new Date().toISOString(),
         lastCheckedAt: new Date().toISOString(),
         lastError: message,
@@ -584,7 +580,7 @@ const normalizeShipmentState = (
   packetNumber: created.packetNumber || asCleanString(order.zasilkovnaShipment?.packetNumber),
   carrierNumber: carrierNumber || asCleanString(order.zasilkovnaShipment?.carrierNumber),
   labelFormat: getPacketaPacketLabelFormat(),
-  labelMode: isZasilkovnaPickupMethod(order.shipping?.methodId) ? 'pickup' : 'courier',
+  labelMode: isShipmentPickupSelection(order.shipping, 'zasilkovna') ? 'pickup' : 'courier',
   generatedAt: order.zasilkovnaShipment?.generatedAt || new Date().toISOString(),
   lastCheckedAt: new Date().toISOString(),
   lastError: '',
@@ -614,7 +610,7 @@ export const syncZasilkovnaOrderLabel = async (payload: Payload, id: number | st
       wasCreated = true
     }
 
-    const carrierNumber = isZasilkovnaPickupMethod(order.shipping?.methodId)
+    const carrierNumber = isShipmentPickupSelection(order.shipping, 'zasilkovna')
       ? ''
       : await maybeRefreshCourierNumber(packetId, asCleanString(order.zasilkovnaShipment?.carrierNumber))
 
