@@ -1,9 +1,14 @@
 import type { CollectionConfig } from 'payload'
 import { slugField } from 'payload'
+
 import { catalogFilterVisibilityFields } from '../fields/catalogFilterVisibilityFields'
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
+  labels: {
+    singular: 'Kategorie',
+    plural: 'Kategorie',
+  },
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'showInDesktopMenu', 'showInDesktopDropdownMenu', 'showInMobileMenu', 'sortOrder', 'updatedAt'],
@@ -16,7 +21,7 @@ export const Categories: CollectionConfig = {
       name: 'name',
       type: 'text',
       required: true,
-      label: '\u041d\u0430\u0437\u0432\u0430 \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0456\u0457',
+      label: 'Název kategorie',
     },
     slugField({
       useAsSlug: 'name',
@@ -25,48 +30,48 @@ export const Categories: CollectionConfig = {
       name: 'showInMenu',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Legacy menu visibility',
+      label: 'Původní viditelnost v menu',
       admin: {
         hidden: true,
         position: 'sidebar',
-        description: 'Legacy visibility flag kept only for backward compatibility.',
+        description: 'Původní přepínač viditelnosti ponechaný jen kvůli zpětné kompatibilitě.',
       },
     },
     {
       name: 'showInDesktopMenu',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Show in desktop menu',
+      label: 'Zobrazit v desktopovém menu',
       admin: {
         position: 'sidebar',
-        description: 'Display this category in the main header category menu on desktop.',
+        description: 'Zobrazí tuto kategorii v hlavním menu kategorií na desktopu.',
       },
     },
     {
       name: 'showInDesktopDropdownMenu',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Show in desktop dropdown menu',
+      label: 'Zobrazit v doplňkovém desktopovém menu',
       admin: {
         position: 'sidebar',
-        description: 'Move this desktop-visible category out of the main header row and into the additional desktop dropdown menu.',
+        description: 'Přesune tuto desktopovou kategorii z hlavní řady hlavičky do doplňkového rozbalovacího menu.',
       },
     },
     {
       name: 'showInMobileMenu',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Show in mobile menu',
+      label: 'Zobrazit v mobilním menu',
       admin: {
         position: 'sidebar',
-        description: 'Display this category in the mobile navigation menu.',
+        description: 'Zobrazí tuto kategorii v mobilní navigaci.',
       },
     },
     {
       name: 'sortOrder',
       type: 'number',
       defaultValue: 0,
-      label: 'Sort order',
+      label: 'Pořadí',
       admin: {
         position: 'sidebar',
       },
@@ -74,14 +79,14 @@ export const Categories: CollectionConfig = {
     {
       name: 'description',
       type: 'textarea',
-      label: '\u041e\u043f\u0438\u0441',
+      label: 'Popis',
     },
     ...catalogFilterVisibilityFields,
     {
       name: 'image',
       type: 'upload',
       relationTo: 'media',
-      label: '\u0417\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u043d\u044f \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0456\u0457',
+      label: 'Obrázek kategorie',
     },
   ],
 }

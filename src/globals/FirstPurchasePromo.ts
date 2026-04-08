@@ -2,7 +2,7 @@ import type { GlobalConfig } from 'payload'
 
 export const FirstPurchasePromo: GlobalConfig = {
   slug: 'first-purchase-promo',
-  label: 'First purchase promo',
+  label: 'Sleva na první nákup',
   access: {
     read: () => true,
   },
@@ -13,13 +13,13 @@ export const FirstPurchasePromo: GlobalConfig = {
       required: true,
       min: 0,
       defaultValue: 100,
-      label: 'Discount amount (CZK)',
+      label: 'Výše slevy (Kč)',
     },
     {
       name: 'icon',
       type: 'upload',
       relationTo: 'media',
-      label: 'Product page icon',
+      label: 'Ikona na stránce produktu',
       required: false,
     },
   ],

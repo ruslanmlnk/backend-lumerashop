@@ -5,6 +5,10 @@ import { buildSubcategorySlug, resolveCategoryGroupRelation, resolveCategoryRela
 
 export const Subcategories: CollectionConfig = {
   slug: 'subcategories',
+  labels: {
+    singular: 'Podkategorie',
+    plural: 'Podkategorie',
+  },
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'category', 'categoryGroup', 'slug', 'showInDesktopMenu', 'showInMobileMenu', 'sortOrder', 'updatedAt'],
@@ -49,7 +53,7 @@ export const Subcategories: CollectionConfig = {
       name: 'name',
       type: 'text',
       required: true,
-      label: '\u041d\u0430\u0437\u0432\u0430 \u043f\u0456\u0434\u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0456\u0457',
+      label: 'Název podkategorie',
     },
     {
       name: 'slug',
@@ -59,45 +63,45 @@ export const Subcategories: CollectionConfig = {
       index: true,
       admin: {
         readOnly: true,
-        description: 'Generated from the parent group and subcategory name to keep storefront URLs unique.',
+        description: 'Generuje se z nadřazené skupiny a názvu podkategorie, aby byly URL na webu jedinečné.',
       },
     },
     {
       name: 'showInMenu',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Legacy menu visibility',
+      label: 'Původní viditelnost v menu',
       admin: {
         hidden: true,
         position: 'sidebar',
-        description: 'Legacy visibility flag kept only for backward compatibility.',
+        description: 'Původní přepínač viditelnosti ponechaný jen kvůli zpětné kompatibilitě.',
       },
     },
     {
       name: 'showInDesktopMenu',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Show in desktop menu',
+      label: 'Zobrazit v desktopovém menu',
       admin: {
         position: 'sidebar',
-        description: 'Display this subcategory in the desktop nested menu under its parent category group.',
+        description: 'Zobrazí tuto podkategorii v desktopovém vnořeném menu pod nadřazenou skupinou kategorií.',
       },
     },
     {
       name: 'showInMobileMenu',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Show in mobile menu',
+      label: 'Zobrazit v mobilním menu',
       admin: {
         position: 'sidebar',
-        description: 'Display this subcategory in the mobile navigation menu.',
+        description: 'Zobrazí tuto podkategorii v mobilní navigaci.',
       },
     },
     {
       name: 'sortOrder',
       type: 'number',
       defaultValue: 0,
-      label: 'Sort order',
+      label: 'Pořadí',
       admin: {
         position: 'sidebar',
       },
@@ -107,14 +111,14 @@ export const Subcategories: CollectionConfig = {
       type: 'relationship',
       relationTo: 'categories',
       required: true,
-      label: '\u0411\u0430\u0442\u044c\u043a\u0456\u0432\u0441\u044c\u043a\u0430 \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0456\u044f',
+      label: 'Nadřazená kategorie',
     },
     {
       name: 'categoryGroup',
       type: 'relationship',
       relationTo: 'category-groups',
       required: true,
-      label: 'Parent category group',
+      label: 'Nadřazená skupina kategorií',
       filterOptions: ({ data }) => {
         if (data?.category) {
           return {
@@ -130,14 +134,14 @@ export const Subcategories: CollectionConfig = {
     {
       name: 'description',
       type: 'textarea',
-      label: '\u041e\u043f\u0438\u0441',
+      label: 'Popis',
     },
     ...catalogFilterVisibilityFields,
     {
       name: 'image',
       type: 'upload',
       relationTo: 'media',
-      label: '\u0417\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u043d\u044f \u043f\u0456\u0434\u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0456\u0457',
+      label: 'Obrázek podkategorie',
     },
   ],
 }

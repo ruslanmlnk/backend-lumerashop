@@ -4,6 +4,10 @@ import { SHIPPING_METHOD_PRESETS } from '../data/shipping-methods'
 
 export const ShippingMethods: CollectionConfig = {
   slug: 'shipping-methods',
+  labels: {
+    singular: 'Způsob dopravy',
+    plural: 'Způsoby dopravy',
+  },
   admin: {
     useAsTitle: 'methodId',
     defaultColumns: ['methodId', 'price', 'cashOnDelivery', 'isActive', 'sortOrder', 'updatedAt'],
@@ -17,7 +21,7 @@ export const ShippingMethods: CollectionConfig = {
       type: 'select',
       required: true,
       unique: true,
-      label: 'Shipping method',
+      label: 'Způsob dopravy',
       options: SHIPPING_METHOD_PRESETS.map((method) => ({
         label: method.label,
         value: method.id,
@@ -28,25 +32,25 @@ export const ShippingMethods: CollectionConfig = {
       type: 'number',
       required: true,
       defaultValue: 0,
-      label: 'Price (CZK)',
+      label: 'Cena (Kč)',
       min: 0,
     },
     {
       name: 'isActive',
       type: 'checkbox',
-      label: 'Active on checkout',
+      label: 'Aktivní v pokladně',
       defaultValue: true,
     },
     {
       name: 'cashOnDelivery',
       type: 'checkbox',
-      label: 'Na dobírku',
+      label: 'Dobírka',
       defaultValue: false,
     },
     {
       name: 'sortOrder',
       type: 'number',
-      label: 'Sort order',
+      label: 'Pořadí',
       defaultValue: 10,
     },
   ],

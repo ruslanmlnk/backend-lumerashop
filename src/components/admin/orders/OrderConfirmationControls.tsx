@@ -84,14 +84,14 @@ const formatTimestamp = (value: string | undefined) => {
 
 const getStatusLabel = (status: OrderDecisionState['currentStatus']) => {
   if (status === 'canceled') {
-    return 'Canceled'
+    return 'Zrušeno'
   }
 
   if (status === 'confirmed') {
-    return 'Accepted'
+    return 'Potvrzeno'
   }
 
-  return 'Waiting for decision'
+  return 'Čeká na rozhodnutí'
 }
 
 const mergeDecisionIntoDocument = (value: unknown, decision: OrderDecisionState) => {
@@ -161,12 +161,12 @@ export default function OrderConfirmationControls() {
       const payload = (await response.json().catch(() => ({}))) as EndpointResponse
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Failed to load saved order status.')
+        throw new Error(payload.error || 'Nepodařilo se načíst uložený stav objednávky.')
       }
 
       applyDecision(readOrderDecisionState(payload))
     } catch (error) {
-      console.error('Failed to refresh order decision state.', error)
+      console.error('Nepodařilo se obnovit stav rozhodnutí objednávky.', error)
     } finally {
       setIsRefreshingDecision(false)
       setHasLoadedPersistedDecision(true)
@@ -200,7 +200,7 @@ export default function OrderConfirmationControls() {
       const payload = (await response.json().catch(() => ({}))) as EndpointResponse
 
       if (!response.ok) {
-        throw new Error(payload.error || `Failed to ${action} order.`)
+        throw new Error(payload.error || `Nepodařilo se ${action === 'confirm' ? 'potvrdit' : 'zrušit'} objednávku.`)
       }
 
       const nextDecision = readOrderDecisionState(payload)
@@ -209,13 +209,17 @@ export default function OrderConfirmationControls() {
       void refreshDecision(docId)
 
       if (action === 'confirm') {
-        toast.success(nextDecision.alreadyConfirmed ? 'Order was already accepted.' : 'Order accepted and email sent.')
+        toast.success(nextDecision.alreadyConfirmed ? 'Objednávka už byla potvrzena.' : 'Objednávka byla potvrzena a e-mail byl odeslán.')
       } else {
-        toast.success(nextDecision.alreadyCanceled ? 'Order was already canceled.' : 'Order canceled and email sent.')
+        toast.success(nextDecision.alreadyCanceled ? 'Objednávka už byla zrušena.' : 'Objednávka byla zrušena a e-mail byl odeslán.')
       }
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : action === 'confirm' ? 'Failed to accept order.' : 'Failed to cancel order.'
+        error instanceof Error
+          ? error.message
+          : action === 'confirm'
+            ? 'Nepodařilo se potvrdit objednávku.'
+            : 'Nepodařilo se zrušit objednávku.'
       toast.error(message)
     } finally {
       setBusyAction(null)
@@ -233,7 +237,7 @@ export default function OrderConfirmationControls() {
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => ({}))) as { error?: string }
-        throw new Error(payload.error || 'Failed to prepare invoice PDF.')
+        throw new Error(payload.error || 'Nepodařilo se připravit PDF faktury.')
       }
 
       const blob = await response.blob()
@@ -253,9 +257,9 @@ export default function OrderConfirmationControls() {
         URL.revokeObjectURL(downloadUrl)
       }, 5000)
 
-      toast.success('Invoice PDF ready.')
+      toast.success('Faktura PDF je připravená.')
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to prepare invoice PDF.'
+      const message = error instanceof Error ? error.message : 'Nepodařilo se připravit PDF faktury.'
       toast.error(message)
     } finally {
       setBusyAction(null)
@@ -280,32 +284,32 @@ export default function OrderConfirmationControls() {
       }}
     >
       <div style={{ display: 'grid', gap: 4 }}>
-        <strong style={{ fontSize: 14 }}>Order status</strong>
+        <strong style={{ fontSize: 14 }}>Stav objednávky</strong>
         <span style={{ color: 'var(--theme-elevation-600)', fontSize: 13 }}>
-          Accept or cancel the order, notify the customer, and save the invoice PDF for later downloads.
+          Potvrďte nebo zrušte objednávku, informujte zákazníka a stáhněte fakturu PDF pro další použití.
         </span>
       </div>
 
       <div style={{ display: 'grid', gap: 6, fontSize: 13 }}>
         <div>
-          <strong>Status:</strong> {getStatusLabel(decision.currentStatus)}
+          <strong>Stav:</strong> {getStatusLabel(decision.currentStatus)}
         </div>
         {!hasLoadedPersistedDecision ? (
-          <div style={{ color: 'var(--theme-elevation-600)' }}>Loading saved status...</div>
+          <div style={{ color: 'var(--theme-elevation-600)' }}>Načítám uložený stav...</div>
         ) : null}
         {decision.orderId ? (
           <div>
-            <strong>Order ID:</strong> {decision.orderId}
+            <strong>Číslo objednávky:</strong> {decision.orderId}
           </div>
         ) : null}
         {decision.confirmedAt ? (
           <div>
-            <strong>Accepted:</strong> {formatTimestamp(decision.confirmedAt)}
+            <strong>Potvrzeno:</strong> {formatTimestamp(decision.confirmedAt)}
           </div>
         ) : null}
         {decision.canceledAt ? (
           <div>
-            <strong>Canceled:</strong> {formatTimestamp(decision.canceledAt)}
+            <strong>Zrušeno:</strong> {formatTimestamp(decision.canceledAt)}
           </div>
         ) : null}
       </div>
@@ -325,7 +329,7 @@ export default function OrderConfirmationControls() {
             fontWeight: 600,
           }}
         >
-          {busyAction === 'invoice' ? 'Preparing...' : 'Download Invoice PDF'}
+          {busyAction === 'invoice' ? 'Připravuji...' : 'Stáhnout fakturu PDF'}
         </button>
       </div>
 
@@ -346,7 +350,7 @@ export default function OrderConfirmationControls() {
                 fontWeight: 600,
               }}
             >
-              {busyAction === 'confirm' ? 'Sending...' : isRefreshingDecision ? 'Refreshing...' : 'Accept'}
+              {busyAction === 'confirm' ? 'Odesílám...' : isRefreshingDecision ? 'Obnovuji...' : 'Potvrdit'}
             </button>
           ) : null}
 
@@ -365,7 +369,7 @@ export default function OrderConfirmationControls() {
                 fontWeight: 600,
               }}
             >
-              {busyAction === 'cancel' ? 'Sending...' : isRefreshingDecision ? 'Refreshing...' : 'Cancel'}
+              {busyAction === 'cancel' ? 'Odesílám...' : isRefreshingDecision ? 'Obnovuji...' : 'Zrušit'}
             </button>
           ) : null}
         </div>

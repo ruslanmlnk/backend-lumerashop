@@ -12,7 +12,7 @@ import {
 
 const readCouponPreviewState = (value: unknown) => {
   const source = value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
-  const couponName = typeof source.name === 'string' ? source.name.trim() : 'Lumera Coupon'
+  const couponName = typeof source.name === 'string' ? source.name.trim() : 'Kupón Lumera'
   const content =
     source.qrCard && typeof source.qrCard === 'object'
       ? normalizeCouponPreviewContent(source.qrCard, couponName)
@@ -69,7 +69,7 @@ export default function CouponPreview() {
         const nextAssets = await buildCouponPreviewAssets({
           code: preview.code,
           discountPercent: preview.discountPercent,
-          couponName: preview.name || 'Lumera Coupon',
+          couponName: preview.name || 'Kupón Lumera',
           preview: preview.content,
           websiteLink: preview.websiteLink,
         })
@@ -80,7 +80,7 @@ export default function CouponPreview() {
       } catch (generationError) {
         if (!cancelled) {
           setAssets(null)
-          setError(generationError instanceof Error ? generationError.message : 'QR preview could not be generated.')
+          setError(generationError instanceof Error ? generationError.message : 'QR náhled se nepodařilo vygenerovat.')
         }
       } finally {
         if (!cancelled) {
@@ -109,7 +109,7 @@ export default function CouponPreview() {
           lineHeight: 1.6,
         }}
       >
-        Save the coupon to generate the QR assets and downloads.
+        Pro vygenerování QR podkladů a souborů nejdříve kupón uložte.
       </div>
     )
   }
@@ -126,9 +126,9 @@ export default function CouponPreview() {
       }}
     >
       <div style={{ display: 'grid', gap: 4 }}>
-        <strong style={{ fontSize: 14 }}>Coupon preview</strong>
+        <strong style={{ fontSize: 14 }}>Náhled kupónu</strong>
         <span style={{ color: 'var(--theme-elevation-600)', fontSize: 13 }}>
-          The layout adapts automatically when title, discount, code, or note are hidden.
+          Rozložení se automaticky přizpůsobí, když skryjete nadpis, slevu, kód nebo poznámku.
         </span>
       </div>
 
@@ -148,7 +148,7 @@ export default function CouponPreview() {
             opacity: !assets || isLoading ? 0.6 : 1,
           }}
         >
-          Download QR
+          Stáhnout QR
         </button>
         <button
           type="button"
@@ -166,7 +166,7 @@ export default function CouponPreview() {
             opacity: !assets || isLoading ? 0.6 : 1,
           }}
         >
-          Download full card
+          Stáhnout celou kartu
         </button>
       </div>
 
@@ -180,7 +180,7 @@ export default function CouponPreview() {
             fontSize: 13,
           }}
         >
-          Generating QR preview...
+          Generuji QR náhled...
         </div>
       ) : null}
 

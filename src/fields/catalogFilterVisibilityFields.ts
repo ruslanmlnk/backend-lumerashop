@@ -3,7 +3,7 @@ import type { Field } from 'payload'
 export const catalogFilterVisibilityFields: Field[] = [
   {
     type: 'collapsible',
-    label: 'Catalog filter visibility',
+    label: 'Viditelnost katalogových filtrů',
     admin: {
       initCollapsed: true,
     },
@@ -13,10 +13,9 @@ export const catalogFilterVisibilityFields: Field[] = [
         type: 'relationship',
         relationTo: 'filter-groups',
         hasMany: true,
-        label: 'Hidden filter groups',
+        label: 'Skryté skupiny filtrů',
         admin: {
-          description:
-            'Hide entire filter groups such as Material or Barva on this category level in the storefront.',
+          description: 'Skryje celé skupiny filtrů, například Materiál nebo Barva, na této úrovni kategorie ve storefrontu.',
         },
       },
       {
@@ -24,10 +23,9 @@ export const catalogFilterVisibilityFields: Field[] = [
         type: 'relationship',
         relationTo: 'filter-options',
         hasMany: true,
-        label: 'Hidden filter options',
+        label: 'Skryté možnosti filtrů',
         admin: {
-          description:
-            'Hide only specific filter options such as Cerná while keeping the rest of the filter visible.',
+          description: 'Skryje jen konkrétní možnosti filtrů, například Černá, a ostatní část filtru zůstane viditelná.',
         },
       },
     ],

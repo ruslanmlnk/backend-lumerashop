@@ -24,7 +24,7 @@ export const createInfoPageGlobal = ({
     {
       name: 'title',
       type: 'text',
-      label: 'Page title',
+      label: 'Název stránky',
       required: true,
       defaultValue: defaultTitle,
     },
@@ -32,20 +32,20 @@ export const createInfoPageGlobal = ({
       name: 'heroImage',
       type: 'upload',
       relationTo: 'media',
-      label: 'Hero image',
+      label: 'Hero obrázek',
       admin: {
-        description: 'Image shown in the large hero banner above the page content.',
+        description: 'Obrázek zobrazený ve velkém hero banneru nad obsahem stránky.',
       },
     },
     {
       name: 'content',
       type: 'richText',
-      label: 'Page content',
+      label: 'Obsah stránky',
       required: true,
       admin: {
         description:
           contentDescription ??
-          'This page is rendered on the storefront footer route and uses the Lexical editor.',
+          'Tato stránka se zobrazuje ve footer routě storefrontu a používá editor Lexical.',
       },
     },
     seo,

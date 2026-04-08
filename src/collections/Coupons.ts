@@ -41,8 +41,8 @@ const generateIfMissing = ({ value }: { value?: unknown }) => {
 export const Coupons: CollectionConfig = {
   slug: 'coupons',
   labels: {
-    singular: 'Coupon',
-    plural: 'Coupons',
+    singular: 'Slevový kupón',
+    plural: 'Slevové kupóny',
   },
   admin: {
     useAsTitle: 'code',
@@ -59,7 +59,7 @@ export const Coupons: CollectionConfig = {
         const assets = await buildCouponPreviewAssets({
           code: sanitizeCouponCode(source.code) || generateCouponCode(),
           discountPercent: source.discountPercent,
-          couponName: typeof source.name === 'string' ? source.name : 'Lumera Coupon',
+          couponName: typeof source.name === 'string' ? source.name : 'Kupón Lumera',
           preview: source.qrCard && typeof source.qrCard === 'object' ? source.qrCard : undefined,
           websiteLink: source.websiteLink,
         })
@@ -161,7 +161,7 @@ export const Coupons: CollectionConfig = {
       name: 'name',
       type: 'text',
       required: true,
-      label: 'Coupon name',
+      label: 'Název kupónu',
     },
     {
       name: 'code',
@@ -169,13 +169,13 @@ export const Coupons: CollectionConfig = {
       required: true,
       unique: true,
       index: true,
-      label: 'Coupon code',
+      label: 'Kód kupónu',
       defaultValue: generateCouponCode,
       hooks: {
         beforeValidate: [generateIfMissing],
       },
       admin: {
-        description: 'Leave empty to auto-generate a random code.',
+        description: 'Ponechte prázdné pro automatické vygenerování náhodného kódu.',
       },
     },
     {
@@ -184,23 +184,23 @@ export const Coupons: CollectionConfig = {
       required: true,
       min: 1,
       max: 100,
-      label: 'Discount percent',
+      label: 'Sleva v procentech',
     },
     {
       name: 'websiteLink',
       type: 'text',
       defaultValue: '/checkout',
-      label: 'QR website link',
+      label: 'Odkaz pro QR',
       admin: {
-        description: 'Use a full URL like https://lumerashop.cz/checkout or an internal path like /checkout. The coupon code is appended automatically.',
+        description: 'Použijte plnou URL adresu jako https://lumerashop.cz/checkout nebo interní cestu jako /checkout. Kód kupónu se přidá automaticky.',
       },
     },
     {
       name: 'qrCard',
       type: 'group',
-      label: 'QR card content',
+      label: 'Obsah QR karty',
       admin: {
-        description: 'Choose which coupon details should appear on the branded QR card preview.',
+        description: 'Vyberte, které údaje o kupónu se mají zobrazit v náhledu značkové QR karty.',
       },
       fields: [
         {
@@ -210,7 +210,7 @@ export const Coupons: CollectionConfig = {
               name: 'showTitle',
               type: 'checkbox',
               defaultValue: true,
-              label: 'Show title',
+              label: 'Zobrazit nadpis',
               admin: {
                 width: '25%',
               },
@@ -219,7 +219,7 @@ export const Coupons: CollectionConfig = {
               name: 'showDiscount',
               type: 'checkbox',
               defaultValue: true,
-              label: 'Show discount',
+              label: 'Zobrazit slevu',
               admin: {
                 width: '25%',
               },
@@ -228,7 +228,7 @@ export const Coupons: CollectionConfig = {
               name: 'showCode',
               type: 'checkbox',
               defaultValue: true,
-              label: 'Show code',
+              label: 'Zobrazit kód',
               admin: {
                 width: '25%',
               },
@@ -237,7 +237,7 @@ export const Coupons: CollectionConfig = {
               name: 'showSubtitle',
               type: 'checkbox',
               defaultValue: false,
-              label: 'Show subtitle',
+              label: 'Zobrazit podnadpis',
               admin: {
                 width: '25%',
               },
@@ -247,20 +247,20 @@ export const Coupons: CollectionConfig = {
         {
           name: 'title',
           type: 'text',
-          label: 'Title on card',
+          label: 'Nadpis na kartě',
           admin: {
-            description: 'Leave empty to use the coupon name automatically.',
+            description: 'Ponechte prázdné, pokud se má automaticky použít název kupónu.',
           },
         },
         {
           name: 'subtitle',
           type: 'text',
-          label: 'Subtitle on card',
+          label: 'Podnadpis na kartě',
         },
         {
           name: 'note',
           type: 'text',
-          label: 'Bottom note',
+          label: 'Poznámka dole',
         },
       ],
     },
@@ -268,14 +268,14 @@ export const Coupons: CollectionConfig = {
       name: 'isActive',
       type: 'checkbox',
       defaultValue: true,
-      label: 'Active',
+      label: 'Aktivní',
     },
     {
       name: 'orders',
       type: 'join',
       collection: 'orders',
       on: 'discounts.coupon',
-      label: 'Orders using this coupon',
+      label: 'Objednávky s tímto kupónem',
       admin: {
         allowCreate: false,
         defaultColumns: ['orderId', 'paymentStatus', 'total', 'customerEmail', 'updatedAt'],

@@ -90,7 +90,7 @@ export default function PPLLabelControls() {
       const payload = (await response.json().catch(() => ({}))) as EndpointResponse
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Failed to sync PPL label.')
+        throw new Error(payload.error || 'Nepodařilo se synchronizovat štítek PPL.')
       }
 
       if (payload.shipment) {
@@ -98,12 +98,12 @@ export default function PPLLabelControls() {
       }
 
       if (payload.labelReady) {
-        toast.success(payload.wasCreated ? 'PPL label generated.' : 'PPL label refreshed.')
+        toast.success(payload.wasCreated ? 'Štítek PPL byl vygenerován.' : 'Štítek PPL byl obnoven.')
       } else {
-        toast.message('PPL shipment saved. Label is still processing.')
+        toast.message('Zásilka PPL byla uložena. Štítek se ještě zpracovává.')
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to sync PPL label.'
+      const message = error instanceof Error ? error.message : 'Nepodařilo se synchronizovat štítek PPL.'
       toast.error(message)
     } finally {
       setIsBusy(false)
@@ -122,34 +122,34 @@ export default function PPLLabelControls() {
       }}
     >
       <div style={{ display: 'grid', gap: 4 }}>
-        <strong style={{ fontSize: 14 }}>PPL label</strong>
+        <strong style={{ fontSize: 14 }}>Štítek PPL</strong>
         <span style={{ color: 'var(--theme-elevation-600)', fontSize: 13 }}>
-          Generate or refresh the shipment label for this order.
+          Vygenerujte nebo obnovte přepravní štítek pro tuto objednávku.
         </span>
       </div>
 
       <div style={{ display: 'grid', gap: 6, fontSize: 13 }}>
         <div>
-          <strong>Status:</strong> {shipment.importState || 'Not generated'}
+          <strong>Stav:</strong> {shipment.importState || 'Nevygenerováno'}
         </div>
         {shipment.batchId ? (
           <div>
-            <strong>Batch ID:</strong> {shipment.batchId}
+            <strong>ID dávky:</strong> {shipment.batchId}
           </div>
         ) : null}
         {shipment.shipmentNumber ? (
           <div>
-            <strong>Shipment number:</strong> {shipment.shipmentNumber}
+            <strong>Číslo zásilky:</strong> {shipment.shipmentNumber}
           </div>
         ) : null}
         {shipment.lastCheckedAt ? (
           <div>
-            <strong>Checked:</strong> {new Date(shipment.lastCheckedAt).toLocaleString()}
+            <strong>Kontrolováno:</strong> {new Date(shipment.lastCheckedAt).toLocaleString()}
           </div>
         ) : null}
         {shipment.lastError ? (
           <div style={{ color: '#b42318' }}>
-            <strong>Error:</strong> {shipment.lastError}
+            <strong>Chyba:</strong> {shipment.lastError}
           </div>
         ) : null}
       </div>
@@ -169,7 +169,7 @@ export default function PPLLabelControls() {
             fontWeight: 600,
           }}
         >
-          {isBusy ? 'Processing...' : shipment.batchId ? 'Refresh PPL label' : 'Generate PPL label'}
+          {isBusy ? 'Zpracovávám...' : shipment.batchId ? 'Obnovit štítek PPL' : 'Vygenerovat štítek PPL'}
         </button>
 
         {labelReady ? (
@@ -187,7 +187,7 @@ export default function PPLLabelControls() {
               fontWeight: 600,
             }}
           >
-            Open label
+            Otevřít štítek
           </a>
         ) : null}
       </div>

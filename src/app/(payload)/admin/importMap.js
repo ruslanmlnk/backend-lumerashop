@@ -22,8 +22,9 @@ import { StrikethroughFeatureClient as StrikethroughFeatureClient_e70f5e05f09f93
 import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { default as default_9306fadb3a53aeb427bf662bec5d2667 } from '@/components/admin/products/ProductMainImageCell'
 import { default as default_7498ceaf0f5a036fc90322c188923b78 } from '@/components/admin/coupons/CouponPreview'
-import { default as default_4edce55066a741e8a5f4bfd881f38976 } from '@/components/admin/orders/OrderConfirmationControls'
+import { default as default_717921db146e1c924e41bcddff90b5e0 } from '@/components/admin/orders/OrderConfirmationControls'
 import { default as default_d9b1919bf53c4ad40104ed46e7a2b852 } from '@/components/admin/orders/PPLLabelControls'
 import { default as default_6c732e2c41b34768e37042417900ec79 } from '@/components/admin/orders/ZasilkovnaLabelControls'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
@@ -53,8 +54,9 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#UnderlineFeatureClient": UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "@/components/admin/products/ProductMainImageCell#default": default_9306fadb3a53aeb427bf662bec5d2667,
   "@/components/admin/coupons/CouponPreview#default": default_7498ceaf0f5a036fc90322c188923b78,
-  "@/components/admin/orders/OrderConfirmationControls#default": default_4edce55066a741e8a5f4bfd881f38976,
+  "@/components/admin/orders/OrderConfirmationControls#default": default_717921db146e1c924e41bcddff90b5e0,
   "@/components/admin/orders/PPLLabelControls#default": default_d9b1919bf53c4ad40104ed46e7a2b852,
   "@/components/admin/orders/ZasilkovnaLabelControls#default": default_6c732e2c41b34768e37042417900ec79,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1

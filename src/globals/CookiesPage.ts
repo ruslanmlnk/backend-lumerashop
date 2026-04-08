@@ -2,6 +2,6 @@ import { createInfoPageGlobal } from './createInfoPageGlobal'
 
 export const CookiesPage = createInfoPageGlobal({
   slug: 'cookies-page',
-  label: 'Cookies page',
+  label: 'Stránka cookies',
   defaultTitle: 'Zásady používání souborů cookies',
 })

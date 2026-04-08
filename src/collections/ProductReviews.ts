@@ -1,8 +1,6 @@
 import type { CollectionConfig, PayloadRequest } from 'payload'
 
-import {
-  normalizeDocumentId,
-} from '@/lib/commerce'
+import { normalizeDocumentId } from '@/lib/commerce'
 
 type ReviewAuthor = {
   id?: number | string
@@ -72,8 +70,8 @@ const getReviewerName = (value: unknown) => {
 export const ProductReviews: CollectionConfig = {
   slug: 'product-reviews',
   labels: {
-    singular: 'Product review',
-    plural: 'Product reviews',
+    singular: 'Recenze produktu',
+    plural: 'Recenze produktů',
   },
   admin: {
     useAsTitle: 'authorName',
@@ -85,13 +83,9 @@ export const ProductReviews: CollectionConfig = {
         return true
       }
 
-      // Allow users to read their own reviews and public reviews
       if (user && typeof user === 'object' && 'id' in user) {
         return {
-          or: [
-            { show: { equals: true } },
-            { user: { equals: user.id } },
-          ],
+          or: [{ show: { equals: true } }, { user: { equals: user.id } }],
         } as any
       }
 
@@ -152,14 +146,12 @@ export const ProductReviews: CollectionConfig = {
             overrideAccess: true,
           })
 
-          // Check if purchase is required for reviews
           const homePage = await req.payload.findGlobal({
             slug: 'home-page',
             depth: 0,
           })
 
           if (homePage.requirePurchaseForReview) {
-            // Check if user has purchased this product
             const orders = await req.payload.find({
               collection: 'orders',
               depth: 1,
@@ -223,13 +215,13 @@ export const ProductReviews: CollectionConfig = {
       type: 'relationship',
       relationTo: 'products',
       required: true,
-      label: 'Product',
+      label: 'Produkt',
     },
     {
       name: 'user',
       type: 'relationship',
       relationTo: 'users',
-      label: 'Customer',
+      label: 'Zákazník',
       admin: {
         readOnly: true,
       },
@@ -241,7 +233,7 @@ export const ProductReviews: CollectionConfig = {
           name: 'authorName',
           type: 'text',
           required: true,
-          label: 'Author name',
+          label: 'Jméno autora',
           admin: {
             readOnly: true,
             width: '50%',
@@ -251,7 +243,7 @@ export const ProductReviews: CollectionConfig = {
           name: 'authorEmail',
           type: 'email',
           required: true,
-          label: 'Author email',
+          label: 'E-mail autora',
           admin: {
             readOnly: true,
             width: '50%',
@@ -268,7 +260,7 @@ export const ProductReviews: CollectionConfig = {
           required: true,
           min: 1,
           max: 5,
-          label: 'Rating',
+          label: 'Hodnocení',
           admin: {
             width: '33%',
           },
@@ -277,16 +269,16 @@ export const ProductReviews: CollectionConfig = {
           name: 'show',
           type: 'checkbox',
           defaultValue: false,
-          label: 'Show',
+          label: 'Zobrazit',
           admin: {
             width: '33%',
-            description: 'Publish this review on the product page.',
+            description: 'Zveřejní tuto recenzi na stránce produktu.',
           },
         },
         {
           name: 'submittedAt',
           type: 'date',
-          label: 'Submitted at',
+          label: 'Odesláno',
           admin: {
             readOnly: true,
             width: '34%',
@@ -298,7 +290,7 @@ export const ProductReviews: CollectionConfig = {
       name: 'comment',
       type: 'textarea',
       required: true,
-      label: 'Review',
+      label: 'Recenze',
     },
   ],
 }

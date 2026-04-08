@@ -5,7 +5,7 @@ import { seo } from '../fields/seo'
 
 export const HomePage: GlobalConfig = {
   slug: 'home-page',
-  label: 'Home Page',
+  label: 'Domovská stránka',
   access: {
     read: () => true,
   },
@@ -13,19 +13,19 @@ export const HomePage: GlobalConfig = {
     {
       name: 'aboutSection',
       type: 'group',
-      label: 'About section (block with video)',
+      label: 'Sekce O nás (blok s videem)',
       fields: [
         {
           name: 'title',
           type: 'text',
-          label: 'Title',
+          label: 'Nadpis',
           required: true,
           defaultValue: 'O obchodě Lumera',
         },
         {
           name: 'description',
           type: 'textarea',
-          label: 'Description',
+          label: 'Popis',
           required: true,
           defaultValue:
             'Lumera je český obchod s italskými koženými kabelkami a doplňky.\nSpolupracujeme s menšími výrobci z Itálie, kteří si zakládají na kvalitě a ručním zpracování. Každý model pečlivě vybíráme tak, aby spojoval eleganci, praktičnost a originalitu. Věříme, že krása je v detailu, stejně jako v každé kabelce, kterou nabízíme.',
@@ -33,14 +33,14 @@ export const HomePage: GlobalConfig = {
         {
           name: 'buttonText',
           type: 'text',
-          label: 'Button text',
+          label: 'Text tlačítka',
           required: true,
           defaultValue: 'Zjistit více o obchodě',
         },
         {
           name: 'buttonLink',
           type: 'text',
-          label: 'Button link',
+          label: 'Odkaz tlačítka',
           required: true,
           defaultValue: '/o-nas',
         },
@@ -49,99 +49,99 @@ export const HomePage: GlobalConfig = {
     {
       name: 'marketingSlides',
       type: 'array',
-      label: 'Marketing slider',
+      label: 'Marketingový slider',
       labels: {
-        singular: 'Slide',
-        plural: 'Slides',
+        singular: 'Snímek',
+        plural: 'Snímky',
       },
       fields: [
         {
           name: 'title',
           type: 'text',
           required: true,
-          label: 'Title',
+          label: 'Nadpis',
         },
         {
           name: 'description',
           type: 'textarea',
           required: true,
-          label: 'Description',
+          label: 'Popis',
         },
         {
           name: 'button',
           type: 'text',
           required: true,
-          label: 'Button label',
+          label: 'Popisek tlačítka',
         },
         {
           name: 'link',
           type: 'text',
           required: true,
-          label: 'Button link',
+          label: 'Odkaz tlačítka',
         },
         {
           name: 'bg',
           type: 'text',
           required: true,
-          label: 'Background image URL',
+          label: 'URL obrázku pozadí',
         },
         {
           name: 'overlayImage',
           type: 'text',
           required: true,
-          label: 'Overlay image URL',
+          label: 'URL překryvného obrázku',
         },
         {
           name: 'layout',
           type: 'group',
-          label: 'Desktop layout',
+          label: 'Rozložení pro desktop',
           fields: [
             {
               name: 'paddingTop',
               type: 'number',
               required: true,
-              label: 'Top offset',
+              label: 'Horní odsazení',
             },
             {
               name: 'titleMaxWidth',
               type: 'number',
               required: true,
-              label: 'Title max width',
+              label: 'Maximální šířka nadpisu',
             },
             {
               name: 'descMaxWidth',
               type: 'number',
               required: true,
-              label: 'Description max width',
+              label: 'Maximální šířka popisu',
             },
             {
               name: 'img',
               type: 'group',
-              label: 'Overlay image position',
+              label: 'Pozice překryvného obrázku',
               fields: [
                 {
                   name: 'w',
                   type: 'number',
                   required: true,
-                  label: 'Image width',
+                  label: 'Šířka obrázku',
                 },
                 {
                   name: 'h',
                   type: 'number',
                   required: true,
-                  label: 'Image height',
+                  label: 'Výška obrázku',
                 },
                 {
                   name: 'top',
                   type: 'number',
                   required: true,
-                  label: 'Image top',
+                  label: 'Horní pozice obrázku',
                 },
                 {
                   name: 'right',
                   type: 'number',
                   required: true,
-                  label: 'Image right',
+                  label: 'Pravá pozice obrázku',
                 },
               ],
             },
@@ -152,41 +152,41 @@ export const HomePage: GlobalConfig = {
     {
       name: 'testimonialsSection',
       type: 'group',
-      label: 'Testimonials section',
+      label: 'Sekce recenzí',
       fields: [
         {
           name: 'title',
           type: 'text',
-          label: 'Section title',
+          label: 'Nadpis sekce',
           required: true,
           defaultValue: DEFAULT_HOME_TESTIMONIALS_TITLE,
         },
         {
           name: 'items',
           type: 'array',
-          label: 'Testimonials',
+          label: 'Recenze',
           labels: {
-            singular: 'Testimonial',
-            plural: 'Testimonials',
+            singular: 'Recenze',
+            plural: 'Recenze',
           },
           defaultValue: DEFAULT_HOME_TESTIMONIALS,
           fields: [
             {
               name: 'text',
               type: 'textarea',
-              label: 'Comment',
+              label: 'Komentář',
               required: true,
             },
             {
               name: 'author',
               type: 'text',
-              label: 'Author',
+              label: 'Autor',
               required: true,
             },
             {
               name: 'location',
               type: 'text',
-              label: 'Location',
+              label: 'Lokalita',
               required: true,
             },
           ],
@@ -196,18 +196,18 @@ export const HomePage: GlobalConfig = {
     {
       name: 'blogSection',
       type: 'group',
-      label: 'Blog section',
+      label: 'Sekce blogu',
       fields: [
         {
           name: 'title',
           type: 'text',
-          label: 'Section title',
+          label: 'Nadpis sekce',
           defaultValue: 'Z blogu Lumera',
         },
         {
           name: 'description',
           type: 'textarea',
-          label: 'Section description',
+          label: 'Popis sekce',
           defaultValue: 'Styl, inspirace a péče o vaše kožené doplňky.',
         },
         {
@@ -215,9 +215,9 @@ export const HomePage: GlobalConfig = {
           type: 'relationship',
           relationTo: 'article',
           hasMany: true,
-          label: 'Articles to show on homepage',
+          label: 'Články na domovské stránce',
           admin: {
-            description: 'Choose and order the articles for the homepage blog section. Leave empty to hide the block.',
+            description: 'Vyberte a seřaďte články pro blogovou sekci na domovské stránce. Ponechte prázdné, pokud se blok nemá zobrazit.',
           },
         },
       ],
@@ -225,10 +225,10 @@ export const HomePage: GlobalConfig = {
     {
       name: 'requirePurchaseForReview',
       type: 'checkbox',
-      label: 'Require purchase before review',
+      label: 'Vyžadovat nákup před recenzí',
       defaultValue: false,
       admin: {
-        description: 'If enabled, users can only leave reviews on products they have purchased.',
+        description: 'Pokud je zapnuto, uživatelé mohou psát recenze jen k produktům, které si zakoupili.',
       },
     },
     seo,

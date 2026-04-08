@@ -88,6 +88,10 @@ const canAccessOrderInvoice = async (req: PayloadRequest, documentId: number | s
 
 export const Orders: CollectionConfig = {
   slug: 'orders',
+  labels: {
+    singular: 'Objednávka',
+    plural: 'Objednávky',
+  },
   admin: {
     useAsTitle: 'orderId',
     defaultColumns: ['orderId', 'paymentStatus', 'provider', 'total', 'customerEmail', 'updatedAt'],
@@ -300,13 +304,13 @@ export const Orders: CollectionConfig = {
       required: true,
       unique: true,
       index: true,
-      label: 'Order ID',
+      label: 'Číslo objednávky',
     },
     {
       name: 'provider',
       type: 'select',
       required: true,
-      label: 'Payment provider',
+      label: 'Platební brána',
       options: [
         {
           label: 'Stripe',
@@ -317,7 +321,7 @@ export const Orders: CollectionConfig = {
           value: 'global-payments',
         },
         {
-          label: 'Cash on delivery',
+          label: 'Dobírka',
           value: 'cash-on-delivery',
         },
       ],
@@ -327,22 +331,22 @@ export const Orders: CollectionConfig = {
       type: 'select',
       required: true,
       defaultValue: 'pending',
-      label: 'Payment status',
+      label: 'Stav platby',
       options: [
         {
-          label: 'Pending',
+          label: 'Čeká na platbu',
           value: 'pending',
         },
         {
-          label: 'Paid',
+          label: 'Zaplaceno',
           value: 'paid',
         },
         {
-          label: 'Failed',
+          label: 'Neúspěšná',
           value: 'failed',
         },
         {
-          label: 'Canceled',
+          label: 'Zrušeno',
           value: 'canceled',
         },
       ],
@@ -350,70 +354,70 @@ export const Orders: CollectionConfig = {
     {
       name: 'isConfirmed',
       type: 'checkbox',
-      label: 'Order confirmed',
+      label: 'Objednávka potvrzena',
       defaultValue: false,
       admin: hiddenReadOnlyAdmin,
     },
     {
       name: 'confirmedAt',
       type: 'date',
-      label: 'Confirmed at',
+      label: 'Potvrzeno dne',
       admin: hiddenReadOnlyAdmin,
     },
     {
       name: 'confirmationEmailSentAt',
       type: 'date',
-      label: 'Confirmation email sent at',
+      label: 'Potvrzovací e-mail odeslán',
       admin: hiddenReadOnlyAdmin,
     },
     {
       name: 'isCanceled',
       type: 'checkbox',
-      label: 'Order canceled',
+      label: 'Objednávka zrušena',
       defaultValue: false,
       admin: hiddenReadOnlyAdmin,
     },
     {
       name: 'canceledAt',
       type: 'date',
-      label: 'Canceled at',
+      label: 'Zrušeno dne',
       admin: hiddenReadOnlyAdmin,
     },
     {
       name: 'cancellationEmailSentAt',
       type: 'date',
-      label: 'Cancellation email sent at',
+      label: 'E-mail o zrušení odeslán',
       admin: hiddenReadOnlyAdmin,
     },
     {
       name: 'invoiceGeneratedAt',
       type: 'date',
-      label: 'Invoice generated at',
+      label: 'Faktura vygenerována',
       admin: hiddenReadOnlyAdmin,
     },
     {
       name: 'invoiceFileName',
       type: 'text',
-      label: 'Invoice file name',
+      label: 'Název souboru faktury',
       admin: hiddenReadOnlyAdmin,
     },
     {
       name: 'invoiceContentType',
       type: 'text',
-      label: 'Invoice content type',
+      label: 'Typ obsahu faktury',
       admin: hiddenReadOnlyAdmin,
     },
     {
       name: 'invoiceData',
       type: 'textarea',
-      label: 'Invoice file data',
+      label: 'Data souboru faktury',
       admin: hiddenReadOnlyAdmin,
     },
     {
       name: 'user',
       type: 'relationship',
       relationTo: 'users',
-      label: 'Customer account',
+      label: 'Zákaznický účet',
     },
     {
       type: 'row',
@@ -422,12 +426,12 @@ export const Orders: CollectionConfig = {
           name: 'customerEmail',
           type: 'text',
           required: true,
-          label: 'Customer email',
+          label: 'E-mail zákazníka',
         },
         {
           name: 'customerPhone',
           type: 'text',
-          label: 'Customer phone',
+          label: 'Telefon zákazníka',
         },
       ],
     },
@@ -437,12 +441,12 @@ export const Orders: CollectionConfig = {
         {
           name: 'customerFirstName',
           type: 'text',
-          label: 'Customer first name',
+          label: 'Jméno zákazníka',
         },
         {
           name: 'customerLastName',
           type: 'text',
-          label: 'Customer last name',
+          label: 'Příjmení zákazníka',
         },
       ],
     },
@@ -454,27 +458,27 @@ export const Orders: CollectionConfig = {
           type: 'text',
           required: true,
           defaultValue: 'CZK',
-          label: 'Currency',
+          label: 'Měna',
         },
         {
           name: 'subtotal',
           type: 'number',
           required: true,
-          label: 'Subtotal',
+          label: 'Mezisoučet',
           min: 0,
         },
         {
           name: 'shippingTotal',
           type: 'number',
           required: true,
-          label: 'Shipping total',
+          label: 'Doprava',
           min: 0,
         },
         {
           name: 'total',
           type: 'number',
           required: true,
-          label: 'Order total',
+          label: 'Celkem',
           min: 0,
         },
       ],
@@ -482,13 +486,13 @@ export const Orders: CollectionConfig = {
     {
       name: 'discounts',
       type: 'group',
-      label: 'Discounts',
+      label: 'Slevy',
       fields: [
         {
           name: 'coupon',
           type: 'relationship',
           relationTo: 'coupons',
-          label: 'Coupon',
+          label: 'Kupón',
         },
         {
           type: 'row',
@@ -496,20 +500,20 @@ export const Orders: CollectionConfig = {
             {
               name: 'couponCode',
               type: 'text',
-              label: 'Coupon code',
+              label: 'Kód kupónu',
             },
             {
               name: 'couponDiscountPercent',
               type: 'number',
               min: 0,
               max: 100,
-              label: 'Coupon discount percent',
+              label: 'Sleva kupónem (%)',
             },
             {
               name: 'couponDiscountAmount',
               type: 'number',
               min: 0,
-              label: 'Coupon discount amount',
+              label: 'Sleva kupónem (Kč)',
             },
           ],
         },
@@ -520,19 +524,19 @@ export const Orders: CollectionConfig = {
               name: 'firstPurchaseDiscountAmount',
               type: 'number',
               min: 0,
-              label: 'First purchase discount amount',
+              label: 'Sleva na první nákup (Kč)',
             },
             {
               name: 'bonusDiscountAmount',
               type: 'number',
               min: 0,
-              label: 'Bonus discount amount',
+              label: 'Bonusová sleva (Kč)',
             },
             {
               name: 'discountedSubtotal',
               type: 'number',
               min: 0,
-              label: 'Discounted subtotal',
+              label: 'Mezisoučet po slevě',
             },
           ],
         },
@@ -541,50 +545,50 @@ export const Orders: CollectionConfig = {
     {
       name: 'shippingAddress',
       type: 'group',
-      label: 'Shipping address',
+      label: 'Doručovací adresa',
       fields: [
         {
           name: 'country',
           type: 'text',
-          label: 'Country',
+          label: 'Země',
         },
         {
           name: 'address',
           type: 'text',
-          label: 'Address',
+          label: 'Adresa',
         },
         {
           name: 'city',
           type: 'text',
-          label: 'City',
+          label: 'Město',
         },
         {
           name: 'zip',
           type: 'text',
-          label: 'ZIP',
+          label: 'PSČ',
         },
         {
           name: 'notes',
           type: 'textarea',
-          label: 'Notes',
+          label: 'Poznámka',
         },
       ],
     },
     {
       name: 'billing',
       type: 'group',
-      label: 'Billing details',
+      label: 'Fakturační údaje',
       fields: [
         {
           name: 'sameAsShipping',
           type: 'checkbox',
-          label: 'Same as shipping',
+          label: 'Stejné jako doručovací',
           defaultValue: true,
         },
         {
           name: 'isCompany',
           type: 'checkbox',
-          label: 'Company purchase',
+          label: 'Nákup na firmu',
           defaultValue: false,
         },
         {
@@ -593,19 +597,19 @@ export const Orders: CollectionConfig = {
             {
               name: 'firstName',
               type: 'text',
-              label: 'First name',
+              label: 'Jméno',
             },
             {
               name: 'lastName',
               type: 'text',
-              label: 'Last name',
+              label: 'Příjmení',
             },
           ],
         },
         {
           name: 'address',
           type: 'text',
-          label: 'Address',
+          label: 'Adresa',
         },
         {
           type: 'row',
@@ -613,24 +617,24 @@ export const Orders: CollectionConfig = {
             {
               name: 'city',
               type: 'text',
-              label: 'City',
+              label: 'Město',
             },
             {
               name: 'zip',
               type: 'text',
-              label: 'ZIP',
+              label: 'PSČ',
             },
             {
               name: 'country',
               type: 'text',
-              label: 'Country',
+              label: 'Země',
             },
           ],
         },
         {
           name: 'companyName',
           type: 'text',
-          label: 'Company name',
+          label: 'Název firmy',
         },
         {
           type: 'row',
@@ -638,12 +642,12 @@ export const Orders: CollectionConfig = {
             {
               name: 'companyId',
               type: 'text',
-              label: 'Company ID',
+              label: 'IČO',
             },
             {
               name: 'vatId',
               type: 'text',
-              label: 'VAT ID',
+              label: 'DIČ',
             },
           ],
         },
@@ -652,64 +656,64 @@ export const Orders: CollectionConfig = {
     {
       name: 'shipping',
       type: 'group',
-      label: 'Shipping method',
+      label: 'Doprava',
       fields: [
         {
           name: 'methodId',
           type: 'text',
-          label: 'Method ID',
+          label: 'ID metody',
         },
         {
           name: 'label',
           type: 'text',
-          label: 'Label',
+          label: 'Název',
         },
         {
           name: 'price',
           type: 'number',
-          label: 'Price',
+          label: 'Cena',
           min: 0,
         },
         {
           name: 'cashOnDelivery',
           type: 'checkbox',
-          label: 'Cash on delivery',
+          label: 'Dobírka',
           defaultValue: false,
         },
         {
           name: 'pickupCarrier',
           type: 'text',
-          label: 'Pickup carrier',
+          label: 'Dopravce výdejního místa',
         },
         {
           name: 'pickupPointId',
           type: 'text',
-          label: 'Pickup point ID',
+          label: 'ID výdejního místa',
         },
         {
           name: 'pickupPointCode',
           type: 'text',
-          label: 'Pickup point code',
+          label: 'Kód výdejního místa',
         },
         {
           name: 'pickupPointType',
           type: 'text',
-          label: 'Pickup point type',
+          label: 'Typ výdejního místa',
         },
         {
           name: 'pickupPointCarrierId',
           type: 'text',
-          label: 'Pickup point carrier ID',
+          label: 'ID dopravce výdejního místa',
         },
         {
           name: 'pickupPointName',
           type: 'text',
-          label: 'Pickup point name',
+          label: 'Název výdejního místa',
         },
         {
           name: 'pickupPointAddress',
           type: 'textarea',
-          label: 'Pickup point address',
+          label: 'Adresa výdejního místa',
         },
       ],
     },
@@ -717,23 +721,23 @@ export const Orders: CollectionConfig = {
       name: 'items',
       type: 'array',
       minRows: 1,
-      label: 'Order items',
+      label: 'Položky objednávky',
       fields: [
         {
           name: 'product',
           type: 'relationship',
           relationTo: 'products',
-          label: 'Product',
+          label: 'Produkt',
         },
         {
           name: 'productSnapshotId',
           type: 'text',
-          label: 'Product ID snapshot',
+          label: 'Snapshot ID produktu',
         },
         {
           name: 'slug',
           type: 'text',
-          label: 'Product slug',
+          label: 'Slug produktu',
         },
         {
           name: 'sku',
@@ -743,13 +747,13 @@ export const Orders: CollectionConfig = {
         {
           name: 'variant',
           type: 'text',
-          label: 'Variant',
+          label: 'Varianta',
         },
         {
           name: 'name',
           type: 'text',
           required: true,
-          label: 'Product name',
+          label: 'Název produktu',
         },
         {
           type: 'row',
@@ -758,21 +762,21 @@ export const Orders: CollectionConfig = {
               name: 'quantity',
               type: 'number',
               required: true,
-              label: 'Quantity',
+              label: 'Množství',
               min: 1,
             },
             {
               name: 'unitPrice',
               type: 'number',
               required: true,
-              label: 'Unit price',
+              label: 'Cena za kus',
               min: 0,
             },
             {
               name: 'lineTotal',
               type: 'number',
               required: true,
-              label: 'Line total',
+              label: 'Cena celkem',
               min: 0,
             },
           ],
@@ -782,24 +786,24 @@ export const Orders: CollectionConfig = {
     {
       name: 'pplShipment',
       type: 'group',
-      label: 'PPL shipment',
+      label: 'PPL zásilka',
       fields: [
         {
           name: 'batchId',
           type: 'text',
-          label: 'Batch ID',
+          label: 'ID dávky',
           admin: readOnlyAdmin,
         },
         {
           name: 'shipmentNumber',
           type: 'text',
-          label: 'Shipment number',
+          label: 'Číslo zásilky',
           admin: readOnlyAdmin,
         },
         {
           name: 'importState',
           type: 'text',
-          label: 'Import state',
+          label: 'Stav importu',
           admin: readOnlyAdmin,
         },
         {
@@ -808,13 +812,13 @@ export const Orders: CollectionConfig = {
             {
               name: 'labelFormat',
               type: 'text',
-              label: 'Label format',
+              label: 'Formát štítku',
               admin: readOnlyAdmin,
             },
             {
               name: 'labelPageSize',
               type: 'text',
-              label: 'Label page size',
+              label: 'Velikost stránky štítku',
               admin: readOnlyAdmin,
             },
           ],
@@ -822,13 +826,13 @@ export const Orders: CollectionConfig = {
         {
           name: 'labelUrl',
           type: 'text',
-          label: 'Label URL',
+          label: 'URL štítku',
           admin: readOnlyAdmin,
         },
         {
           name: 'completeLabelUrl',
           type: 'text',
-          label: 'Complete label URL',
+          label: 'URL finálního štítku',
           admin: readOnlyAdmin,
         },
         {
@@ -837,13 +841,13 @@ export const Orders: CollectionConfig = {
             {
               name: 'generatedAt',
               type: 'date',
-              label: 'Generated at',
+              label: 'Vygenerováno',
               admin: readOnlyAdmin,
             },
             {
               name: 'lastCheckedAt',
               type: 'date',
-              label: 'Last checked at',
+              label: 'Naposledy zkontrolováno',
               admin: readOnlyAdmin,
             },
           ],
@@ -851,7 +855,7 @@ export const Orders: CollectionConfig = {
         {
           name: 'lastError',
           type: 'textarea',
-          label: 'Last label error',
+          label: 'Poslední chyba štítku',
           admin: readOnlyAdmin,
         },
       ],
@@ -859,49 +863,49 @@ export const Orders: CollectionConfig = {
     {
       name: 'providerData',
       type: 'group',
-      label: 'Provider data',
+      label: 'Data platební brány',
       fields: [
         {
           name: 'stripeSessionId',
           type: 'text',
-          label: 'Stripe session ID',
+          label: 'ID Stripe session',
         },
         {
           name: 'stripePaymentIntentId',
           type: 'text',
-          label: 'Stripe payment intent ID',
+          label: 'ID Stripe payment intent',
         },
         {
           name: 'globalTransactionId',
           type: 'text',
-          label: 'Global Payments transaction ID',
+          label: 'ID transakce Global Payments',
         },
         {
           name: 'globalAuthCode',
           type: 'text',
-          label: 'Global Payments auth code',
+          label: 'Autorizační kód Global Payments',
         },
         {
           name: 'lastEvent',
           type: 'text',
-          label: 'Last payment event',
+          label: 'Poslední platební událost',
         },
         {
           name: 'lastError',
           type: 'textarea',
-          label: 'Last payment error',
+          label: 'Poslední chyba platby',
         },
         {
           name: 'providerResponse',
           type: 'textarea',
-          label: 'Provider response payload',
+          label: 'Odpověď poskytovatele',
         },
       ],
     },
     {
       name: 'loyalty',
       type: 'group',
-      label: 'Loyalty and bonuses',
+      label: 'Věrnostní program a bonusy',
       fields: [
         {
           type: 'row',
@@ -911,14 +915,14 @@ export const Orders: CollectionConfig = {
               type: 'number',
               min: 0,
               defaultValue: 0,
-              label: 'Bonus units spent',
+              label: 'Využité bonusové body',
             },
             {
               name: 'bonusUnitsEarned',
               type: 'number',
               min: 0,
               defaultValue: 0,
-              label: 'Bonus units earned',
+              label: 'Získané bonusové body',
             },
           ],
         },
@@ -927,12 +931,12 @@ export const Orders: CollectionConfig = {
     {
       name: 'zasilkovnaShipment',
       type: 'group',
-      label: 'Zasilkovna shipment',
+      label: 'Zásilkovna zásilka',
       fields: [
         {
           name: 'packetId',
           type: 'text',
-          label: 'Packet ID',
+          label: 'ID zásilky',
           admin: readOnlyAdmin,
         },
         {
@@ -941,13 +945,13 @@ export const Orders: CollectionConfig = {
             {
               name: 'packetNumber',
               type: 'text',
-              label: 'Packet number',
+              label: 'Číslo zásilky',
               admin: readOnlyAdmin,
             },
             {
               name: 'carrierNumber',
               type: 'text',
-              label: 'Carrier number',
+              label: 'Číslo dopravce',
               admin: readOnlyAdmin,
             },
           ],
@@ -958,13 +962,13 @@ export const Orders: CollectionConfig = {
             {
               name: 'labelFormat',
               type: 'text',
-              label: 'Label format',
+              label: 'Formát štítku',
               admin: readOnlyAdmin,
             },
             {
               name: 'labelMode',
               type: 'text',
-              label: 'Label mode',
+              label: 'Režim štítku',
               admin: readOnlyAdmin,
             },
           ],
@@ -975,13 +979,13 @@ export const Orders: CollectionConfig = {
             {
               name: 'generatedAt',
               type: 'date',
-              label: 'Generated at',
+              label: 'Vygenerováno',
               admin: readOnlyAdmin,
             },
             {
               name: 'lastCheckedAt',
               type: 'date',
-              label: 'Last checked at',
+              label: 'Naposledy zkontrolováno',
               admin: readOnlyAdmin,
             },
           ],
@@ -989,7 +993,7 @@ export const Orders: CollectionConfig = {
         {
           name: 'lastError',
           type: 'textarea',
-          label: 'Last label error',
+          label: 'Poslední chyba štítku',
           admin: readOnlyAdmin,
         },
       ],
@@ -1032,13 +1036,13 @@ export const Orders: CollectionConfig = {
     {
       name: 'purchaseCountRecorded',
       type: 'checkbox',
-      label: 'Purchase count recorded',
+      label: 'Započítáno do počtu nákupů',
       defaultValue: false,
     },
     {
       name: 'bonusLedgerRecorded',
       type: 'checkbox',
-      label: 'Bonus ledger recorded',
+      label: 'Zapsáno do bonusové evidence',
       defaultValue: false,
     },
   ],

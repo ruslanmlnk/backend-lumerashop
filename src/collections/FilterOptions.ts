@@ -3,6 +3,10 @@ import { slugField } from 'payload'
 
 export const FilterOptions: CollectionConfig = {
   slug: 'filter-options',
+  labels: {
+    singular: 'Možnost filtru',
+    plural: 'Možnosti filtrů',
+  },
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'group', 'slug', 'sortOrder', 'isActive', 'updatedAt'],
@@ -15,7 +19,7 @@ export const FilterOptions: CollectionConfig = {
       name: 'name',
       type: 'text',
       required: true,
-      label: 'Option name',
+      label: 'Název možnosti',
     },
     slugField({
       useAsSlug: 'name',
@@ -25,19 +29,19 @@ export const FilterOptions: CollectionConfig = {
       type: 'relationship',
       relationTo: 'filter-groups',
       required: true,
-      label: 'Filter group',
+      label: 'Skupina filtrů',
     },
     {
       name: 'sortOrder',
       type: 'number',
       defaultValue: 0,
-      label: 'Sort order',
+      label: 'Pořadí',
     },
     {
       name: 'isActive',
       type: 'checkbox',
       defaultValue: true,
-      label: 'Active',
+      label: 'Aktivní',
     },
   ],
 }

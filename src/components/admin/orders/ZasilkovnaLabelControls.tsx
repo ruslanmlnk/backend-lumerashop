@@ -91,16 +91,16 @@ export default function ZasilkovnaLabelControls() {
       const payload = (await response.json().catch(() => ({}))) as EndpointResponse
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Failed to sync Zasilkovna label.')
+        throw new Error(payload.error || 'Nepodařilo se synchronizovat štítek Zásilkovny.')
       }
 
       if (payload.shipment) {
         setShipment(payload.shipment)
       }
 
-      toast.success(payload.wasCreated ? 'Zasilkovna label generated.' : 'Zasilkovna label refreshed.')
+      toast.success(payload.wasCreated ? 'Štítek Zásilkovny byl vygenerován.' : 'Štítek Zásilkovny byl obnoven.')
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to sync Zasilkovna label.'
+      const message = error instanceof Error ? error.message : 'Nepodařilo se synchronizovat štítek Zásilkovny.'
       toast.error(message)
     } finally {
       setIsBusy(false)
@@ -119,39 +119,39 @@ export default function ZasilkovnaLabelControls() {
       }}
     >
       <div style={{ display: 'grid', gap: 4 }}>
-        <strong style={{ fontSize: 14 }}>Zasilkovna label</strong>
+        <strong style={{ fontSize: 14 }}>Štítek Zásilkovny</strong>
         <span style={{ color: 'var(--theme-elevation-600)', fontSize: 13 }}>
-          Generate or refresh the shipment label for this order.
+          Vygenerujte nebo obnovte přepravní štítek pro tuto objednávku.
         </span>
       </div>
 
       <div style={{ display: 'grid', gap: 6, fontSize: 13 }}>
         <div>
-          <strong>Mode:</strong> {shipment.labelMode || 'Not generated'}
+          <strong>Režim:</strong> {shipment.labelMode || 'Nevygenerováno'}
         </div>
         {shipment.packetId ? (
           <div>
-            <strong>Packet ID:</strong> {shipment.packetId}
+            <strong>ID zásilky:</strong> {shipment.packetId}
           </div>
         ) : null}
         {shipment.packetNumber ? (
           <div>
-            <strong>Packet number:</strong> {shipment.packetNumber}
+            <strong>Číslo zásilky:</strong> {shipment.packetNumber}
           </div>
         ) : null}
         {shipment.carrierNumber ? (
           <div>
-            <strong>Carrier number:</strong> {shipment.carrierNumber}
+            <strong>Číslo dopravce:</strong> {shipment.carrierNumber}
           </div>
         ) : null}
         {shipment.lastCheckedAt ? (
           <div>
-            <strong>Checked:</strong> {new Date(shipment.lastCheckedAt).toLocaleString()}
+            <strong>Kontrolováno:</strong> {new Date(shipment.lastCheckedAt).toLocaleString()}
           </div>
         ) : null}
         {shipment.lastError ? (
           <div style={{ color: '#b42318' }}>
-            <strong>Error:</strong> {shipment.lastError}
+            <strong>Chyba:</strong> {shipment.lastError}
           </div>
         ) : null}
       </div>
@@ -171,7 +171,7 @@ export default function ZasilkovnaLabelControls() {
             fontWeight: 600,
           }}
         >
-          {isBusy ? 'Processing...' : shipment.packetId ? 'Refresh Zasilkovna label' : 'Generate Zasilkovna label'}
+          {isBusy ? 'Zpracovávám...' : shipment.packetId ? 'Obnovit štítek Zásilkovny' : 'Vygenerovat štítek Zásilkovny'}
         </button>
 
         <a
@@ -188,7 +188,7 @@ export default function ZasilkovnaLabelControls() {
             fontWeight: 600,
           }}
         >
-          Open label
+          Otevřít štítek
         </a>
       </div>
     </div>

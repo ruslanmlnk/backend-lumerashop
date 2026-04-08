@@ -2,7 +2,7 @@ import type { GlobalConfig } from 'payload'
 
 export const LoyaltySettings: GlobalConfig = {
   slug: 'loyalty-settings',
-  label: 'Loyalty settings',
+  label: 'Nastavení věrnostního programu',
   access: {
     read: () => true,
   },
@@ -10,13 +10,13 @@ export const LoyaltySettings: GlobalConfig = {
     {
       name: 'bonusesEnabled',
       type: 'checkbox',
-      label: 'Enable bonus points',
+      label: 'Povolit bonusové body',
       defaultValue: true,
     },
     {
       name: 'earningRule',
       type: 'group',
-      label: 'Bonus earning rule',
+      label: 'Pravidlo získávání bonusů',
       fields: [
         {
           name: 'spendAmount',
@@ -24,9 +24,9 @@ export const LoyaltySettings: GlobalConfig = {
           required: true,
           min: 1,
           defaultValue: 100,
-          label: 'Spent amount (CZK)',
+          label: 'Utracená částka (Kč)',
           admin: {
-            description: 'For every X CZK paid for products, award bonus units.',
+            description: 'Za každých X Kč zaplacených za produkty připište bonusové body.',
           },
         },
         {
@@ -35,14 +35,14 @@ export const LoyaltySettings: GlobalConfig = {
           required: true,
           min: 1,
           defaultValue: 5,
-          label: 'Bonus units awarded',
+          label: 'Počet získaných bonusových bodů',
         },
       ],
     },
     {
       name: 'redemptionRule',
       type: 'group',
-      label: 'Bonus redemption rule',
+      label: 'Pravidlo uplatnění bonusů',
       fields: [
         {
           name: 'bonusUnits',
@@ -50,7 +50,7 @@ export const LoyaltySettings: GlobalConfig = {
           required: true,
           min: 1,
           defaultValue: 5,
-          label: 'Bonus units to spend',
+          label: 'Počet bonusových bodů k využití',
         },
         {
           name: 'discountAmount',
@@ -58,9 +58,9 @@ export const LoyaltySettings: GlobalConfig = {
           required: true,
           min: 1,
           defaultValue: 100,
-          label: 'Discount amount (CZK)',
+          label: 'Výše slevy (Kč)',
           admin: {
-            description: 'How much money the selected bonus block removes from product subtotal.',
+            description: 'Kolik peněz odečte vybraný bonusový blok z mezisoučtu produktů.',
           },
         },
       ],

@@ -3,6 +3,10 @@ import { slugField } from 'payload'
 
 export const FilterGroups: CollectionConfig = {
   slug: 'filter-groups',
+  labels: {
+    singular: 'Skupina filtrů',
+    plural: 'Skupiny filtrů',
+  },
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'sortOrder', 'isActive', 'updatedAt'],
@@ -15,7 +19,7 @@ export const FilterGroups: CollectionConfig = {
       name: 'name',
       type: 'text',
       required: true,
-      label: 'Group name',
+      label: 'Název skupiny',
     },
     slugField({
       useAsSlug: 'name',
@@ -23,19 +27,19 @@ export const FilterGroups: CollectionConfig = {
     {
       name: 'description',
       type: 'textarea',
-      label: 'Description',
+      label: 'Popis',
     },
     {
       name: 'sortOrder',
       type: 'number',
       defaultValue: 0,
-      label: 'Sort order',
+      label: 'Pořadí',
     },
     {
       name: 'isActive',
       type: 'checkbox',
       defaultValue: true,
-      label: 'Active',
+      label: 'Aktivní',
     },
   ],
 }

@@ -14,14 +14,19 @@ const requireUploadedMedia = (value: unknown) => {
     return true
   }
 
-  return 'Upload a media file.'
+  return 'Nahrajte soubor média.'
 }
 
 export const Products: CollectionConfig = {
   slug: 'products',
+  labels: {
+    singular: 'Produkt',
+    plural: 'Produkty',
+  },
   admin: {
     useAsTitle: 'name',
     defaultColumns: [
+      'mainImage',
       'name',
       'price',
       'category',
@@ -40,7 +45,7 @@ export const Products: CollectionConfig = {
       name: 'name',
       type: 'text',
       required: true,
-      label: 'Product name',
+      label: 'Název produktu',
     },
     slugField({
       useAsSlug: 'name',
@@ -52,12 +57,12 @@ export const Products: CollectionConfig = {
           name: 'price',
           type: 'number',
           required: true,
-          label: 'Price (CZK)',
+          label: 'Cena (Kč)',
         },
         {
           name: 'oldPrice',
           type: 'number',
-          label: 'Old price',
+          label: 'Původní cena',
         },
       ],
     },
@@ -72,7 +77,7 @@ export const Products: CollectionConfig = {
         {
           name: 'stockQuantity',
           type: 'number',
-          label: 'Stock quantity',
+          label: 'Skladové množství',
           defaultValue: 0,
           admin: {
             width: '50%',
@@ -81,12 +86,12 @@ export const Products: CollectionConfig = {
         {
           name: 'purchaseCount',
           type: 'number',
-          label: 'Purchase count',
+          label: 'Počet nákupů',
           defaultValue: 0,
           min: 0,
           admin: {
             width: '50%',
-            description: 'Used for popularity sorting on the storefront.',
+            description: 'Používá se pro řazení produktů podle oblíbenosti na webu.',
           },
         },
       ],
@@ -94,25 +99,25 @@ export const Products: CollectionConfig = {
     {
       name: 'shortDescription',
       type: 'textarea',
-      label: 'Short description',
+      label: 'Krátký popis',
       admin: {
-        description: 'Compact intro shown next to the product title.',
+        description: 'Krátký úvod zobrazený vedle názvu produktu.',
       },
     },
     {
       name: 'description',
       type: 'textarea',
-      label: 'Plain description',
+      label: 'Textový popis',
       admin: {
-        description: 'Plain text used for summaries, fallbacks and feeds.',
+        description: 'Prostý text používaný pro shrnutí, fallbacky a feedy.',
       },
     },
     {
       name: 'descriptionContent',
       type: 'richText',
-      label: 'Popis tab content',
+      label: 'Obsah záložky Popis',
       admin: {
-        description: 'Fully editable content for the first "Popis" tab on the product page.',
+        description: 'Plně upravitelný obsah pro první záložku „Popis“ na stránce produktu.',
       },
     },
     {
@@ -120,13 +125,13 @@ export const Products: CollectionConfig = {
       type: 'relationship',
       relationTo: 'categories',
       required: true,
-      label: 'Category',
+      label: 'Kategorie',
     },
     {
       name: 'categoryGroup',
       type: 'relationship',
       relationTo: 'category-groups',
-      label: 'Category group',
+      label: 'Skupina kategorií',
       filterOptions: ({ data }) => {
         if (data?.category) {
           return {
@@ -139,7 +144,7 @@ export const Products: CollectionConfig = {
         return true
       },
       admin: {
-        description: 'Second navigation level used for grouped catalog menus and category landing pages.',
+        description: 'Druhá úroveň navigace používaná pro seskupená katalogová menu a landing pages kategorií.',
       },
     },
     {
@@ -147,7 +152,7 @@ export const Products: CollectionConfig = {
       type: 'relationship',
       relationTo: 'subcategories',
       hasMany: true,
-      label: 'Subcategories',
+      label: 'Podkategorie',
       filterOptions: ({ data }) => {
         if (data?.categoryGroup) {
           return {
@@ -173,15 +178,22 @@ export const Products: CollectionConfig = {
       type: 'upload',
       hasMany: false,
       relationTo: 'media',
-      label: 'Main image',
+      label: 'Obrázek',
       validate: requireUploadedMedia,
+      admin: {
+        components: {
+          Cell: '@/components/admin/products/ProductMainImageCell',
+        },
+        disableGroupBy: true,
+        disableListFilter: true,
+      },
     },
     {
       name: 'gallery',
       type: 'array',
-      label: 'Gallery media',
+      label: 'Galerie',
       admin: {
-        description: 'Add images or videos shown in the product gallery on the storefront.',
+        description: 'Přidejte obrázky nebo videa zobrazovaná v galerii produktu na webu.',
       },
       fields: [
         {
@@ -189,7 +201,7 @@ export const Products: CollectionConfig = {
           type: 'upload',
           hasMany: false,
           relationTo: 'media',
-          label: 'Media',
+          label: 'Médium',
           validate: requireUploadedMedia,
         },
       ],
@@ -197,35 +209,35 @@ export const Products: CollectionConfig = {
     {
       name: 'highlights',
       type: 'array',
-      label: 'Top bullet list',
+      label: 'Horní odrážky',
       admin: {
-        description: 'Bullets shown under shipping/returns on the product page. Separate from the "Specifications / Další informace" tab.',
+        description: 'Odrážky zobrazené pod dopravou a vrácením na stránce produktu. Oddělené od záložky „Specifikace / Další informace“.',
       },
       fields: [
         {
           name: 'text',
           type: 'text',
           required: true,
-          label: 'Highlight',
+          label: 'Odrážka',
         },
       ],
     },
     {
       name: 'specifications',
       type: 'array',
-      label: 'Specifications',
+      label: 'Specifikace',
       fields: [
         {
           name: 'key',
           type: 'text',
           required: true,
-          label: 'Field',
+          label: 'Pole',
         },
         {
           name: 'value',
           type: 'text',
           required: true,
-          label: 'Value',
+          label: 'Hodnota',
         },
       ],
     },
@@ -234,7 +246,7 @@ export const Products: CollectionConfig = {
       type: 'join',
       collection: 'product-reviews',
       on: 'product',
-      label: 'Product reviews',
+      label: 'Recenze produktu',
       admin: {
         allowCreate: false,
         defaultColumns: ['authorName', 'rating', 'show', 'submittedAt'],
@@ -245,9 +257,9 @@ export const Products: CollectionConfig = {
       type: 'relationship',
       relationTo: 'products',
       hasMany: true,
-      label: 'Variant products',
+      label: 'Variantní produkty',
       admin: {
-        description: 'Pick products that should appear in the color/variant block on the product page.',
+        description: 'Vyberte produkty, které se mají zobrazit v bloku barev a variant na stránce produktu.',
       },
     },
     {
@@ -255,9 +267,9 @@ export const Products: CollectionConfig = {
       type: 'relationship',
       relationTo: 'filter-options',
       hasMany: true,
-      label: 'Filter options',
+      label: 'Možnosti filtrů',
       admin: {
-        description: 'Pick all filter options that apply to this product.',
+        description: 'Vyberte všechny možnosti filtrů, které se vztahují k tomuto produktu.',
       },
     },
     {
@@ -266,11 +278,11 @@ export const Products: CollectionConfig = {
       defaultValue: 'draft',
       options: [
         {
-          label: 'Draft',
+          label: 'Koncept',
           value: 'draft',
         },
         {
-          label: 'Published',
+          label: 'Publikováno',
           value: 'published',
         },
       ],
@@ -281,7 +293,7 @@ export const Products: CollectionConfig = {
     {
       name: 'isFeatured',
       type: 'checkbox',
-      label: 'Featured product',
+      label: 'Zvýrazněný produkt',
       defaultValue: false,
       admin: {
         position: 'sidebar',
@@ -290,7 +302,7 @@ export const Products: CollectionConfig = {
     {
       name: 'isRecommended',
       type: 'checkbox',
-      label: 'Recommended product',
+      label: 'Doporučený produkt',
       defaultValue: false,
       admin: {
         position: 'sidebar',
@@ -299,9 +311,9 @@ export const Products: CollectionConfig = {
     {
       name: 'deliveryTime',
       type: 'number',
-      label: 'Delivery time (days)',
+      label: 'Dodací doba (dny)',
       admin: {
-        description: 'If set, displays "Do X dnů" on the storefront.',
+        description: 'Pokud je vyplněno, zobrazí se na webu text „Do X dnů“.',
         position: 'sidebar',
       },
     },

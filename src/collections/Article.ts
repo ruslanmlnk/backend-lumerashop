@@ -2,44 +2,45 @@ import type { CollectionConfig } from 'payload'
 import { slugField } from 'payload'
 
 export const Article: CollectionConfig = {
-    slug: 'article',
-    admin: {
-        useAsTitle: 'title',
-        defaultColumns: ['name', 'slug', 'sortOrder', 'isActive', 'updatedAt'],
+  slug: 'article',
+  labels: {
+    singular: 'Článek',
+    plural: 'Články',
+  },
+  admin: {
+    useAsTitle: 'title',
+    defaultColumns: ['title', 'slug', 'updatedAt'],
+  },
+  access: {
+    read: () => true,
+  },
+  fields: [
+    slugField({
+      useAsSlug: 'title',
+    }),
+    {
+      name: 'title',
+      type: 'text',
+      required: true,
+      label: 'Název článku',
     },
-    access: {
-        read: () => true,
+    {
+      name: 'mainImage',
+      relationTo: 'media',
+      type: 'upload',
+      required: true,
+      unique: true,
+      label: 'Hlavní obrázek',
     },
-    fields: [
-        slugField({
-            useAsSlug: 'title',
-        }),
-        {
-            name: 'title',
-            type: 'text',
-            required: true,
-            label: 'Group name',
-        },
-        {
-            name: 'mainImage',
-            relationTo: 'media',
-            type: 'upload',
-            required: true,
-            unique: true,
-            label: 'Main image',
-        },
-        {
-            name: 'description',
-            type: 'textarea',
-            label: 'Description',
-        },
-
-        {
-            name: 'content',
-            type: 'richText',
-            label: 'Edit Content'
-        }
-
-
-    ],
+    {
+      name: 'description',
+      type: 'textarea',
+      label: 'Perex',
+    },
+    {
+      name: 'content',
+      type: 'richText',
+      label: 'Obsah článku',
+    },
+  ],
 }

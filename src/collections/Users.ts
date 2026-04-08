@@ -35,6 +35,10 @@ const isCurrentUserOrAdmin = ({ req: { user } }: { req: { user?: unknown } }) =>
 
 export const Users: CollectionConfig = {
   slug: 'users',
+  labels: {
+    singular: 'Uživatel',
+    plural: 'Uživatelé',
+  },
   admin: {
     useAsTitle: 'email',
     defaultColumns: ['email', 'role', 'bonusBalance', 'updatedAt'],
@@ -58,22 +62,22 @@ export const Users: CollectionConfig = {
     {
       name: 'firstName',
       type: 'text',
-      label: 'First Name',
+      label: 'Jméno',
     },
     {
       name: 'lastName',
       type: 'text',
-      label: 'Last Name',
+      label: 'Příjmení',
     },
     {
       name: 'displayName',
       type: 'text',
-      label: 'Display Name',
+      label: 'Zobrazované jméno',
     },
     {
       name: 'shippingAddress',
       type: 'group',
-      label: 'Shipping address',
+      label: 'Doručovací adresa',
       fields: [
         {
           type: 'row',
@@ -81,7 +85,7 @@ export const Users: CollectionConfig = {
             {
               name: 'firstName',
               type: 'text',
-              label: 'First Name',
+              label: 'Jméno',
               admin: {
                 width: '50%',
               },
@@ -89,7 +93,7 @@ export const Users: CollectionConfig = {
             {
               name: 'lastName',
               type: 'text',
-              label: 'Last Name',
+              label: 'Příjmení',
               admin: {
                 width: '50%',
               },
@@ -102,7 +106,7 @@ export const Users: CollectionConfig = {
             {
               name: 'phone',
               type: 'text',
-              label: 'Phone',
+              label: 'Telefon',
               admin: {
                 width: '50%',
               },
@@ -110,7 +114,7 @@ export const Users: CollectionConfig = {
             {
               name: 'country',
               type: 'text',
-              label: 'Country',
+              label: 'Země',
               defaultValue: 'CZ',
               admin: {
                 width: '50%',
@@ -121,7 +125,7 @@ export const Users: CollectionConfig = {
         {
           name: 'address',
           type: 'text',
-          label: 'Street address',
+          label: 'Ulice a číslo',
         },
         {
           type: 'row',
@@ -129,7 +133,7 @@ export const Users: CollectionConfig = {
             {
               name: 'city',
               type: 'text',
-              label: 'City',
+              label: 'Město',
               admin: {
                 width: '50%',
               },
@@ -137,7 +141,7 @@ export const Users: CollectionConfig = {
             {
               name: 'zip',
               type: 'text',
-              label: 'ZIP',
+              label: 'PSČ',
               admin: {
                 width: '50%',
               },
@@ -149,7 +153,7 @@ export const Users: CollectionConfig = {
     {
       name: 'billingAddress',
       type: 'group',
-      label: 'Billing address',
+      label: 'Fakturační adresa',
       fields: [
         {
           type: 'row',
@@ -157,7 +161,7 @@ export const Users: CollectionConfig = {
             {
               name: 'firstName',
               type: 'text',
-              label: 'First Name',
+              label: 'Jméno',
               admin: {
                 width: '50%',
               },
@@ -165,7 +169,7 @@ export const Users: CollectionConfig = {
             {
               name: 'lastName',
               type: 'text',
-              label: 'Last Name',
+              label: 'Příjmení',
               admin: {
                 width: '50%',
               },
@@ -178,7 +182,7 @@ export const Users: CollectionConfig = {
             {
               name: 'phone',
               type: 'text',
-              label: 'Phone',
+              label: 'Telefon',
               admin: {
                 width: '50%',
               },
@@ -186,7 +190,7 @@ export const Users: CollectionConfig = {
             {
               name: 'country',
               type: 'text',
-              label: 'Country',
+              label: 'Země',
               defaultValue: 'CZ',
               admin: {
                 width: '50%',
@@ -197,7 +201,7 @@ export const Users: CollectionConfig = {
         {
           name: 'address',
           type: 'text',
-          label: 'Street address',
+          label: 'Ulice a číslo',
         },
         {
           type: 'row',
@@ -205,7 +209,7 @@ export const Users: CollectionConfig = {
             {
               name: 'city',
               type: 'text',
-              label: 'City',
+              label: 'Město',
               admin: {
                 width: '50%',
               },
@@ -213,7 +217,7 @@ export const Users: CollectionConfig = {
             {
               name: 'zip',
               type: 'text',
-              label: 'ZIP',
+              label: 'PSČ',
               admin: {
                 width: '50%',
               },
@@ -226,7 +230,7 @@ export const Users: CollectionConfig = {
             {
               name: 'companyName',
               type: 'text',
-              label: 'Company name',
+              label: 'Název firmy',
               admin: {
                 width: '34%',
               },
@@ -234,7 +238,7 @@ export const Users: CollectionConfig = {
             {
               name: 'companyId',
               type: 'text',
-              label: 'Company ID',
+              label: 'IČO',
               admin: {
                 width: '33%',
               },
@@ -242,7 +246,7 @@ export const Users: CollectionConfig = {
             {
               name: 'vatId',
               type: 'text',
-              label: 'VAT ID',
+              label: 'DIČ',
               admin: {
                 width: '33%',
               },
@@ -258,7 +262,7 @@ export const Users: CollectionConfig = {
       required: true,
       options: [
         { label: 'Admin', value: 'admin' },
-        { label: 'Customer', value: 'customer' },
+        { label: 'Zákazník', value: 'customer' },
       ],
       access: {
         update: ({ req: { user } }) => isAdminUser(user),
@@ -270,7 +274,7 @@ export const Users: CollectionConfig = {
         {
           name: 'bonusBalance',
           type: 'number',
-          label: 'Bonus balance',
+          label: 'Stav bonusů',
           defaultValue: 0,
           min: 0,
           admin: {
@@ -280,7 +284,7 @@ export const Users: CollectionConfig = {
         {
           name: 'earnedBonusTotal',
           type: 'number',
-          label: 'Earned bonus total',
+          label: 'Celkem získané bonusy',
           defaultValue: 0,
           min: 0,
           admin: {
@@ -291,7 +295,7 @@ export const Users: CollectionConfig = {
         {
           name: 'spentBonusTotal',
           type: 'number',
-          label: 'Spent bonus total',
+          label: 'Celkem využité bonusy',
           defaultValue: 0,
           min: 0,
           admin: {
@@ -304,7 +308,7 @@ export const Users: CollectionConfig = {
     {
       name: 'firstPurchaseDiscountUsed',
       type: 'checkbox',
-      label: 'First purchase discount used',
+      label: 'Sleva na první nákup využita',
       defaultValue: false,
       access: {
         update: ({ req: { user } }) => isAdminUser(user),

@@ -5,6 +5,10 @@ import { buildCategoryGroupSlug, resolveCategoryRelation } from '../utilities/ca
 
 export const CategoryGroups: CollectionConfig = {
   slug: 'category-groups',
+  labels: {
+    singular: 'Skupina kategorií',
+    plural: 'Skupiny kategorií',
+  },
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'category', 'slug', 'showInDesktopMenu', 'showInMobileMenu', 'sortOrder', 'updatedAt'],
@@ -52,45 +56,45 @@ export const CategoryGroups: CollectionConfig = {
       index: true,
       admin: {
         readOnly: true,
-        description: 'Generated from the parent category and group name to keep menu URLs unique.',
+        description: 'Generuje se z nadřazené kategorie a názvu skupiny, aby byly URL v menu jedinečné.',
       },
     },
     {
       name: 'showInMenu',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Legacy menu visibility',
+      label: 'Původní viditelnost v menu',
       admin: {
         hidden: true,
         position: 'sidebar',
-        description: 'Legacy visibility flag kept only for backward compatibility.',
+        description: 'Původní přepínač viditelnosti ponechaný jen kvůli zpětné kompatibilitě.',
       },
     },
     {
       name: 'showInDesktopMenu',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Show in desktop menu',
+      label: 'Zobrazit v desktopovém menu',
       admin: {
         position: 'sidebar',
-        description: 'Display this group in the desktop header dropdown under its parent category.',
+        description: 'Zobrazí tuto skupinu v desktopovém rozbalovacím menu pod nadřazenou kategorií.',
       },
     },
     {
       name: 'showInMobileMenu',
       type: 'checkbox',
       defaultValue: false,
-      label: 'Show in mobile menu',
+      label: 'Zobrazit v mobilním menu',
       admin: {
         position: 'sidebar',
-        description: 'Display this group in the mobile navigation menu.',
+        description: 'Zobrazí tuto skupinu v mobilní navigaci.',
       },
     },
     {
       name: 'sortOrder',
       type: 'number',
       defaultValue: 0,
-      label: 'Sort order',
+      label: 'Pořadí',
       admin: {
         position: 'sidebar',
       },
@@ -100,7 +104,7 @@ export const CategoryGroups: CollectionConfig = {
       type: 'relationship',
       relationTo: 'categories',
       required: true,
-      label: 'Parent category',
+      label: 'Nadřazená kategorie',
     },
     {
       name: 'description',
