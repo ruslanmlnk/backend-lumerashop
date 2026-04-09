@@ -80,6 +80,52 @@ const parseMoney = (value: unknown) => {
   return Math.round((numeric + Number.EPSILON) * 100) / 100
 }
 
+type RelationID = number | string
+
+const asRelationID = (value: unknown): RelationID | null => {
+  if (typeof value === 'number' && Number.isInteger(value)) {
+    return value
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.trim()
+  }
+
+  if (typeof value === 'object' && value !== null && 'id' in value) {
+    const relationID = value.id
+
+    if (typeof relationID === 'number' && Number.isInteger(relationID)) {
+      return relationID
+    }
+
+    if (typeof relationID === 'string' && relationID.trim().length > 0) {
+      return relationID.trim()
+    }
+  }
+
+  return null
+}
+
+const parseRelationIDs = (value: unknown): RelationID[] => {
+  const values = Array.isArray(value) ? value : [value]
+
+  return values
+    .map((entry) => asRelationID(entry))
+    .filter((entry): entry is RelationID => entry !== null)
+}
+
+const buildRelationFilter = (field: string, value: unknown): Where | true => {
+  const ids = parseRelationIDs(value)
+
+  if (ids.length === 0) {
+    return true
+  }
+
+  return {
+    [field]: ids.length === 1 ? { equals: ids[0] } : { in: ids },
+  } as Where
+}
+
 export const Products: CollectionConfig = {
   slug: 'products',
   labels: {
@@ -350,6 +396,7 @@ export const Products: CollectionConfig = {
       name: 'category',
       type: 'relationship',
       relationTo: 'categories',
+      hasMany: true,
       required: true,
       label: 'Kategorie',
     },
@@ -357,14 +404,11 @@ export const Products: CollectionConfig = {
       name: 'categoryGroup',
       type: 'relationship',
       relationTo: 'category-groups',
+      hasMany: true,
       label: 'Skupina kategorií',
       filterOptions: ({ data }) => {
         if (data?.category) {
-          return {
-            category: {
-              equals: data.category,
-            },
-          } as Where
+          return buildRelationFilter('category', data.category)
         }
 
         return true
@@ -381,19 +425,11 @@ export const Products: CollectionConfig = {
       label: 'Podkategorie',
       filterOptions: ({ data }) => {
         if (data?.categoryGroup) {
-          return {
-            categoryGroup: {
-              equals: data.categoryGroup,
-            },
-          } as Where
+          return buildRelationFilter('categoryGroup', data.categoryGroup)
         }
 
         if (data?.category) {
-          return {
-            category: {
-              equals: data.category,
-            },
-          } as Where
+          return buildRelationFilter('category', data.category)
         }
 
         return true

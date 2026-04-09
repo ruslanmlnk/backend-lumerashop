@@ -21,13 +21,12 @@ type PayloadHighlightDoc = {
   text?: unknown
 }
 
+type PayloadCategoryDoc = {
+  name?: unknown
+}
+
 export type PayloadFeedProductDoc = {
-  category?:
-    | {
-        name?: unknown
-      }
-    | number
-    | null
+  category?: PayloadCategoryDoc | PayloadCategoryDoc[] | number | number[] | null
   discountPercent?: unknown
   discountPrice?: unknown
   discountType?: unknown
@@ -71,6 +70,18 @@ const resolveHighlights = (value: PayloadHighlightDoc[] | null | undefined) => {
   return value
     .map((entry) => (typeof entry?.text === 'string' ? normalizeText(entry.text) : ''))
     .filter(Boolean)
+}
+
+const resolvePrimaryCategoryName = (value: PayloadFeedProductDoc['category']) => {
+  const entries = Array.isArray(value) ? value : [value]
+
+  for (const entry of entries) {
+    if (typeof entry === 'object' && entry && typeof entry.name === 'string' && entry.name.trim()) {
+      return entry.name.trim()
+    }
+  }
+
+  return 'Uncategorized'
 }
 
 const escapeXml = (value: string) =>
@@ -161,10 +172,7 @@ export const mapPayloadFeedProduct = (doc: PayloadFeedProductDoc, baseUrl: strin
   }
 
   const pricing = resolveProductPricing(doc)
-  const category =
-    typeof doc.category === 'object' && doc.category && typeof doc.category.name === 'string'
-      ? doc.category.name
-      : 'Uncategorized'
+  const category = resolvePrimaryCategoryName(doc.category)
   const highlights = resolveHighlights(doc.highlights)
   const legacyShortDescription =
     typeof doc.shortDescription === 'string' ? normalizeText(doc.shortDescription) : ''

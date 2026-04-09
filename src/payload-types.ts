@@ -429,11 +429,11 @@ export interface Product {
    */
   purchaseCount?: number | null;
   shortDescription?: string | null;
-  category: number | Category;
+  category: (number | Category)[];
   /**
    * Druhá úroveň navigace používaná pro seskupená katalogová menu a landing pages kategorií.
    */
-  categoryGroup?: (number | null) | CategoryGroup;
+  categoryGroup?: (number | CategoryGroup)[] | null;
   subcategories?: (number | Subcategory)[] | null;
   mainImage?: (number | null) | Media;
   /**
