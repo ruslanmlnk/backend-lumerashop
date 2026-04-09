@@ -15,6 +15,12 @@ type PayloadGalleryItem = {
   image?: PayloadMediaDoc | number | null
 }
 
+type PayloadGalleryEntry = PayloadGalleryItem | PayloadMediaDoc | number | null
+
+type PayloadHighlightDoc = {
+  text?: unknown
+}
+
 export type PayloadFeedProductDoc = {
   category?:
     | {
@@ -26,13 +32,14 @@ export type PayloadFeedProductDoc = {
   discountPrice?: unknown
   discountType?: unknown
   discountValidUntil?: unknown
-  gallery?: PayloadGalleryItem[] | null
+  gallery?: PayloadGalleryEntry[] | null
   id?: unknown
   imageUrl?: unknown
   mainImage?: PayloadMediaDoc | number | null
   name?: unknown
   oldPrice?: unknown
   price?: unknown
+  highlights?: PayloadHighlightDoc[] | null
   shortDescription?: unknown
   sku?: unknown
   slug?: unknown
@@ -55,6 +62,16 @@ const normalizeText = (value: string | undefined) =>
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+
+const resolveHighlights = (value: PayloadHighlightDoc[] | null | undefined) => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .map((entry) => (typeof entry?.text === 'string' ? normalizeText(entry.text) : ''))
+    .filter(Boolean)
+}
 
 const escapeXml = (value: string) =>
   value
@@ -104,16 +121,22 @@ const resolvePayloadAssetUrl = (value: unknown, baseUrl: string): string | null 
   return `${baseUrl}/${value}`
 }
 
-const resolvePayloadGallery = (gallery: PayloadGalleryItem[] | null | undefined, baseUrl: string): string[] => {
+const resolvePayloadGallery = (gallery: PayloadGalleryEntry[] | null | undefined, baseUrl: string): string[] => {
   if (!Array.isArray(gallery)) {
     return []
   }
 
   return gallery
-    .map((item) => {
+    .map((entry) => {
+      if (typeof entry === 'object' && entry && 'url' in entry) {
+        return resolvePayloadAssetUrl(entry.url, baseUrl)
+      }
+
+      const item = typeof entry === 'object' && entry ? entry as PayloadGalleryItem : null
       const uploaded =
         typeof item?.image === 'object' && item.image ? resolvePayloadAssetUrl(item.image.url, baseUrl) : null
       const linked = resolvePayloadAssetUrl(item?.imageUrl, baseUrl)
+
       return uploaded || linked
     })
     .filter((value): value is string => Boolean(value))
@@ -142,10 +165,14 @@ export const mapPayloadFeedProduct = (doc: PayloadFeedProductDoc, baseUrl: strin
     typeof doc.category === 'object' && doc.category && typeof doc.category.name === 'string'
       ? doc.category.name
       : 'Uncategorized'
+  const highlights = resolveHighlights(doc.highlights)
+  const legacyShortDescription =
+    typeof doc.shortDescription === 'string' ? normalizeText(doc.shortDescription) : ''
 
   return {
     category,
     gallery: resolvePayloadGallery(doc.gallery, baseUrl),
+    highlights: highlights.length > 0 ? highlights : legacyShortDescription ? [legacyShortDescription] : undefined,
     id,
     image: resolvePrimaryImage(doc, baseUrl),
     name,
@@ -153,7 +180,6 @@ export const mapPayloadFeedProduct = (doc: PayloadFeedProductDoc, baseUrl: strin
       ? `${new Intl.NumberFormat('cs-CZ').format(Math.max(0, Math.round(pricing.compareAtPrice)))} Kč`
       : undefined,
     price: `${new Intl.NumberFormat('cs-CZ').format(Math.max(0, Math.round(pricing.currentPrice)))} Kč`,
-    shortDescription: typeof doc.shortDescription === 'string' ? doc.shortDescription : undefined,
     sku: typeof doc.sku === 'string' ? doc.sku : undefined,
     slug,
     stockStatus:
@@ -190,7 +216,7 @@ const fetchMerchantProducts = async (): Promise<Product[]> => {
 }
 
 const buildProductItemXml = (product: Product, siteUrl: string, populatedCategories: Set<string>) => {
-  const descriptionSource = normalizeText(product.shortDescription || product.name)
+  const descriptionSource = normalizeText(product.highlights?.join('. ') || product.name)
   const description = descriptionSource || product.name
   const category = typeof product.category === 'string' ? product.category.trim() : ''
   const productType = populatedCategories.has(category) ? category : ''

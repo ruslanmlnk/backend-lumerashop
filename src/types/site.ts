@@ -23,7 +23,6 @@ export interface Product {
   categorySlug?: string
   subcategorySlugs?: string[]
   sku?: string
-  shortDescription?: string
   gallery?: string[]
   mediaGallery?: ProductMedia[]
   specifications?: Record<string, string>

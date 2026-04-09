@@ -428,10 +428,18 @@ export interface Product {
    * Používá se pro řazení produktů podle oblíbenosti na webu.
    */
   purchaseCount?: number | null;
-  /**
-   * Krátký úvod zobrazený vedle názvu produktu.
-   */
   shortDescription?: string | null;
+  category: number | Category;
+  /**
+   * Druhá úroveň navigace používaná pro seskupená katalogová menu a landing pages kategorií.
+   */
+  categoryGroup?: (number | null) | CategoryGroup;
+  subcategories?: (number | Subcategory)[] | null;
+  mainImage?: (number | null) | Media;
+  /**
+   * Vyberte média zobrazovaná v galerii produktu na webu.
+   */
+  gallery?: (number | Media)[] | null;
   /**
    * Plně upravitelný obsah pro první záložku „Popis“ na stránce produktu.
    */
@@ -450,19 +458,10 @@ export interface Product {
     };
     [k: string]: unknown;
   } | null;
-  category: number | Category;
-  /**
-   * Druhá úroveň navigace používaná pro seskupená katalogová menu a landing pages kategorií.
-   */
-  categoryGroup?: (number | null) | CategoryGroup;
-  subcategories?: (number | Subcategory)[] | null;
-  mainImage?: (number | null) | Media;
-  /**
-   * Přidejte obrázky nebo videa zobrazovaná v galerii produktu na webu.
-   */
-  gallery?:
+  specifications?:
     | {
-        image?: (number | null) | Media;
+        key: string;
+        value: string;
         id?: string | null;
       }[]
     | null;
@@ -472,13 +471,6 @@ export interface Product {
   highlights?:
     | {
         text: string;
-        id?: string | null;
-      }[]
-    | null;
-  specifications?:
-    | {
-        key: string;
-        value: string;
         id?: string | null;
       }[]
     | null;
@@ -1040,28 +1032,23 @@ export interface ProductsSelect<T extends boolean = true> {
   stockQuantity?: T;
   purchaseCount?: T;
   shortDescription?: T;
-  descriptionContent?: T;
   category?: T;
   categoryGroup?: T;
   subcategories?: T;
   mainImage?: T;
-  gallery?:
+  gallery?: T;
+  descriptionContent?: T;
+  specifications?:
     | T
     | {
-        image?: T;
+        key?: T;
+        value?: T;
         id?: T;
       };
   highlights?:
     | T
     | {
         text?: T;
-        id?: T;
-      };
-  specifications?:
-    | T
-    | {
-        key?: T;
-        value?: T;
         id?: T;
       };
   productReviews?: T;

@@ -433,25 +433,26 @@ const buildSpecifications = (row: CSVRow) => {
 
 const buildHighlights = (row: CSVRow) => {
   const excerpt = cleanString(row.post_excerpt)
-  if (!excerpt) {
-    return []
-  }
-
   const highlights = Array.from(excerpt.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi))
     .map((match) => stripHtml(match[1] || ''))
     .map((entry) => entry.replace(/\s+/g, ' ').trim())
     .filter(Boolean)
 
-  return Array.from(new Set(highlights)).slice(0, 8)
-}
-
-const resolveShortDescription = (row: CSVRow) => {
-  const excerptText = stripHtml(cleanString(row.post_excerpt))
-  if (excerptText) {
-    return truncate(excerptText, 400)
+  if (highlights.length > 0) {
+    return Array.from(new Set(highlights)).slice(0, 8)
   }
 
-  return truncate(stripHtml(cleanString(row.post_content)), 400)
+  const fallbackText = truncate(stripHtml(excerpt) || stripHtml(cleanString(row.post_content)), 400)
+  if (!fallbackText) {
+    return []
+  }
+
+  const fallbackHighlights = fallbackText
+    .split(/\n+|(?:\s*[•·●]\s*)/g)
+    .map((entry) => entry.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+
+  return Array.from(new Set(fallbackHighlights.length > 0 ? fallbackHighlights : [fallbackText])).slice(0, 8)
 }
 
 const resolveDescriptionContent = (row: CSVRow) => {
@@ -859,11 +860,11 @@ async function importWooProducts() {
 
     try {
       const mainImageId = await createMediaFromUrl(imageEntries[0], productName)
-      const galleryIds: Array<{ image: number | string }> = []
+      const galleryIds: Array<number | string> = []
 
       for (const image of imageEntries.slice(1)) {
         const imageId = await createMediaFromUrl(image, productName)
-        galleryIds.push({ image: imageId })
+        galleryIds.push(imageId)
       }
 
       const { groupName, subcategoryName } = getPrimaryGroupAndSubcategory(row, categoryName)
@@ -898,7 +899,6 @@ async function importWooProducts() {
       const { discountPrice, discountType, price } = resolvePrice(row)
       const highlights = buildHighlights(row)
       const specifications = buildSpecifications(row)
-      const shortDescription = resolveShortDescription(row)
       const descriptionContent = resolveDescriptionContent(row)
       const purchaseCount = parseInteger(cleanString(row['meta:total_sales'])) ?? 0
       const status = getProductStatus(cleanString(row.post_status))
@@ -916,7 +916,6 @@ async function importWooProducts() {
         stockQuantity: parseInteger(cleanString(row.stock)) ?? 0,
         purchaseCount,
         stockStatus: getStockStatus(row),
-        shortDescription: shortDescription || undefined,
         descriptionContent,
         category: categoryDoc.id,
         categoryGroup: categoryGroupDoc?.id,

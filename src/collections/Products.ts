@@ -342,17 +342,8 @@ export const Products: CollectionConfig = {
     {
       name: 'shortDescription',
       type: 'textarea',
-      label: 'Krátký popis',
       admin: {
-        description: 'Krátký úvod zobrazený vedle názvu produktu.',
-      },
-    },
-    {
-      name: 'descriptionContent',
-      type: 'richText',
-      label: 'Obsah záložky Popis',
-      admin: {
-        description: 'Plně upravitelný obsah pro první záložku „Popis“ na stránce produktu.',
+        hidden: true,
       },
     },
     {
@@ -425,55 +416,75 @@ export const Products: CollectionConfig = {
     },
     {
       name: 'gallery',
-      type: 'array',
+      type: 'upload',
+      relationTo: 'media',
+      hasMany: true,
       label: 'Galerie',
       admin: {
-        description: 'Přidejte obrázky nebo videa zobrazovaná v galerii produktu na webu.',
+        description: 'Vyberte média zobrazovaná v galerii produktu na webu.',
       },
-      fields: [
-        {
-          name: 'image',
-          type: 'upload',
-          hasMany: false,
-          relationTo: 'media',
-          label: 'Médium',
-          validate: requireUploadedMedia,
-        },
-      ],
     },
     {
-      name: 'highlights',
-      type: 'array',
-      label: 'Horní odrážky',
-      admin: {
-        description:
-          'Odrážky zobrazené pod dopravou a vrácením na stránce produktu. Oddělené od záložky „Specifikace / Další informace“.',
-      },
-      fields: [
+      type: 'tabs',
+      tabs: [
         {
-          name: 'text',
-          type: 'text',
-          required: true,
-          label: 'Odrážka',
-        },
-      ],
-    },
-    {
-      name: 'specifications',
-      type: 'array',
-      label: 'Specifikace',
-      fields: [
-        {
-          name: 'key',
-          type: 'text',
-          required: true,
-          label: 'Pole',
+          label: 'Popis',
+          fields: [
+            {
+              name: 'descriptionContent',
+              type: 'richText',
+              label: 'Obsah',
+              admin: {
+                description: 'Plně upravitelný obsah pro první záložku „Popis“ na stránce produktu.',
+              },
+            },
+          ],
         },
         {
-          name: 'value',
-          type: 'text',
-          required: true,
-          label: 'Hodnota',
+          label: 'Specifikace',
+          fields: [
+            {
+              name: 'specifications',
+              type: 'array',
+              label: 'Specifikace',
+              fields: [
+                {
+                  name: 'key',
+                  type: 'text',
+                  required: true,
+                  label: 'Pole',
+                },
+                {
+                  name: 'value',
+                  type: 'text',
+                  required: true,
+                  label: 'Hodnota',
+                },
+              ],
+            },
+          ],
+        },
+        {
+          label: 'Horní odrážky',
+          fields: [
+            {
+              name: 'highlights',
+              type: 'array',
+              label: 'Horní odrážky',
+              admin: {
+                description:
+                  'Odrážky zobrazené pod dopravou a vrácením na stránce produktu. Oddělené od záložky „Specifikace / Další informace“.',
+              },
+              fields: [
+                {
+                  name: 'text',
+                  type: 'text',
+                  required: true,
+                  label: 'Odrážka',
+                },
+              ],
+            },
+          ],
         },
       ],
     },
