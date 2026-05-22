@@ -14,6 +14,7 @@ import * as migration_20260408_150000_add_order_pickup_point_metadata from './20
 import * as migration_20260408_180000_add_product_discount_schedule_and_remove_description from './20260408_180000_add_product_discount_schedule_and_remove_description';
 import * as migration_20260409_110500_convert_product_gallery_to_upload_has_many from './20260409_110500_convert_product_gallery_to_upload_has_many';
 import * as migration_20260409_121500_convert_product_categories_to_has_many from './20260409_121500_convert_product_categories_to_has_many';
+import * as migration_20260522_012500_drop_legacy_product_category_columns from './20260522_012500_drop_legacy_product_category_columns';
 
 export const migrations = [
   {
@@ -95,5 +96,10 @@ export const migrations = [
     up: migration_20260409_121500_convert_product_categories_to_has_many.up,
     down: migration_20260409_121500_convert_product_categories_to_has_many.down,
     name: '20260409_121500_convert_product_categories_to_has_many',
+  },
+  {
+    up: migration_20260522_012500_drop_legacy_product_category_columns.up,
+    down: migration_20260522_012500_drop_legacy_product_category_columns.down,
+    name: '20260522_012500_drop_legacy_product_category_columns',
   },
 ];
