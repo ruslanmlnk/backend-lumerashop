@@ -8,6 +8,7 @@ import {
   normalizeProductPricingData,
   resolveStoredProductRegularPrice,
 } from '@/lib/product-pricing'
+import { slugifyValue } from '@/utilities/slugify'
 
 const requireUploadedMedia = (value: unknown) => {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -269,6 +270,7 @@ export const Products: CollectionConfig = {
       },
     },
     slugField({
+      slugify: ({ valueToSlugify }) => slugifyValue(valueToSlugify),
       useAsSlug: 'name',
     }),
     {

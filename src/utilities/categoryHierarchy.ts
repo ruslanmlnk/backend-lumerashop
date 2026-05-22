@@ -1,5 +1,7 @@
 import type { PayloadRequest } from 'payload'
 
+import { slugifySegment } from './slugify'
+
 type RelationshipValue =
   | number
   | string
@@ -15,17 +17,6 @@ type ResolvedRelation = {
   id: number | string
   slug: string
 }
-
-const normalizeWhitespace = (value: string) => value.trim().replace(/\s+/g, ' ')
-
-export const slugifySegment = (value: string) =>
-  normalizeWhitespace(value)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/&/g, ' a ')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
 
 export const buildCategoryGroupSlug = (categorySlug: string, name: string) =>
   `${slugifySegment(categorySlug)}-${slugifySegment(name)}`
