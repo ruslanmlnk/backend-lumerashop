@@ -466,6 +466,24 @@ export interface Product {
       }[]
     | null;
   /**
+   * Text zobrazeny pod dopravou a vracenim na strance produktu. Muzete vlozit seznam, odstavce, odkazy i dalsi formatovani.
+   */
+  highlightsContent?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
    * Odrážky zobrazené pod dopravou a vrácením na stránce produktu. Oddělené od záložky „Specifikace / Další informace“.
    */
   highlights?:
@@ -1045,6 +1063,7 @@ export interface ProductsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
+  highlightsContent?: T;
   highlights?:
     | T
     | {

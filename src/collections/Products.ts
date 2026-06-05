@@ -506,10 +506,20 @@ export const Products: CollectionConfig = {
           label: 'Horní odrážky',
           fields: [
             {
+              name: 'highlightsContent',
+              type: 'richText',
+              label: 'Horni odrazky',
+              admin: {
+                description:
+                  'Text zobrazeny pod dopravou a vracenim na strance produktu. Muzete vlozit seznam, odstavce, odkazy i dalsi formatovani.',
+              },
+            },
+            {
               name: 'highlights',
               type: 'array',
               label: 'Horní odrážky',
               admin: {
+                hidden: true,
                 description:
                   'Odrážky zobrazené pod dopravou a vrácením na stránce produktu. Oddělené od záložky „Specifikace / Další informace“.',
               },

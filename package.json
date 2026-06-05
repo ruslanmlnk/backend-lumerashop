@@ -14,6 +14,7 @@
     "import:woo-products": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/import-woo-products.ts",
     "import:woo-variants": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/sync-woo-variant-products.ts",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation next lint",
+    "migrate:product-highlights-content": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/migrate-product-highlights-content.ts",
     "seed:admin": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-admin.ts",
     "seed:categories": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-category-hierarchy.ts",
     "seed:footer-info-pages": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-footer-info-pages.ts",
