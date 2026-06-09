@@ -1,4 +1,4 @@
-import type { CollectionConfig, Where } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig, PayloadRequest, Where } from 'payload'
 import { slugField } from 'payload'
 
 import {
@@ -83,6 +83,17 @@ const parseMoney = (value: unknown) => {
 
 type RelationID = number | string
 
+type AutoFilterSourceDoc = {
+  id?: number | string
+  name?: string | null
+  productFilterOptions?: unknown
+}
+
+type AutoFilterOptionDoc = {
+  id?: number | string
+  name?: string | null
+}
+
 const asRelationID = (value: unknown): RelationID | null => {
   if (typeof value === 'number' && Number.isInteger(value)) {
     return value
@@ -113,6 +124,118 @@ const parseRelationIDs = (value: unknown): RelationID[] => {
   return values
     .map((entry) => asRelationID(entry))
     .filter((entry): entry is RelationID => entry !== null)
+}
+
+const uniqueRelationIDs = (values: RelationID[]) =>
+  Array.from(new Map(values.map((value) => [String(value), value])).values())
+
+const normalizeFilterName = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+const getRelationValuesForSave = (data: Record<string, unknown>, originalDoc: Record<string, unknown> | undefined, field: string) =>
+  data[field] !== undefined ? data[field] : originalDoc?.[field]
+
+const fetchAutoFilterSourceDocs = async (
+  req: PayloadRequest,
+  collection: 'categories' | 'category-groups' | 'subcategories',
+  ids: RelationID[],
+) => {
+  if (ids.length === 0) {
+    return []
+  }
+
+  const result = await req.payload.find({
+    collection,
+    depth: 1,
+    limit: ids.length,
+    overrideAccess: true,
+    req,
+    where: {
+      id: {
+        in: ids,
+      },
+    },
+    select: {
+      name: true,
+      productFilterOptions: true,
+    },
+  })
+
+  return result.docs as AutoFilterSourceDoc[]
+}
+
+const fetchSameNameFilterOptionIDs = async (
+  req: PayloadRequest,
+  names: string[],
+) => {
+  const normalizedNames = new Set(names.map((name) => normalizeFilterName(name)).filter(Boolean))
+
+  if (normalizedNames.size === 0) {
+    return []
+  }
+
+  const result = await req.payload.find({
+    collection: 'filter-options',
+    depth: 0,
+    limit: 2000,
+    overrideAccess: true,
+    req,
+    select: {
+      name: true,
+    },
+  })
+
+  return (result.docs as AutoFilterOptionDoc[])
+    .filter((option) => typeof option.name === 'string' && normalizedNames.has(normalizeFilterName(option.name)))
+    .map((option) => option.id)
+    .filter((id): id is RelationID => typeof id === 'number' || typeof id === 'string')
+}
+
+const applyAutomaticProductFilterOptions = async (
+  args: Parameters<CollectionBeforeChangeHook>[0],
+) => {
+  const { data, originalDoc, req } = args
+
+  if (!data || typeof data !== 'object') {
+    return data
+  }
+
+  const originalData =
+    originalDoc && typeof originalDoc === 'object' ? (originalDoc as Record<string, unknown>) : undefined
+  const productData = data as Record<string, unknown>
+  const categoryIDs = parseRelationIDs(getRelationValuesForSave(productData, originalData, 'category'))
+  const categoryGroupIDs = parseRelationIDs(getRelationValuesForSave(productData, originalData, 'categoryGroup'))
+  const subcategoryIDs = parseRelationIDs(getRelationValuesForSave(productData, originalData, 'subcategories'))
+
+  const [categoryDocs, categoryGroupDocs, subcategoryDocs] = await Promise.all([
+    fetchAutoFilterSourceDocs(req, 'categories', categoryIDs),
+    fetchAutoFilterSourceDocs(req, 'category-groups', categoryGroupIDs),
+    fetchAutoFilterSourceDocs(req, 'subcategories', subcategoryIDs),
+  ])
+  const sourceDocs = [...categoryDocs, ...categoryGroupDocs, ...subcategoryDocs]
+  const explicitFilterOptionIDs = sourceDocs.flatMap((doc) => parseRelationIDs(doc.productFilterOptions))
+  const sourceNames = sourceDocs
+    .map((doc) => (typeof doc.name === 'string' ? doc.name.trim() : ''))
+    .filter((name): name is string => Boolean(name))
+  const sameNameFilterOptionIDs = await fetchSameNameFilterOptionIDs(req, sourceNames)
+  const currentFilterOptionIDs = parseRelationIDs(
+    getRelationValuesForSave(productData, originalData, 'filterOptions'),
+  )
+  const mergedFilterOptionIDs = uniqueRelationIDs([
+    ...currentFilterOptionIDs,
+    ...explicitFilterOptionIDs,
+    ...sameNameFilterOptionIDs,
+  ])
+
+  return {
+    ...productData,
+    filterOptions: mergedFilterOptionIDs,
+  }
 }
 
 const buildRelationFilter = (field: string, value: unknown): Where | true => {
@@ -151,15 +274,17 @@ export const Products: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
-      ({ data, originalDoc }) => {
+      async (args) => {
+        const data = await applyAutomaticProductFilterOptions(args)
+
         if (!data || typeof data !== 'object') {
           return data
         }
 
         return normalizeProductPricingData(
           data as Record<string, unknown>,
-          originalDoc && typeof originalDoc === 'object'
-            ? (originalDoc as Record<string, unknown>)
+          args.originalDoc && typeof args.originalDoc === 'object'
+            ? (args.originalDoc as Record<string, unknown>)
             : undefined,
         )
       },

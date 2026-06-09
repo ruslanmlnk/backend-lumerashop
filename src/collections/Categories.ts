@@ -81,6 +81,17 @@ export const Categories: CollectionConfig = {
       type: 'textarea',
       label: 'Popis',
     },
+    {
+      name: 'productFilterOptions',
+      type: 'relationship',
+      relationTo: 'filter-options',
+      hasMany: true,
+      label: 'Automatické filtry produktů',
+      admin: {
+        description:
+          'Tyto možnosti filtrů se automaticky přidají k produktu, když je produkt zařazený do této kategorie.',
+      },
+    },
     ...catalogFilterVisibilityFields,
     {
       name: 'image',

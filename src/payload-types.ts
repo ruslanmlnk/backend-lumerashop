@@ -265,6 +265,10 @@ export interface Category {
   sortOrder?: number | null;
   description?: string | null;
   /**
+   * Tyto možnosti filtrů se automaticky přidají k produktu, když je produkt zařazený do této kategorie.
+   */
+  productFilterOptions?: (number | FilterOption)[] | null;
+  /**
    * Skryje celé skupiny filtrů, například Materiál nebo Barva, na této úrovni kategorie ve storefrontu.
    */
   hiddenFilterGroups?: (number | FilterGroup)[] | null;
@@ -273,24 +277,6 @@ export interface Category {
    */
   hiddenFilterOptions?: (number | FilterOption)[] | null;
   image?: (number | null) | Media;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "filter-groups".
- */
-export interface FilterGroup {
-  id: number;
-  name: string;
-  /**
-   * When enabled, the slug will auto-generate from the title field on save and autosave.
-   */
-  generateSlug?: boolean | null;
-  slug: string;
-  description?: string | null;
-  sortOrder?: number | null;
-  isActive?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -307,6 +293,24 @@ export interface FilterOption {
   generateSlug?: boolean | null;
   slug: string;
   group: number | FilterGroup;
+  sortOrder?: number | null;
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "filter-groups".
+ */
+export interface FilterGroup {
+  id: number;
+  name: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  description?: string | null;
   sortOrder?: number | null;
   isActive?: boolean | null;
   updatedAt: string;
@@ -341,6 +345,10 @@ export interface CategoryGroup {
    */
   category: (number | Category)[];
   description?: string | null;
+  /**
+   * Tyto možnosti filtrů se automaticky přidají k produktu, když je produkt zařazený do této skupiny kategorií.
+   */
+  productFilterOptions?: (number | FilterOption)[] | null;
   /**
    * Skryje celé skupiny filtrů, například Materiál nebo Barva, na této úrovni kategorie ve storefrontu.
    */
@@ -380,6 +388,10 @@ export interface Subcategory {
   category: number | Category;
   categoryGroup: number | CategoryGroup;
   description?: string | null;
+  /**
+   * Tyto možnosti filtrů se automaticky přidají k produktu, když je produkt zařazený do této podkategorie.
+   */
+  productFilterOptions?: (number | FilterOption)[] | null;
   /**
    * Pokud jsou vybrané, stránka podkategorie automaticky zobrazí produkty s těmito možnostmi filtrů.
    */
@@ -966,6 +978,7 @@ export interface CategoriesSelect<T extends boolean = true> {
   showInMobileMenu?: T;
   sortOrder?: T;
   description?: T;
+  productFilterOptions?: T;
   hiddenFilterGroups?: T;
   hiddenFilterOptions?: T;
   image?: T;
@@ -985,6 +998,7 @@ export interface CategoryGroupsSelect<T extends boolean = true> {
   sortOrder?: T;
   category?: T;
   description?: T;
+  productFilterOptions?: T;
   hiddenFilterGroups?: T;
   hiddenFilterOptions?: T;
   image?: T;
@@ -1005,6 +1019,7 @@ export interface SubcategoriesSelect<T extends boolean = true> {
   category?: T;
   categoryGroup?: T;
   description?: T;
+  productFilterOptions?: T;
   linkedFilterOptions?: T;
   hiddenFilterGroups?: T;
   hiddenFilterOptions?: T;
