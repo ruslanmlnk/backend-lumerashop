@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Where } from 'payload'
 
 import { catalogFilterVisibilityFields } from '../fields/catalogFilterVisibilityFields'
 import { buildSubcategorySlug, resolveCategoryGroupRelation, resolveCategoryRelation } from '../utilities/categoryHierarchy'
@@ -122,10 +122,19 @@ export const Subcategories: CollectionConfig = {
       filterOptions: ({ data }) => {
         if (data?.category) {
           return {
-            category: {
-              equals: data.category,
-            },
-          }
+            or: [
+              {
+                category: {
+                  equals: data.category,
+                },
+              },
+              {
+                categories: {
+                  equals: data.category,
+                },
+              },
+            ],
+          } as Where
         }
 
         return true
@@ -135,6 +144,17 @@ export const Subcategories: CollectionConfig = {
       name: 'description',
       type: 'textarea',
       label: 'Popis',
+    },
+    {
+      name: 'linkedFilterOptions',
+      type: 'relationship',
+      relationTo: 'filter-options',
+      hasMany: true,
+      label: 'Propojené možnosti filtrů',
+      admin: {
+        description:
+          'Pokud jsou vybrané, stránka podkategorie automaticky zobrazí produkty s těmito možnostmi filtrů.',
+      },
     },
     ...catalogFilterVisibilityFields,
     {

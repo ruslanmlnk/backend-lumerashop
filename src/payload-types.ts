@@ -337,6 +337,10 @@ export interface CategoryGroup {
   showInMobileMenu?: boolean | null;
   sortOrder?: number | null;
   category: number | Category;
+  /**
+   * Jednu skupinu, například Materiál, lze zobrazit ve více kategoriích bez vytváření kopií. Původní nadřazená kategorie zůstává primární kvůli kompatibilitě.
+   */
+  categories: (number | Category)[];
   description?: string | null;
   /**
    * Skryje celé skupiny filtrů, například Materiál nebo Barva, na této úrovni kategorie ve storefrontu.
@@ -377,6 +381,10 @@ export interface Subcategory {
   category: number | Category;
   categoryGroup: number | CategoryGroup;
   description?: string | null;
+  /**
+   * Pokud jsou vybrané, stránka podkategorie automaticky zobrazí produkty s těmito možnostmi filtrů.
+   */
+  linkedFilterOptions?: (number | FilterOption)[] | null;
   /**
    * Skryje celé skupiny filtrů, například Materiál nebo Barva, na této úrovni kategorie ve storefrontu.
    */
@@ -977,6 +985,7 @@ export interface CategoryGroupsSelect<T extends boolean = true> {
   showInMobileMenu?: T;
   sortOrder?: T;
   category?: T;
+  categories?: T;
   description?: T;
   hiddenFilterGroups?: T;
   hiddenFilterOptions?: T;
@@ -998,6 +1007,7 @@ export interface SubcategoriesSelect<T extends boolean = true> {
   category?: T;
   categoryGroup?: T;
   description?: T;
+  linkedFilterOptions?: T;
   hiddenFilterGroups?: T;
   hiddenFilterOptions?: T;
   image?: T;

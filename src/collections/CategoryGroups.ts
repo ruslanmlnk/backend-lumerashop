@@ -28,14 +28,29 @@ export const CategoryGroups: CollectionConfig = {
           return data
         }
 
-        const resolvedCategory = await resolveCategoryRelation(req, data.category)
+        const categoryValues = Array.isArray(data.categories) ? data.categories : []
+        const resolvedCategory =
+          (await resolveCategoryRelation(req, data.category)) ??
+          (categoryValues.length > 0 ? await resolveCategoryRelation(req, categoryValues[0]) : null)
         if (!resolvedCategory) {
           return data
         }
 
+        const categories = Array.from(
+          new Set([
+            resolvedCategory.id,
+            ...categoryValues
+              .map((value) =>
+                typeof value === 'object' && value && 'id' in value && value.id != null ? value.id : value,
+              )
+              .filter((value): value is number | string => typeof value === 'number' || typeof value === 'string'),
+          ]),
+        )
+
         return {
           ...data,
           category: resolvedCategory.id,
+          categories,
           slug: buildCategoryGroupSlug(resolvedCategory.slug, name),
         }
       },
@@ -105,6 +120,18 @@ export const CategoryGroups: CollectionConfig = {
       relationTo: 'categories',
       required: true,
       label: 'Nadřazená kategorie',
+    },
+    {
+      name: 'categories',
+      type: 'relationship',
+      relationTo: 'categories',
+      hasMany: true,
+      required: true,
+      label: 'Kategorie, ve kterých se skupina zobrazuje',
+      admin: {
+        description:
+          'Jednu skupinu, například Materiál, lze zobrazit ve více kategoriích bez vytváření kopií. Původní nadřazená kategorie zůstává primární kvůli kompatibilitě.',
+      },
     },
     {
       name: 'description',

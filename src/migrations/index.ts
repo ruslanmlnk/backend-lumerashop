@@ -16,6 +16,7 @@ import * as migration_20260409_110500_convert_product_gallery_to_upload_has_many
 import * as migration_20260409_121500_convert_product_categories_to_has_many from './20260409_121500_convert_product_categories_to_has_many';
 import * as migration_20260522_012500_drop_legacy_product_category_columns from './20260522_012500_drop_legacy_product_category_columns';
 import * as migration_20260605_120000_add_product_highlights_content from './20260605_120000_add_product_highlights_content';
+import * as migration_20260609_020000_add_reusable_category_groups from './20260609_020000_add_reusable_category_groups';
 
 export const migrations = [
   {
@@ -107,5 +108,10 @@ export const migrations = [
     up: migration_20260605_120000_add_product_highlights_content.up,
     down: migration_20260605_120000_add_product_highlights_content.down,
     name: '20260605_120000_add_product_highlights_content',
+  },
+  {
+    up: migration_20260609_020000_add_reusable_category_groups.up,
+    down: migration_20260609_020000_add_reusable_category_groups.down,
+    name: '20260609_020000_add_reusable_category_groups',
   },
 ];

@@ -410,7 +410,16 @@ export const Products: CollectionConfig = {
       label: 'Skupina kategorií',
       filterOptions: ({ data }) => {
         if (data?.category) {
-          return buildRelationFilter('category', data.category)
+          const primaryCategoryFilter = buildRelationFilter('category', data.category)
+          const reusableCategoriesFilter = buildRelationFilter('categories', data.category)
+
+          if (primaryCategoryFilter === true || reusableCategoriesFilter === true) {
+            return true
+          }
+
+          return {
+            or: [primaryCategoryFilter, reusableCategoriesFilter],
+          }
         }
 
         return true
