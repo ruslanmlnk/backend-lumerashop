@@ -18,7 +18,7 @@ export const CategoryGroups: CollectionConfig = {
   },
   hooks: {
     beforeValidate: [
-      async ({ data, req }) => {
+      async ({ data, originalDoc, req }) => {
         if (!data || typeof data !== 'object') {
           return data
         }
@@ -28,30 +28,31 @@ export const CategoryGroups: CollectionConfig = {
           return data
         }
 
-        const categoryValues = Array.isArray(data.categories) ? data.categories : []
-        const resolvedCategory =
-          (await resolveCategoryRelation(req, data.category)) ??
-          (categoryValues.length > 0 ? await resolveCategoryRelation(req, categoryValues[0]) : null)
-        if (!resolvedCategory) {
+        const categoryValues = [
+          ...(Array.isArray(data.category) ? data.category : data.category != null ? [data.category] : []),
+          ...(Array.isArray(data.categories) ? data.categories : []),
+        ]
+        const resolvedCategories = (
+          await Promise.all(categoryValues.map((value) => resolveCategoryRelation(req, value)))
+        ).filter((category): category is NonNullable<typeof category> => category !== null)
+        const uniqueCategories = Array.from(
+          new Map(resolvedCategories.map((category) => [String(category.id), category])).values(),
+        )
+        const primaryCategory = uniqueCategories[0]
+
+        if (!primaryCategory) {
           return data
         }
 
-        const categories = Array.from(
-          new Set([
-            resolvedCategory.id,
-            ...categoryValues
-              .map((value) =>
-                typeof value === 'object' && value && 'id' in value && value.id != null ? value.id : value,
-              )
-              .filter((value): value is number | string => typeof value === 'number' || typeof value === 'string'),
-          ]),
-        )
+        const existingSlug =
+          (typeof data.slug === 'string' ? data.slug.trim() : '') ||
+          (originalDoc && typeof originalDoc.slug === 'string' ? originalDoc.slug.trim() : '')
 
         return {
           ...data,
-          category: resolvedCategory.id,
-          categories,
-          slug: buildCategoryGroupSlug(resolvedCategory.slug, name),
+          category: uniqueCategories.map((category) => category.id),
+          categories: undefined,
+          slug: existingSlug || buildCategoryGroupSlug(primaryCategory.slug, name),
         }
       },
     ],
@@ -118,19 +119,12 @@ export const CategoryGroups: CollectionConfig = {
       name: 'category',
       type: 'relationship',
       relationTo: 'categories',
-      required: true,
-      label: 'Nadřazená kategorie',
-    },
-    {
-      name: 'categories',
-      type: 'relationship',
-      relationTo: 'categories',
       hasMany: true,
       required: true,
-      label: 'Kategorie, ve kterých se skupina zobrazuje',
+      label: 'Nadřazené kategorie',
       admin: {
         description:
-          'Jednu skupinu, například Materiál, lze zobrazit ve více kategoriích bez vytváření kopií. Původní nadřazená kategorie zůstává primární kvůli kompatibilitě.',
+          'Vyberte všechny kategorie, ve kterých se má skupina zobrazovat. První kategorie zachovává původní chování existujících URL.',
       },
     },
     {

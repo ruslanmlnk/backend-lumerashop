@@ -133,7 +133,7 @@ async function seedCategoryHierarchy() {
         },
         {
           name: groupSeed.name,
-          category: categoryId,
+          category: [categoryId],
           showInMenu: groupSeed.showInMenu ?? true,
           showInDesktopMenu: groupSeed.showInDesktopMenu ?? groupSeed.showInMenu ?? true,
           showInMobileMenu: groupSeed.showInMobileMenu ?? groupSeed.showInMenu ?? true,

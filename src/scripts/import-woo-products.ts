@@ -21,7 +21,7 @@ type NamedDoc = {
 type CategoryDoc = NamedDoc
 
 type CategoryGroupDoc = NamedDoc & {
-  category?: number | string | { id?: number | string } | null
+  category?: Array<number | string | { id?: number | string }> | number | string | { id?: number | string } | null
 }
 
 type SubcategoryDoc = NamedDoc & {
@@ -648,12 +648,15 @@ async function importWooProducts() {
   const categoryGroupsByKey = new Map<string, CategoryGroupDoc>()
   for (const group of categoryGroups) {
     const groupName = cleanString(group.name)
-    const categoryId = extractRelationId(group.category)
-    if (!groupName || categoryId == null) {
+    const categoryValues = Array.isArray(group.category) ? group.category : [group.category]
+    const categoryIds = categoryValues.map((value) => extractRelationId(value)).filter((value) => value != null)
+    if (!groupName || categoryIds.length === 0) {
       continue
     }
 
-    categoryGroupsByKey.set(`${String(categoryId)}:${normalizeLabel(groupName)}`, group)
+    for (const categoryId of categoryIds) {
+      categoryGroupsByKey.set(`${String(categoryId)}:${normalizeLabel(groupName)}`, group)
+    }
   }
 
   const subcategoriesByKey = new Map<string, SubcategoryDoc>()

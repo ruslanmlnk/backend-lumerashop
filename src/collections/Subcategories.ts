@@ -122,18 +122,9 @@ export const Subcategories: CollectionConfig = {
       filterOptions: ({ data }) => {
         if (data?.category) {
           return {
-            or: [
-              {
-                category: {
-                  equals: data.category,
-                },
-              },
-              {
-                categories: {
-                  equals: data.category,
-                },
-              },
-            ],
+            category: {
+              equals: data.category,
+            },
           } as Where
         }
 

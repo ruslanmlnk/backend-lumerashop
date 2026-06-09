@@ -2,14 +2,17 @@ import type { PayloadRequest } from 'payload'
 
 import { slugifySegment } from './slugify'
 
+type RelationshipObject = {
+  id?: number | string | null
+  slug?: string | null
+  category?: RelationshipValue
+}
+
 type RelationshipValue =
   | number
   | string
-  | {
-      id?: number | string | null
-      slug?: string | null
-      category?: number | string | { id?: number | string | null; slug?: string | null } | null
-    }
+  | RelationshipValue[]
+  | RelationshipObject
   | null
   | undefined
 
@@ -24,8 +27,8 @@ export const buildCategoryGroupSlug = (categorySlug: string, name: string) =>
 export const buildSubcategorySlug = (groupSlug: string, name: string) =>
   `${slugifySegment(groupSlug)}-${slugifySegment(name)}`
 
-const isResolvedRelation = (value: RelationshipValue): value is Exclude<RelationshipValue, number | string | null | undefined> =>
-  typeof value === 'object' && value !== null
+const isResolvedRelation = (value: RelationshipValue): value is RelationshipObject =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 export const resolveCategoryRelation = async (
   req: PayloadRequest,
@@ -63,11 +66,12 @@ export const resolveCategoryGroupRelation = async (
   value: RelationshipValue,
 ): Promise<(ResolvedRelation & { categoryId?: number | string | null }) | null> => {
   if (isResolvedRelation(value) && value.id != null && typeof value.slug === 'string' && value.slug.trim()) {
+    const categoryValue = Array.isArray(value.category) ? value.category[0] : value.category
     const categoryId =
-      isResolvedRelation(value.category) && value.category.id != null
-        ? value.category.id
-        : typeof value.category === 'number' || typeof value.category === 'string'
-          ? value.category
+      isResolvedRelation(categoryValue) && categoryValue.id != null
+        ? categoryValue.id
+        : typeof categoryValue === 'number' || typeof categoryValue === 'string'
+          ? categoryValue
           : null
 
     return {
@@ -87,10 +91,11 @@ export const resolveCategoryGroupRelation = async (
     })
 
     if (categoryGroup?.id != null && typeof categoryGroup.slug === 'string' && categoryGroup.slug.trim()) {
+      const categoryValue = Array.isArray(categoryGroup.category) ? categoryGroup.category[0] : categoryGroup.category
       const categoryId =
-        typeof categoryGroup.category === 'object' && categoryGroup.category && 'id' in categoryGroup.category
-          ? categoryGroup.category.id
-          : categoryGroup.category
+        typeof categoryValue === 'object' && categoryValue && 'id' in categoryValue
+          ? categoryValue.id
+          : categoryValue
 
       return {
         id: categoryGroup.id,
