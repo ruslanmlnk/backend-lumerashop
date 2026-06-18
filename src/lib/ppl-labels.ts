@@ -81,7 +81,7 @@ type DownloadedLabel = {
   fileName: string
 }
 
-const DEFAULT_PPL_API_BASE_URL = 'https://api-dev.dhl.com/ecs/ppl/myapi2'
+const DEFAULT_PPL_API_BASE_URL = 'https://api.dhl.com/ecs/ppl/myapi2'
 const DEFAULT_LABEL_FORMAT = 'Pdf'
 const DEFAULT_LABEL_PAGE_SIZE = 'A4'
 const DEFAULT_LABEL_DPI = 300
