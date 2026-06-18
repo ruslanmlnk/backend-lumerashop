@@ -33,7 +33,7 @@ async function main() {
     },
     depth: 2,
     limit: 500,
-    sort: '-updatedAt',
+    sort: '-createdAt',
   })
 
   const docs = Array.isArray(result.docs) ? (result.docs as PayloadFeedProductDoc[]) : []

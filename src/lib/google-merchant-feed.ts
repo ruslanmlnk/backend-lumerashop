@@ -205,7 +205,7 @@ const fetchMerchantProducts = async (): Promise<Product[]> => {
 
   try {
     const response = await fetch(
-      `${payloadApiUrl}/api/products?where[status][equals]=published&depth=2&limit=500&sort=-updatedAt`,
+      `${payloadApiUrl}/api/products?where[status][equals]=published&depth=2&limit=500&sort=-createdAt`,
       {
         cache: 'no-store',
       },

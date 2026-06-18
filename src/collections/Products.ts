@@ -6,6 +6,7 @@ import {
   normalizeProductDiscountType,
   normalizeProductDiscountValidUntil,
   normalizeProductPricingData,
+  resolveProductPricing,
   resolveStoredProductRegularPrice,
 } from '@/lib/product-pricing'
 import { slugifyValue } from '@/utilities/slugify'
@@ -94,6 +95,9 @@ type AutoFilterOptionDoc = {
   name?: string | null
 }
 
+const SALE_CATEGORY_NAME = 'Akce'
+const SALE_CATEGORY_SLUG = 'akce'
+
 const asRelationID = (value: unknown): RelationID | null => {
   if (typeof value === 'number' && Number.isInteger(value)) {
     return value
@@ -140,6 +144,36 @@ const normalizeFilterName = (value: string) =>
 const getRelationValuesForSave = (data: Record<string, unknown>, originalDoc: Record<string, unknown> | undefined, field: string) =>
   data[field] !== undefined ? data[field] : originalDoc?.[field]
 
+const fetchSaleCategoryID = async (req: PayloadRequest): Promise<RelationID | null> => {
+  const result = await req.payload.find({
+    collection: 'categories',
+    depth: 0,
+    limit: 1,
+    overrideAccess: true,
+    req,
+    select: {
+      name: true,
+      slug: true,
+    },
+    where: {
+      or: [
+        {
+          slug: {
+            equals: SALE_CATEGORY_SLUG,
+          },
+        },
+        {
+          name: {
+            equals: SALE_CATEGORY_NAME,
+          },
+        },
+      ],
+    },
+  })
+
+  return asRelationID(result.docs[0])
+}
+
 const fetchAutoFilterSourceDocs = async (
   req: PayloadRequest,
   collection: 'categories' | 'category-groups' | 'subcategories',
@@ -167,6 +201,44 @@ const fetchAutoFilterSourceDocs = async (
   })
 
   return result.docs as AutoFilterSourceDoc[]
+}
+
+const applyAutomaticSaleCategory = async (
+  args: Parameters<CollectionBeforeChangeHook>[0],
+  productData: Record<string, unknown>,
+) => {
+  const originalData =
+    args.originalDoc && typeof args.originalDoc === 'object'
+      ? (args.originalDoc as Record<string, unknown>)
+      : undefined
+  const pricing = resolveProductPricing({
+    ...(originalData || {}),
+    ...productData,
+  })
+
+  if (!pricing.isDiscountActive) {
+    return productData
+  }
+
+  const saleCategoryID = await fetchSaleCategoryID(args.req)
+
+  if (saleCategoryID === null) {
+    return productData
+  }
+
+  const currentCategoryIDs = parseRelationIDs(
+    getRelationValuesForSave(productData, originalData, 'category'),
+  )
+  const nextCategoryIDs = uniqueRelationIDs([...currentCategoryIDs, saleCategoryID])
+
+  if (nextCategoryIDs.length === currentCategoryIDs.length) {
+    return productData
+  }
+
+  return {
+    ...productData,
+    category: nextCategoryIDs,
+  }
 }
 
 const fetchSameNameFilterOptionIDs = async (
@@ -252,6 +324,7 @@ const buildRelationFilter = (field: string, value: unknown): Where | true => {
 
 export const Products: CollectionConfig = {
   slug: 'products',
+  defaultSort: '-createdAt',
   labels: {
     singular: 'Produkt',
     plural: 'Produkty',
@@ -269,24 +342,30 @@ export const Products: CollectionConfig = {
       'status',
       'isFeatured',
       'isRecommended',
-      'updatedAt',
+      'createdAt',
     ],
   },
   hooks: {
     beforeChange: [
       async (args) => {
-        const data = await applyAutomaticProductFilterOptions(args)
-
-        if (!data || typeof data !== 'object') {
-          return data
+        if (!args.data || typeof args.data !== 'object') {
+          return args.data
         }
 
-        return normalizeProductPricingData(
-          data as Record<string, unknown>,
+        const originalDoc =
           args.originalDoc && typeof args.originalDoc === 'object'
             ? (args.originalDoc as Record<string, unknown>)
-            : undefined,
+            : undefined
+        const normalizedData = normalizeProductPricingData(
+          args.data as Record<string, unknown>,
+          originalDoc,
         )
+        const dataWithSaleCategory = await applyAutomaticSaleCategory(args, normalizedData)
+
+        return applyAutomaticProductFilterOptions({
+          ...args,
+          data: dataWithSaleCategory,
+        })
       },
     ],
   },
