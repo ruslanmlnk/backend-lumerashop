@@ -88,7 +88,6 @@ const DEFAULT_LABEL_DPI = 300
 const DEFAULT_POLL_INTERVAL_MS = 1500
 const DEFAULT_POLL_ATTEMPTS = 10
 const DEFAULT_PACKAGE_WEIGHT_KG = 1
-const PPL_INTEGRATOR_ID = 4546462
 
 let cachedToken: string | null = null
 let cachedTokenExpiresAt = 0
@@ -131,6 +130,11 @@ const getPplApiBaseUrl = () => readEnv('PPL_API_BASE_URL') || DEFAULT_PPL_API_BA
 const getPackageWeight = () => {
   const value = Number(readEnv('PPL_PACKAGE_WEIGHT_KG') || readEnv('PPL_DEFAULT_PACKAGE_WEIGHT_KG'))
   return Number.isFinite(value) && value > 0 ? value : DEFAULT_PACKAGE_WEIGHT_KG
+}
+
+const getPplIntegratorId = () => {
+  const value = Number(readEnv('PPL_INTEGRATOR_ID'))
+  return Number.isInteger(value) && value > 0 ? value : null
 }
 
 const getRequiredEnv = (name: string) => {
@@ -262,7 +266,6 @@ const buildShipmentPayload = (order: PplOrderDoc) => {
     referenceId: sanitizePplText(order.orderId, 40),
     productType: getProductTypeForOrder(order),
     note: sanitizePplText(order.shipping?.label || order.shippingAddress?.notes, 120),
-    integratorId: PPL_INTEGRATOR_ID,
     sender: {
       name: sender.name,
       street: sender.street,
@@ -299,6 +302,11 @@ const buildShipmentPayload = (order: PplOrderDoc) => {
         },
       ],
     },
+  }
+
+  const integratorId = getPplIntegratorId()
+  if (integratorId) {
+    shipment.integratorId = integratorId
   }
 
   if (isCodOrder(order)) {
