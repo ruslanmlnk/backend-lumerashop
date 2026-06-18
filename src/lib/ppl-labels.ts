@@ -22,7 +22,10 @@ type PplOrderDoc = {
   customerPhone?: string | null
   customerFirstName?: string | null
   customerLastName?: string | null
+  provider?: string | null
   paymentStatus?: string | null
+  currency?: string | null
+  total?: number | null
   shippingAddress?: {
     country?: string | null
     address?: string | null
@@ -41,8 +44,10 @@ type PplOrderDoc = {
   shipping?: {
     methodId?: string | null
     label?: string | null
+    cashOnDelivery?: boolean | null
     pickupPointId?: string | null
     pickupPointCode?: string | null
+    pickupPointType?: string | null
     pickupPointName?: string | null
     pickupPointAddress?: string | null
   } | null
@@ -82,6 +87,8 @@ const DEFAULT_LABEL_PAGE_SIZE = 'A4'
 const DEFAULT_LABEL_DPI = 300
 const DEFAULT_POLL_INTERVAL_MS = 1500
 const DEFAULT_POLL_ATTEMPTS = 10
+const DEFAULT_PACKAGE_WEIGHT_KG = 1
+const PPL_INTEGRATOR_ID = 4546462
 
 let cachedToken: string | null = null
 let cachedTokenExpiresAt = 0
@@ -121,6 +128,11 @@ const sanitizeCountry = (value: unknown) => {
 
 const getPplApiBaseUrl = () => readEnv('PPL_API_BASE_URL') || DEFAULT_PPL_API_BASE_URL
 
+const getPackageWeight = () => {
+  const value = Number(readEnv('PPL_PACKAGE_WEIGHT_KG') || readEnv('PPL_DEFAULT_PACKAGE_WEIGHT_KG'))
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_PACKAGE_WEIGHT_KG
+}
+
 const getRequiredEnv = (name: string) => {
   const value = readEnv(name)
   if (!value) {
@@ -139,15 +151,49 @@ const getSenderConfig = () => ({
   email: asCleanString(getRequiredEnv('PPL_SENDER_EMAIL')),
   phone: sanitizePhone(getRequiredEnv('PPL_SENDER_PHONE')),
   contact: sanitizePplText(readEnv('PPL_SENDER_CONTACT') || readEnv('PPL_SENDER_NAME'), 70),
-  depot: sanitizePplText(getRequiredEnv('PPL_DEPOT'), 10),
 })
 
+const isCodOrder = (order: PplOrderDoc) =>
+  order.shipping?.cashOnDelivery === true || order.provider === 'cash-on-delivery'
+
+const isPickupBoxOrder = (order: PplOrderDoc) => /box/i.test(asCleanString(order.shipping?.pickupPointType))
+
 const getProductTypeForOrder = (order: PplOrderDoc) => {
+  const cod = isCodOrder(order)
+
   if (isShipmentPickupSelection(order.shipping, 'ppl')) {
-    return readEnv('PPL_PRODUCT_TYPE_PICKUP') || 'BUSS'
+    if (isPickupBoxOrder(order)) {
+      return cod
+        ? readEnv('PPL_PRODUCT_TYPE_PICKUP_BOX_COD') || 'SBOD'
+        : readEnv('PPL_PRODUCT_TYPE_PICKUP_BOX') || 'SBOX'
+    }
+
+    return cod
+      ? readEnv('PPL_PRODUCT_TYPE_PICKUP_COD') || 'SMAD'
+      : readEnv('PPL_PRODUCT_TYPE_PICKUP') || 'SMAR'
   }
 
-  return readEnv('PPL_PRODUCT_TYPE_COURIER') || 'PRIV'
+  return cod
+    ? readEnv('PPL_PRODUCT_TYPE_COURIER_COD') || 'PRID'
+    : readEnv('PPL_PRODUCT_TYPE_COURIER') || 'PRIV'
+}
+
+const buildCodVariableSymbol = (order: PplOrderDoc) => {
+  const numeric = asCleanString(order.orderId).replace(/\D/g, '')
+  const fallback = String(order.id).replace(/\D/g, '')
+  return (numeric || fallback || '0').slice(-10)
+}
+
+const isCompleteImportState = (value: unknown) => asCleanString(value).toLowerCase() === 'complete'
+
+const buildBatchLabelUrl = (batchId: string) => {
+  const url = new URL(`${getPplApiBaseUrl().replace(/\/+$/, '')}/shipment/batch/${encodeURIComponent(batchId)}/label`)
+  url.searchParams.set('limit', '100')
+  url.searchParams.set('offset', '0')
+  url.searchParams.set('pageSize', readEnv('PPL_LABEL_PAGE_SIZE') || DEFAULT_LABEL_PAGE_SIZE)
+  url.searchParams.set('position', '1')
+  url.searchParams.set('orderBy', 'ReferenceId')
+  return url.toString()
 }
 
 const buildRecipientName = (order: PplOrderDoc) => {
@@ -216,7 +262,7 @@ const buildShipmentPayload = (order: PplOrderDoc) => {
     referenceId: sanitizePplText(order.orderId, 40),
     productType: getProductTypeForOrder(order),
     note: sanitizePplText(order.shipping?.label || order.shippingAddress?.notes, 120),
-    depot: sender.depot,
+    integratorId: PPL_INTEGRATOR_ID,
     sender: {
       name: sender.name,
       street: sender.street,
@@ -237,6 +283,30 @@ const buildShipmentPayload = (order: PplOrderDoc) => {
       email,
       phone,
     },
+    shipmentSet: {
+      numberOfShipments: 1,
+      shipmentSetItems: [
+        {
+          weighedShipmentInfo: {
+            weight: getPackageWeight(),
+          },
+          externalNumbers: [
+            {
+              code: 'CUST',
+              externalNumber: sanitizePplText(order.orderId || order.id, 40),
+            },
+          ],
+        },
+      ],
+    },
+  }
+
+  if (isCodOrder(order)) {
+    shipment.cashOnDelivery = {
+      codPrice: Number(order.total) || 0,
+      codCurrency: sanitizePplText(order.currency || 'CZK', 3).toUpperCase() || 'CZK',
+      codVarSym: buildCodVariableSymbol(order),
+    }
   }
 
   const accessPointCode = sanitizePplText(order.shipping?.pickupPointCode || order.shipping?.pickupPointId, 40)
@@ -246,7 +316,7 @@ const buildShipmentPayload = (order: PplOrderDoc) => {
     }
 
     shipment.specificDelivery = {
-      accessPointCode,
+      parcelShopCode: accessPointCode,
     }
   }
 
@@ -333,7 +403,7 @@ const getPplAccessToken = async (forceRefresh = false) => {
         detail?: string
         title?: string
       }
-    } catch (err) {
+    } catch (_err) {
       // ignore and fall through to error handling below
     }
   }
@@ -352,7 +422,7 @@ const getPplAccessToken = async (forceRefresh = false) => {
           clientId: getRequiredEnv('PPL_CLIENT_ID'),
           clientSecret: getRequiredEnv('PPL_CLIENT_SECRET'),
           scope: 'myapi2',
-        } as any),
+        }),
         cache: 'no-store',
       })
 
@@ -386,7 +456,7 @@ const getPplAccessToken = async (forceRefresh = false) => {
           title?: string
         }
       }
-    } catch (err) {
+    } catch (_err) {
       // ignore and fall through to error handling below
     }
   }
@@ -478,15 +548,17 @@ const pickCompleteLabelUrl = (item: PplBatchStatusItem | null) => {
 const normalizeShipmentState = (order: PplOrderDoc, batchId: string, batchStatus: PplBatchStatusResponse): PplShipmentDoc => {
   const item = pickBatchItem(batchStatus, asCleanString(order.orderId))
   const existing = order.pplShipment || {}
+  const importState = asCleanString(item?.importState || batchStatus.importState) || existing.importState || ''
+  const completeLabelUrl = pickCompleteLabelUrl(item) || existing.completeLabelUrl || ''
 
   return {
     batchId,
     shipmentNumber: asCleanString(item?.shipmentNumber) || existing.shipmentNumber || '',
-    importState: asCleanString(item?.importState || batchStatus.importState) || existing.importState || '',
+    importState,
     labelFormat: readEnv('PPL_LABEL_FORMAT') || existing.labelFormat || DEFAULT_LABEL_FORMAT,
     labelPageSize: readEnv('PPL_LABEL_PAGE_SIZE') || existing.labelPageSize || DEFAULT_LABEL_PAGE_SIZE,
     labelUrl: asCleanString(item?.labelUrl) || existing.labelUrl || '',
-    completeLabelUrl: pickCompleteLabelUrl(item) || existing.completeLabelUrl || '',
+    completeLabelUrl: completeLabelUrl || (isCompleteImportState(importState) ? buildBatchLabelUrl(batchId) : ''),
     generatedAt: existing.generatedAt || new Date().toISOString(),
     lastCheckedAt: new Date().toISOString(),
     lastError: '',
@@ -538,10 +610,8 @@ const waitForLabel = async (order: PplOrderDoc, batchId: string, accessToken: st
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const state = asCleanString(pickBatchItem(lastStatus, asCleanString(order.orderId))?.importState || lastStatus.importState)
-    const labelUrl = asCleanString(pickBatchItem(lastStatus, asCleanString(order.orderId))?.labelUrl)
-    const completeLabelUrl = pickCompleteLabelUrl(pickBatchItem(lastStatus, asCleanString(order.orderId)))
 
-    if (state.toLowerCase() === 'complete' && (labelUrl || completeLabelUrl)) {
+    if (state.toLowerCase() === 'complete') {
       return lastStatus
     }
 
@@ -612,7 +682,11 @@ export const syncPplOrderLabel = async (payload: Payload, id: number | string): 
 }
 
 const resolveLabelDownloadUrl = (shipment: PplShipmentDoc) =>
-  asCleanString(shipment.completeLabelUrl) || asCleanString(shipment.labelUrl)
+  asCleanString(shipment.completeLabelUrl) ||
+  asCleanString(shipment.labelUrl) ||
+  (asCleanString(shipment.batchId) && isCompleteImportState(shipment.importState)
+    ? buildBatchLabelUrl(asCleanString(shipment.batchId))
+    : '')
 
 const downloadLabelAsset = async (url: string, accessToken: string, depth = 0): Promise<DownloadedLabel> => {
   const response = await fetch(url, {
