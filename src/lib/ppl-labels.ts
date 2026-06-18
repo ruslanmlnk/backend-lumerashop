@@ -362,11 +362,9 @@ const getPplAccessToken = async (forceRefresh = false) => {
     grant_type: 'client_credentials',
     client_id: getRequiredEnv('PPL_CLIENT_ID'),
     client_secret: getRequiredEnv('PPL_CLIENT_SECRET'),
-    scope: 'myapi2',
   })
 
-  // Try form-encoded client credentials first
-  let response = await fetch(tokenEndpoint, {
+  const response = await fetch(tokenEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -375,96 +373,19 @@ const getPplAccessToken = async (forceRefresh = false) => {
     cache: 'no-store',
   })
 
-  let data = (await response.json().catch(() => ({}))) as {
+  const data = (await response.json().catch(() => ({}))) as {
     access_token?: string
     expires_in?: number
+    error?: string
+    error_description?: string
     detail?: string
     title?: string
-  }
-
-  // If the API didn't accept the form params, try Basic auth fallback
-  if ((!response.ok || !data.access_token) && getRequiredEnv('PPL_CLIENT_ID') && getRequiredEnv('PPL_CLIENT_SECRET')) {
-    try {
-      const basic = Buffer.from(`${getRequiredEnv('PPL_CLIENT_ID')}:${getRequiredEnv('PPL_CLIENT_SECRET')}`).toString('base64')
-
-      response = await fetch(tokenEndpoint, {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${basic}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({ grant_type: 'client_credentials', scope: 'myapi2' }),
-        cache: 'no-store',
-      })
-
-      data = (await response.json().catch(() => ({}))) as {
-        access_token?: string
-        expires_in?: number
-        detail?: string
-        title?: string
-      }
-    } catch (_err) {
-      // ignore and fall through to error handling below
-    }
-  }
-
-  // If still not authenticated, try alternate parameter names (camelCase) and JSON body
-  if ((!response.ok || !data.access_token) && getRequiredEnv('PPL_CLIENT_ID') && getRequiredEnv('PPL_CLIENT_SECRET')) {
-    try {
-      // try camelCase form fields
-      response = await fetch(tokenEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'client_credentials',
-          clientId: getRequiredEnv('PPL_CLIENT_ID'),
-          clientSecret: getRequiredEnv('PPL_CLIENT_SECRET'),
-          scope: 'myapi2',
-        }),
-        cache: 'no-store',
-      })
-
-      data = (await response.json().catch(() => ({}))) as {
-        access_token?: string
-        expires_in?: number
-        detail?: string
-        title?: string
-      }
-
-      // try JSON body if still not successful
-      if ((!response.ok || !data.access_token)) {
-        response = await fetch(tokenEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            grant_type: 'client_credentials',
-            clientId: getRequiredEnv('PPL_CLIENT_ID'),
-            clientSecret: getRequiredEnv('PPL_CLIENT_SECRET'),
-            scope: 'myapi2',
-          }),
-          cache: 'no-store',
-        })
-
-        data = (await response.json().catch(() => ({}))) as {
-          access_token?: string
-          expires_in?: number
-          detail?: string
-          title?: string
-        }
-      }
-    } catch (_err) {
-      // ignore and fall through to error handling below
-    }
   }
 
   if (!response.ok || !data.access_token) {
     const status = response.status
     const text = await response.text().catch(() => '')
-    const detail = data.detail || data.title || text
+    const detail = data.error_description || data.detail || data.title || data.error || text
     throw new Error(`Failed to authenticate with PPL (status: ${status}) - ${detail || 'no details'})`)
   }
 
