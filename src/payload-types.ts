@@ -118,6 +118,7 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     'home-page': HomePage;
+    'site-settings': SiteSetting;
     'loyalty-settings': LoyaltySetting;
     'first-purchase-promo': FirstPurchasePromo;
     'shipping-and-payment-page': ShippingAndPaymentPage;
@@ -128,6 +129,7 @@ export interface Config {
   };
   globalsSelect: {
     'home-page': HomePageSelect<false> | HomePageSelect<true>;
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     'loyalty-settings': LoyaltySettingsSelect<false> | LoyaltySettingsSelect<true>;
     'first-purchase-promo': FirstPurchasePromoSelect<false> | FirstPurchasePromoSelect<true>;
     'shipping-and-payment-page': ShippingAndPaymentPageSelect<false> | ShippingAndPaymentPageSelect<true>;
@@ -1418,6 +1420,23 @@ export interface HomePage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  /**
+   * Po zaškrtnutí se Stripe nezobrazí mezi platebními metodami.
+   */
+  hideStripe?: boolean | null;
+  /**
+   * Po zaškrtnutí se Global Payments nezobrazí mezi platebními metodami.
+   */
+  hideGlobalPayments?: boolean | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "loyalty-settings".
  */
 export interface LoyaltySetting {
@@ -1697,6 +1716,17 @@ export interface HomePageSelect<T extends boolean = true> {
         title?: T;
         description?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  hideStripe?: T;
+  hideGlobalPayments?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
