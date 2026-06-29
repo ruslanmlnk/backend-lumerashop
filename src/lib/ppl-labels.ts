@@ -66,6 +66,9 @@ type PplBatchStatusItem = {
 
 type PplBatchStatusResponse = {
   importState?: string
+  completeLabel?: {
+    labelUrls?: string[]
+  }
   items?: PplBatchStatusItem[]
 }
 
@@ -381,19 +384,27 @@ const getPplAccessToken = async (forceRefresh = false) => {
     cache: 'no-store',
   })
 
-  const data = (await response.json().catch(() => ({}))) as {
+  const responseText = await response.text().catch(() => '')
+  let data: {
     access_token?: string
     expires_in?: number
     error?: string
     error_description?: string
     detail?: string
     title?: string
+  } = {}
+
+  if (responseText) {
+    try {
+      data = JSON.parse(responseText) as typeof data
+    } catch {
+      data = {}
+    }
   }
 
   if (!response.ok || !data.access_token) {
     const status = response.status
-    const text = await response.text().catch(() => '')
-    const detail = data.error_description || data.detail || data.title || data.error || text
+    const detail = data.error_description || data.detail || data.title || data.error || responseText
     throw new Error(`Failed to authenticate with PPL (status: ${status}) - ${detail || 'no details'})`)
   }
 
@@ -417,6 +428,31 @@ const parseBatchId = (value: string) => {
   return parts[parts.length - 1] || ''
 }
 
+const parseBatchIdFromBody = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return ''
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      batchId?: unknown
+      id?: unknown
+      location?: unknown
+      url?: unknown
+    }
+
+    return (
+      parseBatchId(asCleanString(parsed.batchId)) ||
+      parseBatchId(asCleanString(parsed.id)) ||
+      parseBatchId(asCleanString(parsed.location)) ||
+      parseBatchId(asCleanString(parsed.url))
+    )
+  } catch {
+    return parseBatchId(trimmed)
+  }
+}
+
 const createShipmentBatch = async (order: PplOrderDoc) => {
   const accessToken = await getPplAccessToken()
   const response = await fetch(`${getPplApiBaseUrl()}/shipment/batch`, {
@@ -428,7 +464,7 @@ const createShipmentBatch = async (order: PplOrderDoc) => {
 
   const locationHeader = response.headers.get('location') || response.headers.get('Location') || ''
   const responseText = await response.text()
-  const batchId = parseBatchId(locationHeader) || parseBatchId(responseText)
+  const batchId = parseBatchId(locationHeader) || parseBatchIdFromBody(responseText)
 
   if (!response.ok || !batchId) {
     throw new Error(responseText || 'PPL did not return a shipment batch ID.')
@@ -469,7 +505,15 @@ const pickBatchItem = (batchStatus: PplBatchStatusResponse, referenceId: string)
   )
 }
 
-const pickCompleteLabelUrl = (item: PplBatchStatusItem | null) => {
+const pickFirstUrl = (urls: unknown) =>
+  asCleanString((Array.isArray(urls) ? urls : []).find((url) => typeof url === 'string' && url.trim()))
+
+const pickCompleteLabelUrl = (batchStatus: PplBatchStatusResponse, item: PplBatchStatusItem | null) => {
+  const rootUrl = pickFirstUrl(batchStatus.completeLabel?.labelUrls)
+  if (rootUrl) {
+    return rootUrl
+  }
+
   const urls = Array.isArray(item?.completeLabel?.labelUrls) ? item.completeLabel?.labelUrls : []
   return urls.find((url) => typeof url === 'string' && url.trim()) || ''
 }
@@ -478,7 +522,7 @@ const normalizeShipmentState = (order: PplOrderDoc, batchId: string, batchStatus
   const item = pickBatchItem(batchStatus, asCleanString(order.orderId))
   const existing = order.pplShipment || {}
   const importState = asCleanString(item?.importState || batchStatus.importState) || existing.importState || ''
-  const completeLabelUrl = pickCompleteLabelUrl(item) || existing.completeLabelUrl || ''
+  const completeLabelUrl = pickCompleteLabelUrl(batchStatus, item) || existing.completeLabelUrl || ''
 
   return {
     batchId,
