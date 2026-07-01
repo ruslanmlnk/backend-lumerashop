@@ -1432,6 +1432,10 @@ export interface SiteSetting {
    * Po zaškrtnutí se Global Payments nezobrazí mezi platebními metodami.
    */
   hideGlobalPayments?: boolean | null;
+  /**
+   * Hodnota objednavky v Kc, od ktere budou bezne dopravy zdarma. Dopravy na dobirku zustavaji vzdy placene.
+   */
+  freeShippingThreshold?: number | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1727,6 +1731,7 @@ export interface HomePageSelect<T extends boolean = true> {
 export interface SiteSettingsSelect<T extends boolean = true> {
   hideStripe?: T;
   hideGlobalPayments?: T;
+  freeShippingThreshold?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

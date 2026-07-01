@@ -6,12 +6,13 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
       "id" serial PRIMARY KEY NOT NULL,
       "hide_stripe" boolean DEFAULT false,
       "hide_global_payments" boolean DEFAULT false,
+      "free_shipping_threshold" numeric DEFAULT 1500,
       "updated_at" timestamp(3) with time zone,
       "created_at" timestamp(3) with time zone
     );
 
-    INSERT INTO "site_settings" ("hide_stripe", "hide_global_payments", "updated_at", "created_at")
-    SELECT false, false, NOW(), NOW()
+    INSERT INTO "site_settings" ("hide_stripe", "hide_global_payments", "free_shipping_threshold", "updated_at", "created_at")
+    SELECT false, false, 1500, NOW(), NOW()
     WHERE NOT EXISTS (
       SELECT 1 FROM "site_settings"
     );

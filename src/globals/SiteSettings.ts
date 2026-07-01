@@ -25,5 +25,16 @@ export const SiteSettings: GlobalConfig = {
         description: 'Po zaškrtnutí se Global Payments nezobrazí mezi platebními metodami.',
       },
     },
+    {
+      name: 'freeShippingThreshold',
+      type: 'number',
+      label: 'Doprava zdarma od',
+      min: 0,
+      defaultValue: 1500,
+      admin: {
+        description:
+          'Hodnota objednavky v Kc, od ktere budou bezne dopravy zdarma. Dopravy na dobirku zustavaji vzdy placene.',
+      },
+    },
   ],
 }
