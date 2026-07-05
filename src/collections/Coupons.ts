@@ -120,10 +120,6 @@ export const Coupons: CollectionConfig = {
       handler: async (req) => {
         const currentUser = asUser(req.user)
 
-        if (!currentUser?.id) {
-          return Response.json({ error: 'Please sign in to use a coupon.' }, { status: 401 })
-        }
-
         let body: CouponApplyBody
 
         try {
@@ -140,11 +136,16 @@ export const Coupons: CollectionConfig = {
         }
 
         try {
-          const applied = await validateCouponForUser(req.payload, {
-            code,
-            subtotal,
-            userId: currentUser.id,
-          })
+          const applied = currentUser?.id
+            ? await validateCouponForUser(req.payload, {
+                code,
+                subtotal,
+                userId: currentUser.id,
+              })
+            : await previewCoupon(req.payload, {
+                code,
+                subtotal,
+              })
 
           return Response.json(applied, { status: 200 })
         } catch (error) {

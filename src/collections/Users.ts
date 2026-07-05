@@ -1,4 +1,8 @@
 import type { CollectionConfig } from 'payload'
+import {
+  generatePasswordResetEmailHtml,
+  generatePasswordResetEmailSubject,
+} from '@/lib/password-reset-email'
 
 type UserAccessShape = {
   id?: number | string
@@ -43,7 +47,13 @@ export const Users: CollectionConfig = {
     useAsTitle: 'email',
     defaultColumns: ['email', 'role', 'bonusBalance', 'updatedAt'],
   },
-  auth: true,
+  auth: {
+    forgotPassword: {
+      expiration: 60 * 60 * 1000,
+      generateEmailHTML: generatePasswordResetEmailHtml,
+      generateEmailSubject: generatePasswordResetEmailSubject,
+    },
+  },
   access: {
     read: isCurrentUserOrAdmin,
     create: () => true,

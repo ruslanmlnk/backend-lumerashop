@@ -28,6 +28,7 @@ import { PrivacyPolicyPage } from './globals/PrivacyPolicyPage'
 import { CookiesPage } from './globals/CookiesPage'
 import { FirstPurchasePromo } from './globals/FirstPurchasePromo'
 import { SiteSettings } from './globals/SiteSettings'
+import { payloadEmailAdapter } from './lib/payload-email'
 
 
 const filename = fileURLToPath(import.meta.url)
@@ -68,6 +69,8 @@ export default buildConfig({
   ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
+  serverURL: (process.env.PAYLOAD_PUBLIC_SERVER_URL || process.env.PAYLOAD_API_URL || '').replace(/\/+$/, ''),
+  email: payloadEmailAdapter(),
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
