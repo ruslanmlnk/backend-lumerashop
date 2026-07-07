@@ -33,7 +33,18 @@ export const SiteSettings: GlobalConfig = {
       defaultValue: 1500,
       admin: {
         description:
-          'Hodnota objednavky v Kc, od ktere budou bezne dopravy zdarma. Dopravy na dobirku zustavaji vzdy placene.',
+          'Hodnota objednavky v Kc, od ktere se odpocita zakladni cena dopravy. Poplatek za dobirku zustava zapocitany.',
+      },
+    },
+    {
+      name: 'cashOnDeliveryFee',
+      type: 'number',
+      label: 'Poplatek za dobirku',
+      min: 0,
+      defaultValue: 49,
+      admin: {
+        description:
+          'Castka v Kc pripoctena k doprave na dobirku. Pri doprave zdarma se odpocita jen zakladni doprava, tento poplatek zustava.',
       },
     },
   ],

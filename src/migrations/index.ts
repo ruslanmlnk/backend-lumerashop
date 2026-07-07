@@ -20,6 +20,7 @@ import * as migration_20260609_020000_add_reusable_category_groups from './20260
 import * as migration_20260609_060000_merge_category_group_categories from './20260609_060000_merge_category_group_categories';
 import * as migration_20260622_120000_add_site_settings from './20260622_120000_add_site_settings';
 import * as migration_20260701_120000_add_free_shipping_threshold from './20260701_120000_add_free_shipping_threshold';
+import * as migration_20260707_120000_add_cash_on_delivery_fee from './20260707_120000_add_cash_on_delivery_fee';
 
 export const migrations = [
   {
@@ -131,5 +132,10 @@ export const migrations = [
     up: migration_20260701_120000_add_free_shipping_threshold.up,
     down: migration_20260701_120000_add_free_shipping_threshold.down,
     name: '20260701_120000_add_free_shipping_threshold',
+  },
+  {
+    up: migration_20260707_120000_add_cash_on_delivery_fee.up,
+    down: migration_20260707_120000_add_cash_on_delivery_fee.down,
+    name: '20260707_120000_add_cash_on_delivery_fee',
   },
 ];

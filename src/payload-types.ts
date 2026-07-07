@@ -1433,9 +1433,13 @@ export interface SiteSetting {
    */
   hideGlobalPayments?: boolean | null;
   /**
-   * Hodnota objednavky v Kc, od ktere budou bezne dopravy zdarma. Dopravy na dobirku zustavaji vzdy placene.
+   * Hodnota objednavky v Kc, od ktere se odpocita zakladni cena dopravy. Poplatek za dobirku zustava zapocitany.
    */
   freeShippingThreshold?: number | null;
+  /**
+   * Castka v Kc pripoctena k doprave na dobirku. Pri doprave zdarma se odpocita jen zakladni doprava, tento poplatek zustava.
+   */
+  cashOnDeliveryFee?: number | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1732,6 +1736,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   hideStripe?: T;
   hideGlobalPayments?: T;
   freeShippingThreshold?: T;
+  cashOnDeliveryFee?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
