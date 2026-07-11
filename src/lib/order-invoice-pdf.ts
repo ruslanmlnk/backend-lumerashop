@@ -58,6 +58,13 @@ type PayloadOrderDoc = {
   currency?: string | null
   total?: number | null
   shippingTotal?: number | null
+  discounts?: {
+    couponCode?: string | null
+    couponDiscountPercent?: number | null
+    couponDiscountAmount?: number | null
+    firstPurchaseDiscountAmount?: number | null
+    bonusDiscountAmount?: number | null
+  } | null
   shippingAddress?: {
     country?: string | null
     address?: string | null
@@ -203,7 +210,14 @@ const getInvoiceGrossAmount = (order: PayloadOrderDoc) => {
   }, 0)
 
   const shippingGross = roundMoney(toPositiveNumber(order.shipping?.price) || toPositiveNumber(order.shippingTotal))
-  return roundMoney(toPositiveNumber(order.total) || itemGross + shippingGross)
+  const discounts = order.discounts ?? {}
+  const discountGross = roundMoney(
+    toPositiveNumber(discounts.couponDiscountAmount) +
+      toPositiveNumber(discounts.firstPurchaseDiscountAmount) +
+      toPositiveNumber(discounts.bonusDiscountAmount),
+  )
+
+  return roundMoney(toPositiveNumber(order.total) || Math.max(0, itemGross - discountGross) + shippingGross)
 }
 
 const resolveBuyerLines = (order: PayloadOrderDoc) => {
@@ -284,6 +298,50 @@ const buildInvoiceLines = (order: PayloadOrderDoc, currency: string) => {
       taxCategory: 'included',
     })
   })
+
+  const addDiscountLine = (name: string, grossDiscount: number) => {
+    const discountAmount = roundMoney(toPositiveNumber(grossDiscount))
+
+    if (discountAmount <= 0) {
+      return
+    }
+
+    const grossLineTotal = -discountAmount
+    const tax = calculateVatBreakdown(grossLineTotal)
+
+    lines.push({
+      index: String(lines.length + 1),
+      name,
+      quantity: '1',
+      unit: 'sleva',
+      netUnitPrice: formatMoney(tax.netAmount, currency),
+      netLineTotal: formatMoney(tax.netAmount, currency),
+      taxRateLabel: 'VÄŤetnÄ› DPH',
+      taxAmount: formatMoney(tax.taxAmount, currency),
+      grossLineTotal: formatMoney(grossLineTotal, currency),
+      grossAmountRaw: grossLineTotal,
+      netAmountRaw: tax.netAmount,
+      taxAmountRaw: tax.taxAmount,
+      taxCategory: 'included',
+    })
+  }
+
+  const discounts = order.discounts ?? {}
+  const couponCode = sanitizeString(discounts.couponCode)
+  const couponPercent = toPositiveNumber(discounts.couponDiscountPercent)
+  const couponLabelParts = ['Sleva kupĂłnem']
+
+  if (couponCode) {
+    couponLabelParts.push(couponCode)
+  }
+
+  if (couponPercent > 0) {
+    couponLabelParts.push(`(${couponPercent}%)`)
+  }
+
+  addDiscountLine(couponLabelParts.join(' '), toPositiveNumber(discounts.couponDiscountAmount))
+  addDiscountLine('Sleva na prvnĂ­ nĂˇkup', toPositiveNumber(discounts.firstPurchaseDiscountAmount))
+  addDiscountLine('BonusovĂˇ sleva', toPositiveNumber(discounts.bonusDiscountAmount))
 
   const shippingLabel = sanitizeString(order.shipping?.label)
   const shippingGross = roundMoney(toPositiveNumber(order.shipping?.price) || toPositiveNumber(order.shippingTotal))
@@ -1899,6 +1957,7 @@ export const downloadOrderInvoice = async (
   payload: Payload,
   documentId: number | string,
   options?: {
+    forceRegenerate?: boolean
     persistIfMissing?: boolean
   },
 ): Promise<InvoiceDownloadResult | null> => {
@@ -1912,7 +1971,7 @@ export const downloadOrderInvoice = async (
   const storedInvoiceFileName = sanitizeString(order.invoiceFileName)
   const storedInvoiceContentType = sanitizeString(order.invoiceContentType) || 'application/pdf'
 
-  if (storedInvoiceData && storedInvoiceFileName) {
+  if (storedInvoiceData && storedInvoiceFileName && options?.forceRegenerate !== true) {
     return {
       contentType: storedInvoiceContentType,
       data: new Uint8Array(Buffer.from(storedInvoiceData, 'base64')),

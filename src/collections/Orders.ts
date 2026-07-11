@@ -177,6 +177,7 @@ export const Orders: CollectionConfig = {
           }
 
           const result = await downloadOrderInvoice(req.payload, documentId, {
+            forceRegenerate: isAdminUser,
             persistIfMissing: isAdminUser,
           })
 
