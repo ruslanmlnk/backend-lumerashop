@@ -316,7 +316,7 @@ const buildInvoiceLines = (order: PayloadOrderDoc, currency: string) => {
       unit: 'sleva',
       netUnitPrice: formatMoney(tax.netAmount, currency),
       netLineTotal: formatMoney(tax.netAmount, currency),
-      taxRateLabel: 'VÄŤetnÄ› DPH',
+      taxRateLabel: 'Včetně DPH',
       taxAmount: formatMoney(tax.taxAmount, currency),
       grossLineTotal: formatMoney(grossLineTotal, currency),
       grossAmountRaw: grossLineTotal,
@@ -329,7 +329,7 @@ const buildInvoiceLines = (order: PayloadOrderDoc, currency: string) => {
   const discounts = order.discounts ?? {}
   const couponCode = sanitizeString(discounts.couponCode)
   const couponPercent = toPositiveNumber(discounts.couponDiscountPercent)
-  const couponLabelParts = ['Sleva kupĂłnem']
+  const couponLabelParts = ['Sleva kupónem']
 
   if (couponCode) {
     couponLabelParts.push(couponCode)
@@ -340,8 +340,8 @@ const buildInvoiceLines = (order: PayloadOrderDoc, currency: string) => {
   }
 
   addDiscountLine(couponLabelParts.join(' '), toPositiveNumber(discounts.couponDiscountAmount))
-  addDiscountLine('Sleva na prvnĂ­ nĂˇkup', toPositiveNumber(discounts.firstPurchaseDiscountAmount))
-  addDiscountLine('BonusovĂˇ sleva', toPositiveNumber(discounts.bonusDiscountAmount))
+  addDiscountLine('Sleva na první nákup', toPositiveNumber(discounts.firstPurchaseDiscountAmount))
+  addDiscountLine('Bonusová sleva', toPositiveNumber(discounts.bonusDiscountAmount))
 
   const shippingLabel = sanitizeString(order.shipping?.label)
   const shippingGross = roundMoney(toPositiveNumber(order.shipping?.price) || toPositiveNumber(order.shippingTotal))
