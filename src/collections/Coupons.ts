@@ -272,6 +272,15 @@ export const Coupons: CollectionConfig = {
       label: 'Aktivní',
     },
     {
+      name: 'orderCount',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '@/components/admin/coupons/CouponOrderCount',
+        },
+      },
+    },
+    {
       name: 'orders',
       type: 'join',
       collection: 'orders',

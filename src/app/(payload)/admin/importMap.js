@@ -26,6 +26,7 @@ import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997e
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { default as default_2bb5582fe8ceb14dd70c93ccbd1c6486 } from '@/components/admin/products/ProductBulkDiscountPanel'
+import { default as default_38d963c8ea4916a9f1d5f63802e85364 } from '@/components/admin/coupons/CouponOrderCount'
 import { default as default_7498ceaf0f5a036fc90322c188923b78 } from '@/components/admin/coupons/CouponPreview'
 import { default as default_717921db146e1c924e41bcddff90b5e0 } from '@/components/admin/orders/OrderConfirmationControls'
 import { default as default_d9b1919bf53c4ad40104ed46e7a2b852 } from '@/components/admin/orders/PPLLabelControls'
@@ -61,6 +62,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/components/admin/products/ProductBulkDiscountPanel#default": default_2bb5582fe8ceb14dd70c93ccbd1c6486,
+  "@/components/admin/coupons/CouponOrderCount#default": default_38d963c8ea4916a9f1d5f63802e85364,
   "@/components/admin/coupons/CouponPreview#default": default_7498ceaf0f5a036fc90322c188923b78,
   "@/components/admin/orders/OrderConfirmationControls#default": default_717921db146e1c924e41bcddff90b5e0,
   "@/components/admin/orders/PPLLabelControls#default": default_d9b1919bf53c4ad40104ed46e7a2b852,
