@@ -804,7 +804,7 @@ const drawFooterTotals = ({
 }
 
 const addContinuationHeader = (page: PDFPage, font: PDFFont, orderId: string) => {
-  const text = `Faktura ${orderId} - pokračování`
+  const text = `Factura ${orderId} - pokračování`
   drawStrongText({
     page,
     font,
@@ -818,6 +818,16 @@ const addContinuationHeader = (page: PDFPage, font: PDFFont, orderId: string) =>
 const getSafeFileName = (orderId: string) => {
   const sanitized = orderId.replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '')
   return sanitized || 'order'
+}
+
+const getInvoiceNumber = (order: PayloadOrderDoc, invoiceDate: Date) => {
+  const numericId = Number(order.id)
+  const sequence =
+    Number.isSafeInteger(numericId) && numericId > 0
+      ? String(numericId).padStart(4, '0')
+      : (sanitizeString(order.orderId).match(/\d+/g)?.join('') || '1').padStart(4, '0')
+
+  return `${invoiceDate.getFullYear()}${sequence}`
 }
 
 const FIRST_PAGE_TABLE_TOP_Y = 284
@@ -968,7 +978,7 @@ const drawInvoiceOpeningPage = async ({
     y: 395,
   })
 
-  const titleText = `Faktura${orderId}`
+  const titleText = `Factura ${orderId}`
   const titleWidth = font.widthOfTextAtSize(titleText, TITLE_FONT_SIZE)
 
   drawStrongText({
@@ -1080,14 +1090,16 @@ const buildProgrammaticInvoicePdf = async (order: PayloadOrderDoc) => {
     : await pdfDoc.embedFont(StandardFonts.Helvetica)
 
   const currency = sanitizeString(order.currency) || 'CZK'
-  const orderId = sanitizeString(order.orderId) || String(order.id)
-  const issuedAt = new Date()
-  const saleDate = getSafeDate(order.createdAt, issuedAt)
+  const generatedAt = new Date()
+  const orderDate = getSafeDate(order.createdAt, generatedAt)
   const paymentMethod = getPaymentMethodLabel(order)
   const dueDate = getDueDate(
-    saleDate,
+    orderDate,
     order.shipping?.cashOnDelivery === true || order.provider === 'cash-on-delivery',
   )
+  const issuedAt = dueDate
+  const saleDate = dueDate
+  const orderId = getInvoiceNumber(order, dueDate)
   const buyer = resolveBuyerLines(order)
   const invoiceLines = buildInvoiceLines(order, currency)
   const grossAmount = getInvoiceGrossAmount(order)
@@ -1440,7 +1452,7 @@ const drawTemplateTitle = ({
   page: PDFPage
   regularFont: PDFFont
 }) => {
-  const titleText = `Faktura${orderId}`
+  const titleText = `Factura ${orderId}`
   drawWhiteRect(page, 205, 614, 180, 24)
 
   drawStrongText({
