@@ -804,7 +804,7 @@ const drawFooterTotals = ({
 }
 
 const addContinuationHeader = (page: PDFPage, font: PDFFont, orderId: string) => {
-  const text = `Factura ${orderId} - pokračování`
+  const text = `Faktura ${orderId} - pokračování`
   drawStrongText({
     page,
     font,
@@ -978,7 +978,7 @@ const drawInvoiceOpeningPage = async ({
     y: 395,
   })
 
-  const titleText = `Factura ${orderId}`
+  const titleText = `Faktura ${orderId}`
   const titleWidth = font.widthOfTextAtSize(titleText, TITLE_FONT_SIZE)
 
   drawStrongText({
@@ -1452,7 +1452,7 @@ const drawTemplateTitle = ({
   page: PDFPage
   regularFont: PDFFont
 }) => {
-  const titleText = `Factura ${orderId}`
+  const titleText = `Faktura ${orderId}`
   drawWhiteRect(page, 205, 614, 180, 24)
 
   drawStrongText({
