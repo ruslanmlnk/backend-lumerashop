@@ -635,7 +635,7 @@ export const Products: CollectionConfig = {
         }
 
         if (data?.category) {
-          return buildRelationFilter('category', data.category)
+          return buildRelationFilter('categories', data.category)
         }
 
         return true

@@ -387,8 +387,14 @@ export interface Subcategory {
    */
   showInMobileMenu?: boolean | null;
   sortOrder?: number | null;
-  category: number | Category;
+  /**
+   * Vyberte skupinu, pod kterou se má podkategorie zobrazovat.
+   */
   categoryGroup: number | CategoryGroup;
+  /**
+   * Vyberte všechny kategorie, ve kterých se má podkategorie zobrazovat. Kategorie musí být současně přiřazené k vybrané skupině.
+   */
+  categories: (number | Category)[];
   description?: string | null;
   /**
    * Tyto možnosti filtrů se automaticky přidají k produktu, když je produkt zařazený do této podkategorie.
@@ -1018,8 +1024,8 @@ export interface SubcategoriesSelect<T extends boolean = true> {
   showInDesktopMenu?: T;
   showInMobileMenu?: T;
   sortOrder?: T;
-  category?: T;
   categoryGroup?: T;
+  categories?: T;
   description?: T;
   productFilterOptions?: T;
   linkedFilterOptions?: T;

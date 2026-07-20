@@ -21,6 +21,7 @@ import * as migration_20260609_060000_merge_category_group_categories from './20
 import * as migration_20260622_120000_add_site_settings from './20260622_120000_add_site_settings';
 import * as migration_20260701_120000_add_free_shipping_threshold from './20260701_120000_add_free_shipping_threshold';
 import * as migration_20260707_120000_add_cash_on_delivery_fee from './20260707_120000_add_cash_on_delivery_fee';
+import * as migration_20260720_173000_convert_subcategory_categories_to_has_many from './20260720_173000_convert_subcategory_categories_to_has_many';
 
 export const migrations = [
   {
@@ -137,5 +138,10 @@ export const migrations = [
     up: migration_20260707_120000_add_cash_on_delivery_fee.up,
     down: migration_20260707_120000_add_cash_on_delivery_fee.down,
     name: '20260707_120000_add_cash_on_delivery_fee',
+  },
+  {
+    up: migration_20260720_173000_convert_subcategory_categories_to_has_many.up,
+    down: migration_20260720_173000_convert_subcategory_categories_to_has_many.down,
+    name: '20260720_173000_convert_subcategory_categories_to_has_many',
   },
 ];
