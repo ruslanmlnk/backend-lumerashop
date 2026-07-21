@@ -391,6 +391,13 @@ export const Orders: CollectionConfig = {
       admin: hiddenReadOnlyAdmin,
     },
     {
+      name: 'invoiceNumber',
+      type: 'text',
+      label: 'Číslo faktury',
+      unique: true,
+      admin: hiddenReadOnlyAdmin,
+    },
+    {
       name: 'invoiceGeneratedAt',
       type: 'date',
       label: 'Faktura vygenerována',

@@ -3,14 +3,38 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { downloadOrderInvoice } from '@/lib/order-invoice-pdf'
 
-const createPayload = (result: unknown) => {
+const createPayload = (
+  result: unknown,
+  options?: { lockedInvoiceNumber?: string | null; sequence?: number },
+) => {
+  const invoiceQuery = vi.fn(async (query: string) => {
+    if (query.startsWith('SELECT')) {
+      return { rows: [{ invoice_number: options?.lockedInvoiceNumber ?? null }] }
+    }
+
+    if (query.includes('RETURNING "last_value"')) {
+      return { rows: [{ last_value: options?.sequence ?? 1 }] }
+    }
+
+    return { rows: [] }
+  })
   const payload = {
+    db: {
+      pool: {
+        connect: vi.fn(async () => ({
+          query: invoiceQuery,
+          release: vi.fn(),
+        })),
+      },
+    },
     findByID: vi.fn().mockResolvedValue(result),
     update: vi.fn().mockResolvedValue(result),
+    invoiceQuery,
   }
 
   return payload as unknown as Payload & {
     findByID: ReturnType<typeof vi.fn>
+    invoiceQuery: ReturnType<typeof vi.fn>
     update: ReturnType<typeof vi.fn>
   }
 }
@@ -57,6 +81,44 @@ describe('downloadOrderInvoice', () => {
     expect(result?.fileName).toBe('LMR-7-faktura.pdf')
     expect(Buffer.from(result?.data || []).subarray(0, 4).toString()).toBe('%PDF')
     expect(payload.update).toHaveBeenCalledTimes(1)
+    expect(payload.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ invoiceNumber: `${new Date().getFullYear()}0001` }),
+      }),
+    )
+  })
+
+  it('starts a separate sequence at one for a new year', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-12-31T23:30:00.000Z'))
+
+    try {
+      const payload = createPayload({
+        id: 9,
+        orderId: 'LMR-9',
+        provider: 'cash-on-delivery',
+        paymentStatus: 'pending',
+        createdAt: '2027-01-02T09:00:00.000Z',
+        currency: 'CZK',
+        total: 100,
+        shippingTotal: 0,
+        items: [{ name: 'Test', quantity: 1, unitPrice: 100, lineTotal: 100 }],
+      })
+
+      await downloadOrderInvoice(payload, 9)
+
+      expect(payload.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ invoiceNumber: '20270001' }),
+        }),
+      )
+      expect(payload.invoiceQuery).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO "invoice_counters"'),
+        [2027],
+      )
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('returns null when the order does not exist', async () => {

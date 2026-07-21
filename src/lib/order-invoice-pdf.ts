@@ -43,6 +43,7 @@ type OrderPaymentStatus = 'pending' | 'paid' | 'failed' | 'canceled'
 type PayloadOrderDoc = {
   id: number | string
   orderId?: string | null
+  invoiceNumber?: string | null
   invoiceGeneratedAt?: string | null
   invoiceFileName?: string | null
   invoiceContentType?: string | null
@@ -819,14 +820,14 @@ const getSafeFileName = (orderId: string) => {
   return sanitized || 'order'
 }
 
-const getInvoiceNumber = (order: PayloadOrderDoc, invoiceDate: Date) => {
-  const numericId = Number(order.id)
-  const sequence =
-    Number.isSafeInteger(numericId) && numericId > 0
-      ? String(numericId).padStart(4, '0')
-      : (sanitizeString(order.orderId).match(/\d+/g)?.join('') || '1').padStart(4, '0')
+const getInvoiceNumber = (order: PayloadOrderDoc) => {
+  const invoiceNumber = sanitizeString(order.invoiceNumber)
 
-  return `${invoiceDate.getFullYear()}${sequence}`
+  if (!invoiceNumber) {
+    throw new Error('Invoice number must be assigned before PDF generation.')
+  }
+
+  return invoiceNumber
 }
 
 const FIRST_PAGE_TABLE_TOP_Y = 284
@@ -1061,7 +1062,7 @@ const buildProgrammaticInvoicePdf = async (order: PayloadOrderDoc) => {
   )
   const issuedAt = dueDate
   const saleDate = dueDate
-  const orderId = getInvoiceNumber(order, dueDate)
+  const orderId = getInvoiceNumber(order)
   const buyer = resolveBuyerLines(order)
   const invoiceLines = buildInvoiceLines(order, currency)
   const grossAmount = getInvoiceGrossAmount(order)
@@ -1751,6 +1752,89 @@ const findOrderByDocumentId = async (
   }
 }
 
+type InvoiceCounterQueryResult = {
+  rows?: Array<Record<string, unknown>>
+}
+
+type InvoiceCounterClient = {
+  query: (query: string, values?: unknown[]) => Promise<InvoiceCounterQueryResult>
+  release: () => void
+}
+
+type InvoiceCounterPool = {
+  connect: () => Promise<InvoiceCounterClient>
+}
+
+const getInvoiceYear = (invoiceDate: Date) =>
+  Number(
+    new Intl.DateTimeFormat('en', {
+      timeZone: 'Europe/Prague',
+      year: 'numeric',
+    }).format(invoiceDate),
+  )
+
+const assignInvoiceNumber = async (payload: Payload, order: PayloadOrderDoc, invoiceDate: Date) => {
+  const existingInvoiceNumber = sanitizeString(order.invoiceNumber)
+
+  if (existingInvoiceNumber) {
+    return existingInvoiceNumber
+  }
+
+  const pool = (payload.db as unknown as { pool?: InvoiceCounterPool } | undefined)?.pool
+
+  if (!pool) {
+    throw new Error('Postgres pool is not available for invoice number allocation.')
+  }
+
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+
+    const orderResult = await client.query(
+      'SELECT "invoice_number" FROM "orders" WHERE "id" = $1 FOR UPDATE',
+      [order.id],
+    )
+    const lockedInvoiceNumber = sanitizeString(orderResult.rows?.[0]?.invoice_number)
+
+    if (lockedInvoiceNumber) {
+      await client.query('COMMIT')
+      return lockedInvoiceNumber
+    }
+
+    const year = getInvoiceYear(invoiceDate)
+    const counterResult = await client.query(
+      `INSERT INTO "invoice_counters" ("year", "last_value", "updated_at")
+       VALUES ($1, 1, CURRENT_TIMESTAMP)
+       ON CONFLICT ("year") DO UPDATE
+       SET "last_value" = "invoice_counters"."last_value" + 1,
+           "updated_at" = CURRENT_TIMESTAMP
+       RETURNING "last_value"`,
+      [year],
+    )
+    const sequence = Number(counterResult.rows?.[0]?.last_value)
+
+    if (!Number.isSafeInteger(sequence) || sequence < 1) {
+      throw new Error('Failed to allocate the next invoice number.')
+    }
+
+    const invoiceNumber = `${year}${String(sequence).padStart(4, '0')}`
+
+    await client.query('UPDATE "orders" SET "invoice_number" = $1 WHERE "id" = $2', [
+      invoiceNumber,
+      order.id,
+    ])
+    await client.query('COMMIT')
+
+    return invoiceNumber
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
 const buildOrderInvoicePdf = async (order: PayloadOrderDoc) => {
   return buildProgrammaticInvoicePdf(order)
 
@@ -1841,9 +1925,11 @@ export const downloadOrderInvoice = async (
     return null
   }
 
+  const invoiceNumber = await assignInvoiceNumber(payload, order, new Date())
+  const orderWithInvoiceNumber = { ...order, invoiceNumber }
   const orderId = sanitizeString(order.orderId) || String(order.id)
   const safeOrderId = getSafeFileName(orderId)
-  const data = await buildOrderInvoicePdf(order)
+  const data = await buildOrderInvoicePdf(orderWithInvoiceNumber)
   const contentType = 'application/pdf'
   const fileName = `${safeOrderId}-faktura.pdf`
 
@@ -1854,6 +1940,7 @@ export const downloadOrderInvoice = async (
     overrideAccess: true,
     data: {
       invoiceGeneratedAt: new Date().toISOString(),
+      invoiceNumber,
       invoiceFileName: fileName,
       invoiceContentType: contentType,
       invoiceData: Buffer.from(data).toString('base64'),
