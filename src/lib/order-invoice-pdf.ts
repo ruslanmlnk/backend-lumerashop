@@ -23,8 +23,8 @@ const TABLE_COLUMNS = [
   { key: 'quantity', label: 'Množství', width: 60, align: 'right' as const },
   { key: 'unit', label: 'Jednotka', width: 70, align: 'left' as const },
   { key: 'netUnitPrice', label: 'Cena bez DPH', width: 70, align: 'right' as const },
-  // { key: 'netLineTotal', label: 'Netto částka', width: 70, align: 'right' as const },
-  // { key: 'taxRateLabel', label: 'Daňová sazba', width: 70, align: 'right' as const },
+  { key: 'netLineTotal', label: '', width: 70, align: 'right' as const, hidden: true },
+  { key: 'taxRateLabel', label: '', width: 70, align: 'right' as const, hidden: true },
   { key: 'taxAmount', label: 'DPH', width: 80, align: 'right' as const },
   { key: 'grossLineTotal', label: 'Cena s DPH', width: 90, align: 'right' as const },
 ] as const
@@ -560,7 +560,12 @@ const drawWrappedText = ({
 
 const getRowHeight = (font: PDFFont, row: InvoiceLine) => {
   const lineCounts = TABLE_COLUMNS.map((column) =>
-    wrapLineByWidth(font, getRowTextValue(row, column.key), TABLE_FONT_SIZE, column.width - 10).length,
+    wrapLineByWidth(
+      font,
+      'hidden' in column && column.hidden ? '' : getRowTextValue(row, column.key),
+      TABLE_FONT_SIZE,
+      column.width - 10,
+    ).length,
   )
   const contentHeight = Math.max(...lineCounts, 1) * 12 + 12
   return Math.max(MIN_TABLE_ROW_HEIGHT, contentHeight)
@@ -659,7 +664,7 @@ const drawTableRow = (page: PDFPage, font: PDFFont, row: InvoiceLine, topY: numb
       maxWidth: column.width - 10,
       page,
       size: TABLE_FONT_SIZE,
-      text: getRowTextValue(row, column.key),
+      text: 'hidden' in column && column.hidden ? '' : getRowTextValue(row, column.key),
       x: cursorX + 5,
       y: topY - 16,
     })
@@ -834,21 +839,8 @@ const getInvoiceNumber = (order: PayloadOrderDoc, invoiceDate: Date) => {
 const FIRST_PAGE_TABLE_TOP_Y = 284
 const CONTINUATION_TABLE_TOP_Y = PAGE_HEIGHT - 64
 const SUMMARY_ROW_HEIGHT = 30
-const SUMMARY_BREAKDOWN_ROW_HEIGHT = 22
-const LAST_PAGE_BOTTOM_RESERVE = PAGE_MARGIN + 14 + SUMMARY_ROW_HEIGHT + SUMMARY_BREAKDOWN_ROW_HEIGHT * 2
+const LAST_PAGE_BOTTOM_RESERVE = PAGE_MARGIN + 14 + SUMMARY_ROW_HEIGHT
 const REGULAR_PAGE_BOTTOM_RESERVE = PAGE_MARGIN + 14
-
-const getSummaryColumnMetrics = () => {
-  const summaryColumns = TABLE_COLUMNS.slice(4)
-  const summaryStartX =
-    PAGE_MARGIN +
-    TABLE_COLUMNS.slice(0, 4).reduce((sum, column) => sum + column.width, 0)
-
-  return {
-    startX: summaryStartX,
-    widths: summaryColumns.map((column) => column.width),
-  }
-}
 
 const drawInvoiceLogo = async ({
   assets,
@@ -998,8 +990,6 @@ const drawInvoiceSummarySection = ({
   currency,
   font,
   grossAmount,
-  invoiceLines,
-  netAmount,
   page,
   taxAmount,
   topY,
@@ -1007,21 +997,37 @@ const drawInvoiceSummarySection = ({
   currency: string
   font: PDFFont
   grossAmount: number
-  invoiceLines: InvoiceLine[]
-  netAmount: number
   page: PDFPage
   taxAmount: number
   topY: number
 }) => {
-  const { startX, widths } = getSummaryColumnMetrics()
-  const totalRowValues = ['CELKEM', formatMoney(netAmount, currency), 'X', formatMoney(taxAmount, currency), formatMoney(grossAmount, currency)]
-  const totalRowAlignments: Array<'left' | 'center' | 'right'> = ['left', 'right', 'center', 'right', 'right']
-  const breakdownRows = getSummaryBreakdownRows(invoiceLines, currency)
+  const totalRowValues = [
+    '',
+    '',
+    '',
+    '',
+    'CELKEM',
+    '',
+    '',
+    formatMoney(taxAmount, currency),
+    formatMoney(grossAmount, currency),
+  ]
+  const totalRowAlignments: Array<'left' | 'center' | 'right'> = [
+    'left',
+    'left',
+    'left',
+    'left',
+    'right',
+    'right',
+    'right',
+    'right',
+    'right',
+  ]
 
-  let cursorX = startX
+  let cursorX = PAGE_MARGIN
 
   totalRowValues.forEach((value, index) => {
-    const width = widths[index] || 0
+    const width = TABLE_COLUMNS[index]?.width || 0
 
     page.drawRectangle({
       x: cursorX,
@@ -1044,40 +1050,6 @@ const drawInvoiceSummarySection = ({
     })
 
     cursorX += width
-  })
-
-  breakdownRows.forEach((row, rowIndex) => {
-    const rowTop = topY - SUMMARY_ROW_HEIGHT - rowIndex * SUMMARY_BREAKDOWN_ROW_HEIGHT
-    const rowValues = [row.prefix, row.net, row.taxLabel, row.tax, row.gross]
-    const rowAlignments: Array<'left' | 'center' | 'right'> = ['left', 'right', 'center', 'right', 'right']
-
-    let rowX = startX
-
-    rowValues.forEach((value, columnIndex) => {
-      const width = widths[columnIndex] || 0
-
-      page.drawRectangle({
-        x: rowX,
-        y: rowTop - SUMMARY_BREAKDOWN_ROW_HEIGHT,
-        width,
-        height: SUMMARY_BREAKDOWN_ROW_HEIGHT,
-        borderColor: rgb(0.15, 0.15, 0.15),
-        borderWidth: 1,
-      })
-
-      drawAlignedText({
-        align: rowAlignments[columnIndex],
-        font,
-        page,
-        size: TABLE_FONT_SIZE,
-        text: value,
-        width: width - 12,
-        x: rowX + 6,
-        y: rowTop - 15,
-      })
-
-      rowX += width
-    })
   })
 }
 
@@ -1145,8 +1117,6 @@ const buildProgrammaticInvoicePdf = async (order: PayloadOrderDoc) => {
     currency,
     font: regularFont,
     grossAmount: totals.grossAmount,
-    invoiceLines,
-    netAmount: totals.netAmount,
     page,
     taxAmount: totals.taxAmount,
     topY: cursorY,
@@ -1470,7 +1440,6 @@ const drawTemplateTable = ({
   currency,
   grossAmount,
   invoiceLines,
-  netAmount,
   page,
   regularFont,
   taxAmount,
@@ -1478,25 +1447,21 @@ const drawTemplateTable = ({
   currency: string
   grossAmount: number
   invoiceLines: InvoiceLine[]
-  netAmount: number
   page: PDFPage
   regularFont: PDFFont
   taxAmount: number
 }) => {
   const tableLeft = TEMPLATE_TABLE_BORDERS_X[0]
   const tableWidth = TEMPLATE_TABLE_BORDERS_X[TEMPLATE_TABLE_BORDERS_X.length - 1] - tableLeft
-  const breakdownRows = getSummaryBreakdownRows(invoiceLines, currency)
-  const tableMetrics = getTemplateTableMetrics(invoiceLines.length, breakdownRows.length)
+  const tableMetrics = getTemplateTableMetrics(invoiceLines.length, 0)
   const sectionBottomY =
     TEMPLATE_TABLE_BODY_START_Y -
     invoiceLines.length * tableMetrics.rowHeight -
-    tableMetrics.rowHeight -
-    breakdownRows.length * TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT
+    tableMetrics.rowHeight
   const dynamicSectionHeight =
     TEMPLATE_TABLE_HEADER_HEIGHT +
     invoiceLines.length * tableMetrics.rowHeight +
     tableMetrics.rowHeight +
-    breakdownRows.length * TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT +
     4
 
   drawWhiteRect(
@@ -1522,16 +1487,11 @@ const drawTemplateTable = ({
     { text: 'Jméno', x: 49.132, y: 584.83, size: 9 },
     { text: 'Množství', x: 210.409, y: 584.83, size: 9 },
     { text: 'Jednotka', x: 260.251, y: 584.83, size: 9 },
-    { text: 'Netto', x: 317.454, y: 584.83, size: 9 },
-    { text: 'cena', x: 319.479, y: 574.03, size: 9 },
-    { text: 'Netto', x: 368.91, y: 584.83, size: 9 },
-    { text: 'částka', x: 366.795, y: 574.03, size: 9 },
-    { text: 'Daňová', x: 416.776, y: 584.83, size: 9 },
-    { text: 'sazba', x: 420.777, y: 574.03, size: 9 },
-    { text: 'Daňová', x: 469.619, y: 584.83, size: 9 },
-    { text: 'částka', x: 471.846, y: 574.03, size: 9 },
-    { text: 'Brutto', x: 525.439, y: 584.83, size: 9 },
-    { text: 'částka', x: 525.16, y: 574.03, size: 9 },
+    { text: 'Cena bez', x: 309.454, y: 584.83, size: 9 },
+    { text: 'DPH', x: 319.479, y: 574.03, size: 9 },
+    { text: 'DPH', x: 477.619, y: 579.43, size: 9 },
+    { text: 'Cena s', x: 526.439, y: 584.83, size: 9 },
+    { text: 'DPH', x: 533.16, y: 574.03, size: 9 },
   ]
 
   headerLabels.forEach((label) => {
@@ -1627,24 +1587,6 @@ const drawTemplateTable = ({
       font: regularFont,
       page,
       size: 8,
-      text: line.netLineTotal,
-      x: TEMPLATE_TABLE_TEXT.netTotalRightX,
-      y: firstLineY,
-    })
-
-    drawMoneyRight({
-      font: regularFont,
-      page,
-      size: 8,
-      text: line.taxRateLabel,
-      x: TEMPLATE_TABLE_TEXT.taxRateRightX,
-      y: firstLineY,
-    })
-
-    drawMoneyRight({
-      font: regularFont,
-      page,
-      size: 8,
       text: line.taxAmount,
       x: TEMPLATE_TABLE_TEXT.taxAmountRightX,
       y: firstLineY,
@@ -1661,22 +1603,21 @@ const drawTemplateTable = ({
   })
 
   const summaryTop = TEMPLATE_TABLE_BODY_START_Y - invoiceLines.length * tableMetrics.rowHeight
-  const summaryRightStart = TEMPLATE_TABLE_BORDERS_X[4]
   const summaryTopBottom = summaryTop - tableMetrics.rowHeight
 
   page.drawRectangle({
-    x: summaryRightStart,
+    x: tableLeft,
     y: summaryTopBottom,
-    width: TEMPLATE_TABLE_BORDERS_X[TEMPLATE_TABLE_BORDERS_X.length - 1] - summaryRightStart,
+    width: tableWidth,
     height: tableMetrics.rowHeight,
     borderColor: rgb(0.15, 0.15, 0.15),
     borderWidth: 1,
   })
 
-  ;[5, 6, 7, 8].forEach((borderIndex) => {
+  TEMPLATE_TABLE_BORDERS_X.slice(1, -1).forEach((borderX) => {
     page.drawLine({
-      start: { x: TEMPLATE_TABLE_BORDERS_X[borderIndex], y: summaryTopBottom },
-      end: { x: TEMPLATE_TABLE_BORDERS_X[borderIndex], y: summaryTop },
+      start: { x: borderX, y: summaryTopBottom },
+      end: { x: borderX, y: summaryTop },
       thickness: 1,
       color: rgb(0.15, 0.15, 0.15),
     })
@@ -1687,24 +1628,6 @@ const drawTemplateTable = ({
     font: regularFont,
     text: 'CELKEM',
     x: TEMPLATE_TOTAL_LABEL_X,
-    y: summaryTop - tableMetrics.rowTextTopOffset,
-    size: 8,
-  })
-
-  drawMoneyRight({
-    font: regularFont,
-    page,
-    size: 8,
-    text: formatMoney(netAmount, currency),
-    x: TEMPLATE_TABLE_TEXT.netTotalRightX,
-    y: summaryTop - tableMetrics.rowTextTopOffset,
-  })
-
-  drawStrongText({
-    page,
-    font: regularFont,
-    text: 'X',
-    x: 449.754,
     y: summaryTop - tableMetrics.rowTextTopOffset,
     size: 8,
   })
@@ -1727,72 +1650,6 @@ const drawTemplateTable = ({
     y: summaryTop - tableMetrics.rowTextTopOffset,
   })
 
-  breakdownRows.forEach((row, index) => {
-    const rowTop = summaryTopBottom - index * TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT
-    const rowBottom = rowTop - TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT
-
-    page.drawRectangle({
-      x: TEMPLATE_TABLE_BORDERS_X[5],
-      y: rowBottom,
-      width: TEMPLATE_TABLE_BORDERS_X[TEMPLATE_TABLE_BORDERS_X.length - 1] - TEMPLATE_TABLE_BORDERS_X[5],
-      height: TEMPLATE_SUMMARY_BREAKDOWN_ROW_HEIGHT,
-      borderColor: rgb(0.15, 0.15, 0.15),
-      borderWidth: 1,
-    })
-
-    ;[6, 7, 8].forEach((borderIndex) => {
-      page.drawLine({
-        start: { x: TEMPLATE_TABLE_BORDERS_X[borderIndex], y: rowBottom },
-        end: { x: TEMPLATE_TABLE_BORDERS_X[borderIndex], y: rowTop },
-        thickness: 1,
-        color: rgb(0.15, 0.15, 0.15),
-      })
-    })
-
-    page.drawText(row.prefix, {
-      x: 325.761,
-      y: rowTop - 9.8,
-      size: 8,
-      font: regularFont,
-      color: rgb(0, 0, 0),
-    })
-
-    drawMoneyRight({
-      font: regularFont,
-      page,
-      size: 8,
-      text: row.net,
-      x: TEMPLATE_TABLE_TEXT.netTotalRightX,
-      y: rowTop - 10.3,
-    })
-
-    drawMoneyRight({
-      font: regularFont,
-      page,
-      size: 8,
-      text: row.taxLabel,
-      x: TEMPLATE_TABLE_TEXT.taxRateRightX,
-      y: rowTop - 10.3,
-    })
-
-    drawMoneyRight({
-      font: regularFont,
-      page,
-      size: 8,
-      text: row.tax,
-      x: TEMPLATE_TABLE_TEXT.taxAmountRightX,
-      y: rowTop - 10.3,
-    })
-
-    drawMoneyRight({
-      font: regularFont,
-      page,
-      size: 8,
-      text: row.gross,
-      x: TEMPLATE_TABLE_TEXT.grossRightX,
-      y: rowTop - 10.3,
-    })
-  })
 }
 
 const drawTemplateFooter = ({
@@ -1948,7 +1805,6 @@ const buildOrderInvoicePdf = async (order: PayloadOrderDoc) => {
     currency,
     grossAmount: totals.grossAmount,
     invoiceLines,
-    netAmount: totals.netAmount,
     page,
     regularFont,
     taxAmount: totals.taxAmount,
