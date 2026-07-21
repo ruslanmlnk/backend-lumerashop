@@ -23,8 +23,6 @@ const TABLE_COLUMNS = [
   { key: 'quantity', label: 'Množství', width: 60, align: 'right' as const },
   { key: 'unit', label: 'Jednotka', width: 70, align: 'left' as const },
   { key: 'netUnitPrice', label: 'Cena bez DPH', width: 70, align: 'right' as const },
-  { key: 'netLineTotal', label: '', width: 70, align: 'right' as const, hidden: true },
-  { key: 'taxRateLabel', label: '', width: 70, align: 'right' as const, hidden: true },
   { key: 'taxAmount', label: 'DPH', width: 80, align: 'right' as const },
   { key: 'grossLineTotal', label: 'Cena s DPH', width: 90, align: 'right' as const },
 ] as const
@@ -560,12 +558,7 @@ const drawWrappedText = ({
 
 const getRowHeight = (font: PDFFont, row: InvoiceLine) => {
   const lineCounts = TABLE_COLUMNS.map((column) =>
-    wrapLineByWidth(
-      font,
-      'hidden' in column && column.hidden ? '' : getRowTextValue(row, column.key),
-      TABLE_FONT_SIZE,
-      column.width - 10,
-    ).length,
+    wrapLineByWidth(font, getRowTextValue(row, column.key), TABLE_FONT_SIZE, column.width - 10).length,
   )
   const contentHeight = Math.max(...lineCounts, 1) * 12 + 12
   return Math.max(MIN_TABLE_ROW_HEIGHT, contentHeight)
@@ -664,7 +657,7 @@ const drawTableRow = (page: PDFPage, font: PDFFont, row: InvoiceLine, topY: numb
       maxWidth: column.width - 10,
       page,
       size: TABLE_FONT_SIZE,
-      text: 'hidden' in column && column.hidden ? '' : getRowTextValue(row, column.key),
+      text: getRowTextValue(row, column.key),
       x: cursorX + 5,
       y: topY - 16,
     })
@@ -1003,10 +996,8 @@ const drawInvoiceSummarySection = ({
 }) => {
   const totalRowValues = [
     '',
-    '',
-    '',
-    '',
     'CELKEM',
+    '',
     '',
     '',
     formatMoney(taxAmount, currency),
@@ -1017,9 +1008,7 @@ const drawInvoiceSummarySection = ({
     'left',
     'left',
     'left',
-    'right',
-    'right',
-    'right',
+    'left',
     'right',
     'right',
   ]
