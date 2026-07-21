@@ -22,11 +22,11 @@ const TABLE_COLUMNS = [
   { key: 'name', label: 'Jméno', width: 220, align: 'left' as const },
   { key: 'quantity', label: 'Množství', width: 60, align: 'right' as const },
   { key: 'unit', label: 'Jednotka', width: 70, align: 'left' as const },
-  { key: 'netUnitPrice', label: 'Netto cena', width: 70, align: 'right' as const },
-  { key: 'netLineTotal', label: 'Netto částka', width: 70, align: 'right' as const },
-  { key: 'taxRateLabel', label: 'Daňová sazba', width: 70, align: 'right' as const },
-  { key: 'taxAmount', label: 'Daňová částka', width: 80, align: 'right' as const },
-  { key: 'grossLineTotal', label: 'Brutto částka', width: 90, align: 'right' as const },
+  { key: 'netUnitPrice', label: 'Cena bez DPH', width: 70, align: 'right' as const },
+  // { key: 'netLineTotal', label: 'Netto částka', width: 70, align: 'right' as const },
+  // { key: 'taxRateLabel', label: 'Daňová sazba', width: 70, align: 'right' as const },
+  { key: 'taxAmount', label: 'DPH', width: 80, align: 'right' as const },
+  { key: 'grossLineTotal', label: 'Cena s DPH', width: 90, align: 'right' as const },
 ] as const
 
 const SELLER_BLOCK = {
@@ -34,7 +34,8 @@ const SELLER_BLOCK = {
   lines: [
     'MAX & VLD s.r.o.',
     'Děčínská 552/1, Střížkov (Praha 8), 180 00 Praha',
-    'VAT Number: IČO: 23254246 DIČ: CZ23254246',
+    'IČO: 23254246 DIČ: CZ23254246',
+    'Číslo účtu: 3094713004/5500',
   ],
 }
 
@@ -781,14 +782,14 @@ const drawFooterTotals = ({
     size: BODY_FONT_SIZE + 1,
   })
 
-  drawStrongText({
-    page,
-    font,
-    text: `Zaplaceno: ${formatMoney(paidAmount, currency)}`,
-    x: PAGE_WIDTH / 2 - 70,
-    y: footerY,
-    size: BODY_FONT_SIZE + 1,
-  })
+  // drawStrongText({
+  //   page,
+  //   font,
+  //   text: `Zaplaceno: ${formatMoney(paidAmount, currency)}`,
+  //   x: PAGE_WIDTH / 2 - 70,
+  //   y: footerY,
+  //   size: BODY_FONT_SIZE + 1,
+  // })
 
   const dueText = `K úhradě: ${formatMoney(amountDue, currency)}`
   const dueWidth = font.widthOfTextAtSize(dueText, BODY_FONT_SIZE + 1)
