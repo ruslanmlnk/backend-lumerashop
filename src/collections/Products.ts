@@ -747,7 +747,7 @@ export const Products: CollectionConfig = {
       on: 'product',
       label: 'Recenze produktu',
       admin: {
-        allowCreate: false,
+        allowCreate: true,
         defaultColumns: ['authorName', 'rating', 'show', 'submittedAt'],
       },
     },

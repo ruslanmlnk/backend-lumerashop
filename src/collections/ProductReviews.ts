@@ -222,9 +222,6 @@ export const ProductReviews: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       label: 'Zákazník',
-      admin: {
-        readOnly: true,
-      },
     },
     {
       type: 'row',
@@ -235,7 +232,6 @@ export const ProductReviews: CollectionConfig = {
           required: true,
           label: 'Jméno autora',
           admin: {
-            readOnly: true,
             width: '50%',
           },
         },
@@ -245,7 +241,6 @@ export const ProductReviews: CollectionConfig = {
           required: true,
           label: 'E-mail autora',
           admin: {
-            readOnly: true,
             width: '50%',
           },
         },
@@ -280,7 +275,6 @@ export const ProductReviews: CollectionConfig = {
           type: 'date',
           label: 'Odesláno',
           admin: {
-            readOnly: true,
             width: '34%',
           },
         },
