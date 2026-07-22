@@ -216,10 +216,6 @@ const applyAutomaticSaleCategory = async (
     ...productData,
   })
 
-  if (!pricing.isDiscountActive) {
-    return productData
-  }
-
   const saleCategoryID = await fetchSaleCategoryID(args.req)
 
   if (saleCategoryID === null) {
@@ -229,9 +225,14 @@ const applyAutomaticSaleCategory = async (
   const currentCategoryIDs = parseRelationIDs(
     getRelationValuesForSave(productData, originalData, 'category'),
   )
-  const nextCategoryIDs = uniqueRelationIDs([...currentCategoryIDs, saleCategoryID])
+  const nextCategoryIDs = pricing.isDiscountActive
+    ? uniqueRelationIDs([...currentCategoryIDs, saleCategoryID])
+    : currentCategoryIDs.filter((categoryID) => String(categoryID) !== String(saleCategoryID))
 
-  if (nextCategoryIDs.length === currentCategoryIDs.length) {
+  if (
+    nextCategoryIDs.length === currentCategoryIDs.length &&
+    nextCategoryIDs.every((categoryID, index) => String(categoryID) === String(currentCategoryIDs[index]))
+  ) {
     return productData
   }
 
