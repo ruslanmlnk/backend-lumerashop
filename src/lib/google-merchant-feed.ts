@@ -45,7 +45,7 @@ export type PayloadFeedProductDoc = {
   stockStatus?: unknown
 }
 
-const DEFAULT_SITE_URL = 'http://localhost:3000'
+const DEFAULT_SITE_URL = 'https://lumerashop.cz'
 const DEFAULT_PAYLOAD_API_URL = 'http://127.0.0.1:3001'
 const DEFAULT_BRAND = 'Lumera'
 const DEFAULT_LOCAL_ASSET_FALLBACK = '/assets/products/olivia-ruzova.webp'

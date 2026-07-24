@@ -58,9 +58,9 @@ export const footerInfoPageSeeds: FooterInfoPageSeed[] = [
         <li><strong>Osobně</strong><br />Vrácení zboží je možné také osobně na výdejním místě na adrese <strong>Lisabonská 2394, 190 00 Praha 9-Libeň</strong>.</li>
       </ul>
       <h2>Reklamační formulář</h2>
-      <p><a href="https://lumerashop.cz/wp-content/uploads/2025/11/Reklamacni-formular-Lumera.pdf" target="_blank" rel="noreferrer">Reklamační formulář ke stažení zde</a></p>
+      <p><a href="https://lumerashop.cz/pdf/Reklamacni-formular-Lumera.pdf" target="_blank" rel="noreferrer">Reklamační formulář ke stažení zde</a></p>
       <h2>Odstoupení od smlouvy</h2>
-      <p><a href="https://lumerashop.cz/odstoupeni-od-smlouvy-lumera/" target="_blank" rel="noreferrer">Formulář pro odstoupení od smlouvy ke stažení zde</a></p>
+      <p><a href="https://lumerashop.cz/pdf/Odstoupeni-od-smlouvy-Lumera.pdf" target="_blank" rel="noreferrer">Formulář pro odstoupení od smlouvy ke stažení zde</a></p>
       <h2>Informace k vrácení zboží v zákonné lhůtě</h2>
       <ul>
         <li>Zboží je možné vrátit do 14 kalendářních dnů od jeho převzetí.</li>
@@ -163,8 +163,8 @@ export const footerInfoPageSeeds: FooterInfoPageSeed[] = [
         <li>Veškeré spory vyplývající z těchto Podmínek se řídí právem České republiky.</li>
         <li>Tyto Podmínky nabývají účinnosti dnem zveřejnění na webu.</li>
       </ol>
-      <p><a href="https://lumerashop.cz/wp-content/uploads/2025/11/Reklamacni-formular-Lumera.pdf" target="_blank" rel="noreferrer">Reklamační formulář ke stažení zde</a></p>
-      <p><a href="https://lumerashop.cz/odstoupeni-od-smlouvy-lumera/" target="_blank" rel="noreferrer">Odstoupení od smlouvy ke stažení zde</a></p>
+      <p><a href="https://lumerashop.cz/pdf/Reklamacni-formular-Lumera.pdf" target="_blank" rel="noreferrer">Reklamační formulář ke stažení zde</a></p>
+      <p><a href="https://lumerashop.cz/pdf/Odstoupeni-od-smlouvy-Lumera.pdf" target="_blank" rel="noreferrer">Odstoupení od smlouvy ke stažení zde</a></p>
     `,
   },
   {
