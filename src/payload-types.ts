@@ -450,6 +450,10 @@ export interface Product {
   discountValidUntil?: string | null;
   oldPrice?: number | null;
   sku?: string | null;
+  /**
+   * Pokud zůstane prázdné, ve feedech se použije „Made in Italy“.
+   */
+  brand?: string | null;
   stockQuantity?: number | null;
   /**
    * Používá se pro řazení produktů podle oblíbenosti na webu.
@@ -1079,6 +1083,7 @@ export interface ProductsSelect<T extends boolean = true> {
   discountValidUntil?: T;
   oldPrice?: T;
   sku?: T;
+  brand?: T;
   stockQuantity?: T;
   purchaseCount?: T;
   shortDescription?: T;

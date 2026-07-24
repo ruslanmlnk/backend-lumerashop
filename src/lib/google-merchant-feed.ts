@@ -26,6 +26,7 @@ type PayloadCategoryDoc = {
 }
 
 export type PayloadFeedProductDoc = {
+  brand?: unknown
   category?: PayloadCategoryDoc | PayloadCategoryDoc[] | number | number[] | null
   discountPercent?: unknown
   discountPrice?: unknown
@@ -47,7 +48,7 @@ export type PayloadFeedProductDoc = {
 
 const DEFAULT_SITE_URL = 'https://lumerashop.cz'
 const DEFAULT_PAYLOAD_API_URL = 'http://127.0.0.1:3001'
-const DEFAULT_BRAND = 'Lumera'
+const DEFAULT_BRAND = 'Made in Italy'
 const DEFAULT_LOCAL_ASSET_FALLBACK = '/assets/products/olivia-ruzova.webp'
 
 export const getSiteUrl = () =>
@@ -179,6 +180,7 @@ export const mapPayloadFeedProduct = (doc: PayloadFeedProductDoc, baseUrl: strin
 
   return {
     category,
+    brand: typeof doc.brand === 'string' && doc.brand.trim() ? doc.brand.trim() : undefined,
     gallery: resolvePayloadGallery(doc.gallery, baseUrl),
     highlights: highlights.length > 0 ? highlights : legacyShortDescription ? [legacyShortDescription] : undefined,
     id,
@@ -224,6 +226,7 @@ const fetchMerchantProducts = async (): Promise<Product[]> => {
 }
 
 const buildProductItemXml = (product: Product, siteUrl: string, populatedCategories: Set<string>) => {
+  const brand = product.brand?.trim() || DEFAULT_BRAND
   const descriptionSource = normalizeText(product.highlights?.join('. ') || product.name)
   const description = descriptionSource || product.name
   const category = typeof product.category === 'string' ? product.category.trim() : ''
@@ -253,7 +256,7 @@ const buildProductItemXml = (product: Product, siteUrl: string, populatedCategor
     '    <g:condition>new</g:condition>',
     `    <g:price>${toGooglePrice(price)}</g:price>`,
     salePrice ? `    <g:sale_price>${toGooglePrice(salePrice)}</g:sale_price>` : '',
-    `    <g:brand>${DEFAULT_BRAND}</g:brand>`,
+    `    <g:brand>${escapeXml(brand)}</g:brand>`,
     `    <g:identifier_exists>${product.sku ? 'yes' : 'no'}</g:identifier_exists>`,
     productType ? `    <g:product_type>${escapeXml(productType)}</g:product_type>` : '',
     mpn,

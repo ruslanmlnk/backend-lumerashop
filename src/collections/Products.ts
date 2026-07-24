@@ -571,6 +571,14 @@ export const Products: CollectionConfig = {
           label: 'SKU',
         },
         {
+          name: 'brand',
+          type: 'text',
+          label: 'Značka',
+          admin: {
+            description: 'Pokud zůstane prázdné, ve feedech se použije „Made in Italy“.',
+          },
+        },
+        {
           name: 'stockQuantity',
           type: 'number',
           label: 'Skladové množství',
