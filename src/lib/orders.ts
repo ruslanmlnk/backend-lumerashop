@@ -313,6 +313,15 @@ const normalizeOrderSummary = (order: PayloadOrderDoc) => ({
   discountedSubtotal: toPositiveNumber(order.discounts?.discountedSubtotal),
   bonusUnitsSpent: toWholeUnits(order.loyalty?.bonusUnitsSpent),
   bonusUnitsEarned: toWholeUnits(order.loyalty?.bonusUnitsEarned),
+  items: (order.items || []).map((item) => ({
+    id:
+      typeof item.product === 'object' && item.product
+        ? String(item.product.id || '')
+        : String(item.product || ''),
+    name: item.name || '',
+    quantity: toWholeUnits(item.quantity),
+    unitPrice: toPositiveNumber(item.unitPrice),
+  })),
   providerData: {
     stripeSessionId: order.providerData?.stripeSessionId || '',
     stripePaymentIntentId: order.providerData?.stripePaymentIntentId || '',
