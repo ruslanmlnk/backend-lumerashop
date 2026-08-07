@@ -338,6 +338,10 @@ export interface CategoryGroup {
    */
   showInDesktopMenu?: boolean | null;
   /**
+   * Pokud je skupina přiřazená produktu, přidá její název do GLAMI kategorie jako další část oddělenou znakem |.
+   */
+  includeInGlamiCategory?: boolean | null;
+  /**
    * Zobrazí tuto skupinu v mobilní navigaci.
    */
   showInMobileMenu?: boolean | null;
@@ -1007,6 +1011,7 @@ export interface CategoryGroupsSelect<T extends boolean = true> {
   slug?: T;
   showInMenu?: T;
   showInDesktopMenu?: T;
+  includeInGlamiCategory?: T;
   showInMobileMenu?: T;
   sortOrder?: T;
   category?: T;

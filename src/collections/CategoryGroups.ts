@@ -11,7 +11,7 @@ export const CategoryGroups: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'category', 'slug', 'showInDesktopMenu', 'showInMobileMenu', 'sortOrder', 'updatedAt'],
+    defaultColumns: ['name', 'category', 'slug', 'showInDesktopMenu', 'includeInGlamiCategory', 'showInMobileMenu', 'sortOrder', 'updatedAt'],
   },
   access: {
     read: () => true,
@@ -94,6 +94,17 @@ export const CategoryGroups: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: 'Zobrazí tuto skupinu v desktopovém rozbalovacím menu pod nadřazenou kategorií.',
+      },
+    },
+    {
+      name: 'includeInGlamiCategory',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Přidat do GLAMI CATEGORYTEXT',
+      admin: {
+        position: 'sidebar',
+        description:
+          'Pokud je skupina přiřazená produktu, přidá její název do GLAMI kategorie jako další část oddělenou znakem |.',
       },
     },
     {
