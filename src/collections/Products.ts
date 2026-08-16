@@ -141,8 +141,11 @@ const normalizeFilterName = (value: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
 
-const getRelationValuesForSave = (data: Record<string, unknown>, originalDoc: Record<string, unknown> | undefined, field: string) =>
-  data[field] !== undefined ? data[field] : originalDoc?.[field]
+const getRelationValuesForSave = (
+  data: Record<string, unknown>,
+  originalDoc: Record<string, unknown> | undefined,
+  field: string,
+) => (data[field] !== undefined ? data[field] : originalDoc?.[field])
 
 const fetchSaleCategoryID = async (req: PayloadRequest): Promise<RelationID | null> => {
   const result = await req.payload.find({
@@ -231,7 +234,9 @@ const applyAutomaticSaleCategory = async (
 
   if (
     nextCategoryIDs.length === currentCategoryIDs.length &&
-    nextCategoryIDs.every((categoryID, index) => String(categoryID) === String(currentCategoryIDs[index]))
+    nextCategoryIDs.every(
+      (categoryID, index) => String(categoryID) === String(currentCategoryIDs[index]),
+    )
   ) {
     return productData
   }
@@ -242,10 +247,7 @@ const applyAutomaticSaleCategory = async (
   }
 }
 
-const fetchSameNameFilterOptionIDs = async (
-  req: PayloadRequest,
-  names: string[],
-) => {
+const fetchSameNameFilterOptionIDs = async (req: PayloadRequest, names: string[]) => {
   const normalizedNames = new Set(names.map((name) => normalizeFilterName(name)).filter(Boolean))
 
   if (normalizedNames.size === 0) {
@@ -264,7 +266,10 @@ const fetchSameNameFilterOptionIDs = async (
   })
 
   return (result.docs as AutoFilterOptionDoc[])
-    .filter((option) => typeof option.name === 'string' && normalizedNames.has(normalizeFilterName(option.name)))
+    .filter(
+      (option) =>
+        typeof option.name === 'string' && normalizedNames.has(normalizeFilterName(option.name)),
+    )
     .map((option) => option.id)
     .filter((id): id is RelationID => typeof id === 'number' || typeof id === 'string')
 }
@@ -279,11 +284,19 @@ const applyAutomaticProductFilterOptions = async (
   }
 
   const originalData =
-    originalDoc && typeof originalDoc === 'object' ? (originalDoc as Record<string, unknown>) : undefined
+    originalDoc && typeof originalDoc === 'object'
+      ? (originalDoc as Record<string, unknown>)
+      : undefined
   const productData = data as Record<string, unknown>
-  const categoryIDs = parseRelationIDs(getRelationValuesForSave(productData, originalData, 'category'))
-  const categoryGroupIDs = parseRelationIDs(getRelationValuesForSave(productData, originalData, 'categoryGroup'))
-  const subcategoryIDs = parseRelationIDs(getRelationValuesForSave(productData, originalData, 'subcategories'))
+  const categoryIDs = parseRelationIDs(
+    getRelationValuesForSave(productData, originalData, 'category'),
+  )
+  const categoryGroupIDs = parseRelationIDs(
+    getRelationValuesForSave(productData, originalData, 'categoryGroup'),
+  )
+  const subcategoryIDs = parseRelationIDs(
+    getRelationValuesForSave(productData, originalData, 'subcategories'),
+  )
 
   const [categoryDocs, categoryGroupDocs, subcategoryDocs] = await Promise.all([
     fetchAutoFilterSourceDocs(req, 'categories', categoryIDs),
@@ -291,7 +304,9 @@ const applyAutomaticProductFilterOptions = async (
     fetchAutoFilterSourceDocs(req, 'subcategories', subcategoryIDs),
   ])
   const sourceDocs = [...categoryDocs, ...categoryGroupDocs, ...subcategoryDocs]
-  const explicitFilterOptionIDs = sourceDocs.flatMap((doc) => parseRelationIDs(doc.productFilterOptions))
+  const explicitFilterOptionIDs = sourceDocs.flatMap((doc) =>
+    parseRelationIDs(doc.productFilterOptions),
+  )
   const sourceNames = sourceDocs
     .map((doc) => (typeof doc.name === 'string' ? doc.name.trim() : ''))
     .filter((name): name is string => Boolean(name))
@@ -579,6 +594,19 @@ export const Products: CollectionConfig = {
           },
         },
         {
+          name: 'glamiGender',
+          type: 'select',
+          label: 'Pohlaví pro GLAMI',
+          options: [
+            { label: 'Dámské', value: 'damske' },
+            { label: 'Pánské', value: 'panske' },
+            { label: 'Unisex', value: 'unisex' },
+          ],
+          admin: {
+            description: 'Přidá se do CATEGORYTEXT v XML feedu pro GLAMI.',
+          },
+        },
+        {
           name: 'stockQuantity',
           type: 'number',
           label: 'Skladové množství',
@@ -629,7 +657,8 @@ export const Products: CollectionConfig = {
         return true
       },
       admin: {
-        description: 'Druhá úroveň navigace používaná pro seskupená katalogová menu a landing pages kategorií.',
+        description:
+          'Druhá úroveň navigace používaná pro seskupená katalogová menu a landing pages kategorií.',
       },
     },
     {
@@ -686,7 +715,8 @@ export const Products: CollectionConfig = {
               type: 'richText',
               label: 'Obsah',
               admin: {
-                description: 'Plně upravitelný obsah pro první záložku „Popis“ na stránce produktu.',
+                description:
+                  'Plně upravitelný obsah pro první záložku „Popis“ na stránce produktu.',
               },
             },
           ],
@@ -767,7 +797,8 @@ export const Products: CollectionConfig = {
       hasMany: true,
       label: 'Variantní produkty',
       admin: {
-        description: 'Vyberte produkty, které se mají zobrazit v bloku barev a variant na stránce produktu.',
+        description:
+          'Vyberte produkty, které se mají zobrazit v bloku barev a variant na stránce produktu.',
       },
     },
     {

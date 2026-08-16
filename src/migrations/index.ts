@@ -1,30 +1,31 @@
-import * as migration_20260309_041140_add_ppl_shipment from './20260309_041140_add_ppl_shipment';
-import * as migration_20260319_110000_split_menu_visibility from './20260319_110000_split_menu_visibility';
-import * as migration_20260319_160500_add_first_purchase_discount from './20260319_160500_add_first_purchase_discount';
-import * as migration_20260322_120000_add_category_desktop_dropdown_menu from './20260322_120000_add_category_desktop_dropdown_menu';
-import * as migration_20260323_090000_add_catalog_filter_visibility from './20260323_090000_add_catalog_filter_visibility';
-import * as migration_20260325_080952 from './20260325_080952';
-import * as migration_20260325_120000_add_cash_on_delivery_and_order_notifications from './20260325_120000_add_cash_on_delivery_and_order_notifications';
-import * as migration_20260326_000000_add_order_confirmation_fields from './20260326_000000_add_order_confirmation_fields';
-import * as migration_20260326_010000_add_order_cancellation_fields from './20260326_010000_add_order_cancellation_fields';
-import * as migration_20260330_120000_add_first_purchase_promo_global from './20260330_120000_add_first_purchase_promo_global';
-import * as migration_20260330_161500_add_order_invoice_storage from './20260330_161500_add_order_invoice_storage';
-import * as migration_20260401_120000_add_require_purchase_for_review from './20260401_120000_add_require_purchase_for_review';
-import * as migration_20260408_150000_add_order_pickup_point_metadata from './20260408_150000_add_order_pickup_point_metadata';
-import * as migration_20260408_180000_add_product_discount_schedule_and_remove_description from './20260408_180000_add_product_discount_schedule_and_remove_description';
-import * as migration_20260409_110500_convert_product_gallery_to_upload_has_many from './20260409_110500_convert_product_gallery_to_upload_has_many';
-import * as migration_20260409_121500_convert_product_categories_to_has_many from './20260409_121500_convert_product_categories_to_has_many';
-import * as migration_20260522_012500_drop_legacy_product_category_columns from './20260522_012500_drop_legacy_product_category_columns';
-import * as migration_20260605_120000_add_product_highlights_content from './20260605_120000_add_product_highlights_content';
-import * as migration_20260609_020000_add_reusable_category_groups from './20260609_020000_add_reusable_category_groups';
-import * as migration_20260609_060000_merge_category_group_categories from './20260609_060000_merge_category_group_categories';
-import * as migration_20260622_120000_add_site_settings from './20260622_120000_add_site_settings';
-import * as migration_20260701_120000_add_free_shipping_threshold from './20260701_120000_add_free_shipping_threshold';
-import * as migration_20260707_120000_add_cash_on_delivery_fee from './20260707_120000_add_cash_on_delivery_fee';
-import * as migration_20260720_173000_convert_subcategory_categories_to_has_many from './20260720_173000_convert_subcategory_categories_to_has_many';
-import * as migration_20260721_230000_add_annual_invoice_counter from './20260721_230000_add_annual_invoice_counter';
-import * as migration_20260724_173000_add_product_brand from './20260724_173000_add_product_brand';
-import * as migration_20260807_120000_add_category_group_glami_visibility from './20260807_120000_add_category_group_glami_visibility';
+import * as migration_20260309_041140_add_ppl_shipment from './20260309_041140_add_ppl_shipment'
+import * as migration_20260319_110000_split_menu_visibility from './20260319_110000_split_menu_visibility'
+import * as migration_20260319_160500_add_first_purchase_discount from './20260319_160500_add_first_purchase_discount'
+import * as migration_20260322_120000_add_category_desktop_dropdown_menu from './20260322_120000_add_category_desktop_dropdown_menu'
+import * as migration_20260323_090000_add_catalog_filter_visibility from './20260323_090000_add_catalog_filter_visibility'
+import * as migration_20260325_080952 from './20260325_080952'
+import * as migration_20260325_120000_add_cash_on_delivery_and_order_notifications from './20260325_120000_add_cash_on_delivery_and_order_notifications'
+import * as migration_20260326_000000_add_order_confirmation_fields from './20260326_000000_add_order_confirmation_fields'
+import * as migration_20260326_010000_add_order_cancellation_fields from './20260326_010000_add_order_cancellation_fields'
+import * as migration_20260330_120000_add_first_purchase_promo_global from './20260330_120000_add_first_purchase_promo_global'
+import * as migration_20260330_161500_add_order_invoice_storage from './20260330_161500_add_order_invoice_storage'
+import * as migration_20260401_120000_add_require_purchase_for_review from './20260401_120000_add_require_purchase_for_review'
+import * as migration_20260408_150000_add_order_pickup_point_metadata from './20260408_150000_add_order_pickup_point_metadata'
+import * as migration_20260408_180000_add_product_discount_schedule_and_remove_description from './20260408_180000_add_product_discount_schedule_and_remove_description'
+import * as migration_20260409_110500_convert_product_gallery_to_upload_has_many from './20260409_110500_convert_product_gallery_to_upload_has_many'
+import * as migration_20260409_121500_convert_product_categories_to_has_many from './20260409_121500_convert_product_categories_to_has_many'
+import * as migration_20260522_012500_drop_legacy_product_category_columns from './20260522_012500_drop_legacy_product_category_columns'
+import * as migration_20260605_120000_add_product_highlights_content from './20260605_120000_add_product_highlights_content'
+import * as migration_20260609_020000_add_reusable_category_groups from './20260609_020000_add_reusable_category_groups'
+import * as migration_20260609_060000_merge_category_group_categories from './20260609_060000_merge_category_group_categories'
+import * as migration_20260622_120000_add_site_settings from './20260622_120000_add_site_settings'
+import * as migration_20260701_120000_add_free_shipping_threshold from './20260701_120000_add_free_shipping_threshold'
+import * as migration_20260707_120000_add_cash_on_delivery_fee from './20260707_120000_add_cash_on_delivery_fee'
+import * as migration_20260720_173000_convert_subcategory_categories_to_has_many from './20260720_173000_convert_subcategory_categories_to_has_many'
+import * as migration_20260721_230000_add_annual_invoice_counter from './20260721_230000_add_annual_invoice_counter'
+import * as migration_20260724_173000_add_product_brand from './20260724_173000_add_product_brand'
+import * as migration_20260807_120000_add_category_group_glami_visibility from './20260807_120000_add_category_group_glami_visibility'
+import * as migration_20260816_120000_add_product_glami_gender from './20260816_120000_add_product_glami_gender'
 
 export const migrations = [
   {
@@ -55,7 +56,7 @@ export const migrations = [
   {
     up: migration_20260325_080952.up,
     down: migration_20260325_080952.down,
-    name: '20260325_080952'
+    name: '20260325_080952',
   },
   {
     up: migration_20260325_120000_add_cash_on_delivery_and_order_notifications.up,
@@ -162,4 +163,9 @@ export const migrations = [
     down: migration_20260807_120000_add_category_group_glami_visibility.down,
     name: '20260807_120000_add_category_group_glami_visibility',
   },
-];
+  {
+    up: migration_20260816_120000_add_product_glami_gender.up,
+    down: migration_20260816_120000_add_product_glami_gender.down,
+    name: '20260816_120000_add_product_glami_gender',
+  },
+]
