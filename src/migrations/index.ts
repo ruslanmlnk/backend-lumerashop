@@ -26,6 +26,7 @@ import * as migration_20260721_230000_add_annual_invoice_counter from './2026072
 import * as migration_20260724_173000_add_product_brand from './20260724_173000_add_product_brand'
 import * as migration_20260807_120000_add_category_group_glami_visibility from './20260807_120000_add_category_group_glami_visibility'
 import * as migration_20260816_120000_add_product_glami_gender from './20260816_120000_add_product_glami_gender'
+import * as migration_20260816_121000_add_subcategory_glami_visibility from './20260816_121000_add_subcategory_glami_visibility'
 
 export const migrations = [
   {
@@ -167,5 +168,10 @@ export const migrations = [
     up: migration_20260816_120000_add_product_glami_gender.up,
     down: migration_20260816_120000_add_product_glami_gender.down,
     name: '20260816_120000_add_product_glami_gender',
+  },
+  {
+    up: migration_20260816_121000_add_subcategory_glami_visibility.up,
+    down: migration_20260816_121000_add_subcategory_glami_visibility.down,
+    name: '20260816_121000_add_subcategory_glami_visibility',
   },
 ]

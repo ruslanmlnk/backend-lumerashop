@@ -11,7 +11,7 @@ export const Subcategories: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'categories', 'categoryGroup', 'slug', 'showInDesktopMenu', 'showInMobileMenu', 'sortOrder', 'updatedAt'],
+    defaultColumns: ['name', 'categories', 'categoryGroup', 'slug', 'showInDesktopMenu', 'includeInGlamiCategory', 'showInMobileMenu', 'sortOrder', 'updatedAt'],
   },
   access: {
     read: () => true,
@@ -122,6 +122,17 @@ export const Subcategories: CollectionConfig = {
       label: 'Nadřazená skupina kategorií',
       admin: {
         description: 'Vyberte skupinu, pod kterou se má podkategorie zobrazovat.',
+      },
+    },
+    {
+      name: 'includeInGlamiCategory',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Přidat do GLAMI CATEGORYTEXT',
+      admin: {
+        position: 'sidebar',
+        description:
+          'Pokud je podkategorie přiřazená produktu, přidá její název do GLAMI kategorie jako další část oddělenou znakem |.',
       },
     },
     {

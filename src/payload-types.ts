@@ -398,6 +398,10 @@ export interface Subcategory {
    * Zobrazí tuto podkategorii v mobilní navigaci.
    */
   showInMobileMenu?: boolean | null
+  /**
+   * Pokud je podkategorie přiřazená produktu, přidá její název do GLAMI kategorie jako další část oddělenou znakem |.
+   */
+  includeInGlamiCategory?: boolean | null
   sortOrder?: number | null
   /**
    * Vyberte skupinu, pod kterou se má podkategorie zobrazovat.
@@ -1045,6 +1049,7 @@ export interface SubcategoriesSelect<T extends boolean = true> {
   showInMenu?: T
   showInDesktopMenu?: T
   showInMobileMenu?: T
+  includeInGlamiCategory?: T
   sortOrder?: T
   categoryGroup?: T
   categories?: T
