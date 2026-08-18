@@ -27,6 +27,7 @@ import * as migration_20260724_173000_add_product_brand from './20260724_173000_
 import * as migration_20260807_120000_add_category_group_glami_visibility from './20260807_120000_add_category_group_glami_visibility'
 import * as migration_20260816_120000_add_product_glami_gender from './20260816_120000_add_product_glami_gender'
 import * as migration_20260816_121000_add_subcategory_glami_visibility from './20260816_121000_add_subcategory_glami_visibility'
+import * as migration_20260818_120000_add_product_glami_cpc from './20260818_120000_add_product_glami_cpc'
 
 export const migrations = [
   {
@@ -173,5 +174,10 @@ export const migrations = [
     up: migration_20260816_121000_add_subcategory_glami_visibility.up,
     down: migration_20260816_121000_add_subcategory_glami_visibility.down,
     name: '20260816_121000_add_subcategory_glami_visibility',
+  },
+  {
+    up: migration_20260818_120000_add_product_glami_cpc.up,
+    down: migration_20260818_120000_add_product_glami_cpc.down,
+    name: '20260818_120000_add_product_glami_cpc',
   },
 ]

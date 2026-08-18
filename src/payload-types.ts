@@ -474,6 +474,10 @@ export interface Product {
    * Přidá se do CATEGORYTEXT v XML feedu pro GLAMI.
    */
   glamiGender?: ('damske' | 'panske' | 'unisex') | null
+  /**
+   * Individuální CPC pro produkt bez měny. Pokud zůstane prázdné, GLAMI použije základní CPC nastavené v administraci.
+   */
+  glamiCpc?: number | null
   stockQuantity?: number | null
   /**
    * Používá se pro řazení produktů podle oblíbenosti na webu.
@@ -1107,6 +1111,7 @@ export interface ProductsSelect<T extends boolean = true> {
   sku?: T
   brand?: T
   glamiGender?: T
+  glamiCpc?: T
   stockQuantity?: T
   purchaseCount?: T
   shortDescription?: T

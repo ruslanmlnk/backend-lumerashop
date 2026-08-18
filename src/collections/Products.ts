@@ -607,6 +607,16 @@ export const Products: CollectionConfig = {
           },
         },
         {
+          name: 'glamiCpc',
+          type: 'number',
+          label: 'GLAMI CPC',
+          min: 0,
+          admin: {
+            description:
+              'Individuální CPC pro produkt bez měny. Pokud zůstane prázdné, GLAMI použije základní CPC nastavené v administraci.',
+          },
+        },
+        {
           name: 'stockQuantity',
           type: 'number',
           label: 'Skladové množství',
