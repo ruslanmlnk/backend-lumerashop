@@ -567,6 +567,10 @@ export interface Product {
    * Pokud je vyplněno, zobrazí se na webu text „Do X dnů“.
    */
   deliveryTime?: number | null
+  /**
+   * Přidá zemi původu do parametrů produktu v GLAMI feedu.
+   */
+  countryOfOrigin?: ('cesko' | 'italie' | 'slovensko') | null
   updatedAt: string
   createdAt: string
 }
@@ -1142,6 +1146,7 @@ export interface ProductsSelect<T extends boolean = true> {
   isFeatured?: T
   isRecommended?: T
   deliveryTime?: T
+  countryOfOrigin?: T
   updatedAt?: T
   createdAt?: T
 }

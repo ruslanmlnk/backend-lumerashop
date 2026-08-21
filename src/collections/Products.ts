@@ -866,5 +866,19 @@ export const Products: CollectionConfig = {
         position: 'sidebar',
       },
     },
+    {
+      name: 'countryOfOrigin',
+      type: 'select',
+      label: 'Země původu',
+      options: [
+        { label: 'Česko', value: 'cesko' },
+        { label: 'Itálie', value: 'italie' },
+        { label: 'Slovensko', value: 'slovensko' },
+      ],
+      admin: {
+        position: 'sidebar',
+        description: 'Přidá zemi původu do parametrů produktu v GLAMI feedu.',
+      },
+    },
   ],
 }
