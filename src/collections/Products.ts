@@ -1,6 +1,13 @@
-import type { CollectionBeforeChangeHook, CollectionConfig, PayloadRequest, Where } from 'payload'
+import type {
+  CollectionBeforeChangeHook,
+  CollectionConfig,
+  PayloadRequest,
+  TextFieldValidation,
+  Where,
+} from 'payload'
 import { slugField } from 'payload'
 
+import glamiCategoryFullnames from '@/data/glami-category-fullnames.json'
 import {
   clampProductDiscountPercent,
   normalizeProductDiscountType,
@@ -10,6 +17,18 @@ import {
   resolveStoredProductRegularPrice,
 } from '@/lib/product-pricing'
 import { slugifyValue } from '@/utilities/slugify'
+
+const glamiCategoryFullnameSet = new Set<string>(glamiCategoryFullnames)
+
+const validateGlamiCategoryFullname: TextFieldValidation = (value) => {
+  if (value == null || value === '') {
+    return true
+  }
+
+  return glamiCategoryFullnameSet.has(value)
+    ? true
+    : 'Vyberte platnou kategorii z oficiálního seznamu GLAMI.'
+}
 
 const requireUploadedMedia = (value: unknown) => {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -687,6 +706,21 @@ export const Products: CollectionConfig = {
         }
 
         return true
+      },
+    },
+    {
+      name: 'glamiCategoryFullname',
+      type: 'text',
+      label: 'GLAMI CATEGORY FULLNAME',
+      maxLength: 255,
+      validate: validateGlamiCategoryFullname,
+      admin: {
+        components: {
+          Field: '@/components/admin/products/GlamiCategoryFullnameField',
+        },
+        description:
+          'Vyberte přesný CATEGORY_FULLNAME z oficiálního seznamu GLAMI. Pokud pole zůstane prázdné, feed použije současnou automatickou kategorii.',
+        placeholder: 'Začněte psát kategorii GLAMI…',
       },
     },
     {

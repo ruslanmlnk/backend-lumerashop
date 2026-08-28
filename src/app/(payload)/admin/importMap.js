@@ -1,6 +1,7 @@
 import { SlugField as SlugField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { default as default_15c4833324bacff2a99a2d5deef1838c } from '@/components/admin/products/ProductNameCell'
 import { default as default_086e5f94c1f4969b651e6c492528ceb1 } from '@/components/admin/products/ProductPriceCell'
+import { default as default_f5d59d7e2606fe98adc3a8d9f3b96ec3 } from '@/components/admin/products/GlamiCategoryFullnameField'
 import { default as default_9306fadb3a53aeb427bf662bec5d2667 } from '@/components/admin/products/ProductMainImageCell'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -37,6 +38,7 @@ export const importMap = {
   "@payloadcms/next/client#SlugField": SlugField_2b8867833a34864a02ddf429b0728a40,
   "@/components/admin/products/ProductNameCell#default": default_15c4833324bacff2a99a2d5deef1838c,
   "@/components/admin/products/ProductPriceCell#default": default_086e5f94c1f4969b651e6c492528ceb1,
+  "@/components/admin/products/GlamiCategoryFullnameField#default": default_f5d59d7e2606fe98adc3a8d9f3b96ec3,
   "@/components/admin/products/ProductMainImageCell#default": default_9306fadb3a53aeb427bf662bec5d2667,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,

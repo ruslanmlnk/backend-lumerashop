@@ -398,15 +398,15 @@ export interface Subcategory {
    * Zobrazí tuto podkategorii v mobilní navigaci.
    */
   showInMobileMenu?: boolean | null
-  /**
-   * Pokud je podkategorie přiřazená produktu, přidá její název do GLAMI kategorie jako další část oddělenou znakem |.
-   */
-  includeInGlamiCategory?: boolean | null
   sortOrder?: number | null
   /**
    * Vyberte skupinu, pod kterou se má podkategorie zobrazovat.
    */
   categoryGroup: number | CategoryGroup
+  /**
+   * Pokud je podkategorie přiřazená produktu, přidá její název do GLAMI kategorie jako další část oddělenou znakem |.
+   */
+  includeInGlamiCategory?: boolean | null
   /**
    * Vyberte všechny kategorie, ve kterých se má podkategorie zobrazovat. Kategorie musí být současně přiřazené k vybrané skupině.
    */
@@ -490,6 +490,10 @@ export interface Product {
    */
   categoryGroup?: (number | CategoryGroup)[] | null
   subcategories?: (number | Subcategory)[] | null
+  /**
+   * Vyberte přesný CATEGORY_FULLNAME z oficiálního seznamu GLAMI. Pokud pole zůstane prázdné, feed použije současnou automatickou kategorii.
+   */
+  glamiCategoryFullname?: string | null
   mainImage?: (number | null) | Media
   /**
    * Vyberte média zobrazovaná v galerii produktu na webu.
@@ -1057,9 +1061,9 @@ export interface SubcategoriesSelect<T extends boolean = true> {
   showInMenu?: T
   showInDesktopMenu?: T
   showInMobileMenu?: T
-  includeInGlamiCategory?: T
   sortOrder?: T
   categoryGroup?: T
+  includeInGlamiCategory?: T
   categories?: T
   description?: T
   productFilterOptions?: T
@@ -1122,6 +1126,7 @@ export interface ProductsSelect<T extends boolean = true> {
   category?: T
   categoryGroup?: T
   subcategories?: T
+  glamiCategoryFullname?: T
   mainImage?: T
   gallery?: T
   descriptionContent?: T

@@ -20,6 +20,7 @@
     "seed:categories": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-category-hierarchy.ts",
     "seed:footer-info-pages": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-footer-info-pages.ts",
     "seed:shipping-methods": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/seed-shipping-methods.ts",
+    "sync:glami-categories": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/sync-glami-category-fullnames.ts",
     "typecheck": "tsc --noEmit",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "start": "cross-env PORT=3001 HOSTNAME=0.0.0.0 NODE_OPTIONS=--no-deprecation next start",
