@@ -1,7 +1,7 @@
 import type { CollectionConfig, PayloadRequest } from 'payload'
 
 import { normalizeDocumentId } from '@/lib/commerce'
-import { downloadOrderInvoice } from '@/lib/order-invoice-pdf'
+import { downloadOrderInvoice, updateInvoiceNumber } from '@/lib/order-invoice-pdf'
 import { sendInvoiceEmailToCustomer } from '@/lib/customer-order-confirmation-email'
 import { downloadPplOrderLabel, syncPplOrderLabel } from '@/lib/ppl-labels'
 import { cancelOrder, confirmOrder, getOrderDecision } from '@/lib/orders'
@@ -89,6 +89,9 @@ const canAccessOrderInvoice = async (req: PayloadRequest, documentId: number | s
 
 export const Orders: CollectionConfig = {
   slug: 'orders',
+  hooks: {
+    beforeChange: [updateInvoiceNumber],
+  },
   labels: {
     singular: 'Objednávka',
     plural: 'Objednávky',
@@ -443,7 +446,10 @@ export const Orders: CollectionConfig = {
       type: 'text',
       label: 'Číslo faktury',
       unique: true,
-      admin: readOnlyAdmin,
+      admin: {
+        condition: (data) => Boolean(data.invoiceData && data.invoiceFileName),
+        description: 'Číslo lze upravit po vygenerování faktury. Po uložení se aktualizuje také PDF. Další faktura použije nejvyšší uložené číslo + 1.',
+      },
     },
     {
       name: 'invoiceGeneratedAt',

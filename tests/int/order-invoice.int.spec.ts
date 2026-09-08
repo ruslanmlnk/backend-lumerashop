@@ -1,19 +1,18 @@
 import type { Payload } from 'payload'
 import { describe, expect, it, vi } from 'vitest'
 
-import { downloadOrderInvoice } from '@/lib/order-invoice-pdf'
+import { downloadOrderInvoice, updateInvoiceNumber } from '@/lib/order-invoice-pdf'
 
 const createPayload = (
   result: unknown,
-  options?: { lockedInvoiceNumber?: string | null; sequence?: number },
+  options?: { lockedInvoiceNumber?: string | null; maxNumber?: number },
 ) => {
   const invoiceQuery = vi.fn(async (query: string) => {
+    if (query.includes('AS "next_number"')) {
+      return { rows: [{ next_number: (options?.maxNumber ?? 0) + 1 }] }
+    }
     if (query.startsWith('SELECT')) {
       return { rows: [{ invoice_number: options?.lockedInvoiceNumber ?? null }] }
-    }
-
-    if (query.includes('RETURNING "last_value"')) {
-      return { rows: [{ last_value: options?.sequence ?? 1 }] }
     }
 
     return { rows: [] }
@@ -91,12 +90,12 @@ describe('downloadOrderInvoice', () => {
     expect(payload.update).toHaveBeenCalledTimes(1)
     expect(payload.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ invoiceNumber: `${new Date().getFullYear()}0001` }),
+        data: expect.objectContaining({ invoiceNumber: '1' }),
       }),
     )
   })
 
-  it('starts a separate sequence at one for a new year', async () => {
+  it('continues from the current maximum even across a year boundary', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-12-31T23:30:00.000Z'))
 
@@ -111,18 +110,17 @@ describe('downloadOrderInvoice', () => {
         total: 100,
         shippingTotal: 0,
         items: [{ name: 'Test', quantity: 1, unitPrice: 100, lineTotal: 100 }],
-      })
+      }, { maxNumber: 4 })
 
       await downloadOrderInvoice(payload, 9, { persistIfMissing: true })
 
       expect(payload.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ invoiceNumber: '20270001' }),
+          data: expect.objectContaining({ invoiceNumber: '5' }),
         }),
       )
       expect(payload.invoiceQuery).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO "invoice_counters"'),
-        [2027],
+        expect.stringContaining('MAX("invoice_number"::numeric)'),
       )
     } finally {
       vi.useRealTimers()
@@ -161,5 +159,31 @@ describe('downloadOrderInvoice', () => {
     expect(Buffer.from(repeated?.data || []).toString()).toBe('%PDF-stored')
     expect(payload.invoiceQuery).not.toHaveBeenCalled()
     expect(payload.update).not.toHaveBeenCalled()
+  })
+})
+
+describe('editing invoice numbers', () => {
+  const originalDoc = {
+    id: 7, orderId: 'LMR-7', invoiceNumber: '5', invoiceData: 'old-pdf',
+    invoiceFileName: 'LMR-7-faktura.pdf', currency: 'CZK', total: 100,
+    items: [{ name: 'Test', quantity: 1, unitPrice: 100, lineTotal: 100 }],
+  }
+  const edit = (invoiceNumber: string, original = originalDoc) => updateInvoiceNumber({
+    data: { invoiceNumber }, originalDoc: original,
+  } as unknown as Parameters<typeof updateInvoiceNumber>[0])
+
+  it('rebuilds the stored PDF when the number is edited', async () => {
+    const updated = await edit('4')
+    expect(updated.invoiceNumber).toBe('4')
+    expect(Buffer.from(updated.invoiceData, 'base64').subarray(0, 4).toString()).toBe('%PDF')
+    expect(originalDoc.invoiceNumber).toBe('5')
+  })
+
+  it.each(['', '0', '-1', '1.5', 'abc', '04', '9007199254740992'])('rejects invalid number %s', async (value) => {
+    await expect(edit(value)).rejects.toThrow()
+  })
+
+  it('requires generation before manually assigning a number', async () => {
+    await expect(edit('4', { ...originalDoc, invoiceNumber: '', invoiceData: '' })).rejects.toThrow()
   })
 })

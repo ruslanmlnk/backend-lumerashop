@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import type { Payload } from 'payload'
+import { ValidationError, type CollectionBeforeChangeHook, type Payload } from 'payload'
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 import sharp from 'sharp'
@@ -1765,15 +1765,7 @@ type InvoiceCounterPool = {
   connect: () => Promise<InvoiceCounterClient>
 }
 
-const getInvoiceYear = (invoiceDate: Date) =>
-  Number(
-    new Intl.DateTimeFormat('en', {
-      timeZone: 'Europe/Prague',
-      year: 'numeric',
-    }).format(invoiceDate),
-  )
-
-const assignInvoiceNumber = async (payload: Payload, order: PayloadOrderDoc, invoiceDate: Date) => {
+const assignInvoiceNumber = async (payload: Payload, order: PayloadOrderDoc) => {
   const existingInvoiceNumber = sanitizeString(order.invoiceNumber)
 
   if (existingInvoiceNumber) {
@@ -1790,6 +1782,8 @@ const assignInvoiceNumber = async (payload: Payload, order: PayloadOrderDoc, inv
 
   try {
     await client.query('BEGIN')
+    // Serialize allocation with other allocations and manual order updates.
+    await client.query('LOCK TABLE "orders" IN SHARE ROW EXCLUSIVE MODE')
 
     const orderResult = await client.query(
       'SELECT "invoice_number" FROM "orders" WHERE "id" = $1 FOR UPDATE',
@@ -1802,23 +1796,17 @@ const assignInvoiceNumber = async (payload: Payload, order: PayloadOrderDoc, inv
       return lockedInvoiceNumber
     }
 
-    const year = getInvoiceYear(invoiceDate)
     const counterResult = await client.query(
-      `INSERT INTO "invoice_counters" ("year", "last_value", "updated_at")
-       VALUES ($1, 1, CURRENT_TIMESTAMP)
-       ON CONFLICT ("year") DO UPDATE
-       SET "last_value" = "invoice_counters"."last_value" + 1,
-           "updated_at" = CURRENT_TIMESTAMP
-       RETURNING "last_value"`,
-      [year],
+      `SELECT COALESCE(MAX("invoice_number"::numeric), 0) + 1 AS "next_number"
+       FROM "orders" WHERE "invoice_number" ~ '^[0-9]+$'`,
     )
-    const sequence = Number(counterResult.rows?.[0]?.last_value)
+    const sequence = Number(counterResult.rows?.[0]?.next_number)
 
     if (!Number.isSafeInteger(sequence) || sequence < 1) {
       throw new Error('Failed to allocate the next invoice number.')
     }
 
-    const invoiceNumber = `${year}${String(sequence).padStart(4, '0')}`
+    const invoiceNumber = String(sequence)
 
     await client.query('UPDATE "orders" SET "invoice_number" = $1 WHERE "id" = $2', [
       invoiceNumber,
@@ -1895,6 +1883,26 @@ const buildOrderInvoicePdf = async (order: PayloadOrderDoc) => {
   */
 }
 
+export const updateInvoiceNumber: CollectionBeforeChangeHook = async ({ data, originalDoc }) => {
+  if (data.invoiceNumber === undefined || data.invoiceNumber === originalDoc?.invoiceNumber) return data
+
+  const invoiceNumber = sanitizeString(data.invoiceNumber)
+  if (!invoiceNumber && !originalDoc?.invoiceNumber) return data
+  if (!/^[1-9]\d*$/.test(invoiceNumber) || !Number.isSafeInteger(Number(invoiceNumber))) {
+    throw new ValidationError({ errors: [{ path: 'invoiceNumber', message: 'Zadejte kladné celé číslo bez úvodních nul.' }] })
+  }
+  if (!originalDoc?.invoiceData && !data.invoiceData) {
+    throw new ValidationError({ errors: [{ path: 'invoiceNumber', message: 'Nejprve vygenerujte fakturu.' }] })
+  }
+  data.invoiceNumber = invoiceNumber
+  if (originalDoc?.invoiceData) {
+    const pdf = await buildOrderInvoicePdf({ ...originalDoc, invoiceNumber })
+    data.invoiceData = Buffer.from(pdf).toString('base64')
+    data.invoiceContentType = 'application/pdf'
+  }
+  return data
+}
+
 export const downloadOrderInvoice = async (
   payload: Payload,
   documentId: number | string,
@@ -1924,7 +1932,7 @@ export const downloadOrderInvoice = async (
     return null
   }
 
-  const invoiceNumber = await assignInvoiceNumber(payload, order, new Date())
+  const invoiceNumber = await assignInvoiceNumber(payload, order)
   const orderWithInvoiceNumber = { ...order, invoiceNumber }
   const orderId = sanitizeString(order.orderId) || String(order.id)
   const safeOrderId = getSafeFileName(orderId)
