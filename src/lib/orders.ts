@@ -103,6 +103,8 @@ export type InternalOrderUpdateInput = {
 
 export type OrderDecisionSummary = {
   orderId: string
+  invoiceNumber: string
+  hasInvoice: boolean
   isConfirmed: boolean
   confirmedAt: string
   confirmationEmailSentAt: string
@@ -118,6 +120,9 @@ type InternalPickupPointInput = NonNullable<NonNullable<InternalOrderCreateInput
 
 type PayloadOrderDoc = {
   id: number
+  invoiceNumber?: string | null
+  invoiceData?: string | null
+  invoiceFileName?: string | null
   orderId?: string | null
   provider?: OrderPaymentProvider | null
   paymentStatus?: OrderPaymentStatus | null
@@ -364,6 +369,8 @@ const getOrderDecisionSummary = (
   overrides?: Partial<Pick<OrderDecisionSummary, 'alreadyConfirmed' | 'alreadyCanceled'>>,
 ): OrderDecisionSummary => ({
   orderId: order.orderId || '',
+  invoiceNumber: sanitizeString(order.invoiceNumber),
+  hasInvoice: Boolean(order.invoiceData && order.invoiceFileName),
   isConfirmed: order.isConfirmed === true,
   confirmedAt: sanitizeString(order.confirmedAt),
   confirmationEmailSentAt: sanitizeString(order.confirmationEmailSentAt),

@@ -5,6 +5,8 @@ import { toast, useDocumentInfo } from '@payloadcms/ui'
 
 type OrderDecisionState = {
   orderId?: string
+  invoiceNumber?: string
+  hasInvoice?: boolean
   isConfirmed?: boolean
   confirmedAt?: string
   confirmationEmailSentAt?: string
@@ -52,6 +54,8 @@ const readOrderDecisionState = (value: unknown): OrderDecisionState => {
 
   return {
     orderId: typeof source.orderId === 'string' ? source.orderId : '',
+    invoiceNumber: typeof source.invoiceNumber === 'string' ? source.invoiceNumber : '',
+    hasInvoice: source.hasInvoice === true || Boolean(source.invoiceData && source.invoiceFileName),
     isConfirmed,
     confirmedAt: typeof source.confirmedAt === 'string' ? source.confirmedAt : '',
     confirmationEmailSentAt:
@@ -79,7 +83,7 @@ const formatTimestamp = (value: string | undefined) => {
   }
 
   const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString()
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString('cs-CZ')
 }
 
 const getStatusLabel = (status: OrderDecisionState['currentStatus']) => {
@@ -102,6 +106,8 @@ const mergeDecisionIntoDocument = (value: unknown, decision: OrderDecisionState)
   return {
     ...(value as Record<string, unknown>),
     orderId: decision.orderId || '',
+    invoiceNumber: decision.invoiceNumber || '',
+    hasInvoice: decision.hasInvoice === true,
     isConfirmed: decision.isConfirmed === true,
     confirmedAt: decision.confirmedAt || undefined,
     confirmationEmailSentAt: decision.confirmationEmailSentAt || undefined,
@@ -114,7 +120,7 @@ const mergeDecisionIntoDocument = (value: unknown, decision: OrderDecisionState)
 
 export default function OrderConfirmationControls() {
   const { data, setData } = useDocumentInfo()
-  const [busyAction, setBusyAction] = useState<'confirm' | 'cancel' | 'invoice' | null>(null)
+  const [busyAction, setBusyAction] = useState<'confirm' | 'cancel' | 'invoice' | 'generate-invoice' | 'send-invoice' | null>(null)
   const [isRefreshingDecision, setIsRefreshingDecision] = useState(false)
   const [hasLoadedPersistedDecision, setHasLoadedPersistedDecision] = useState(false)
   const [decision, setDecision] = useState<OrderDecisionState>(() => readOrderDecisionState(data))
@@ -266,10 +272,31 @@ export default function OrderConfirmationControls() {
     }
   }
 
+  const handleInvoiceAction = async (action: 'generate-invoice' | 'send-invoice') => {
+    setBusyAction(action)
+    try {
+      const response = await fetch(`/api/orders/${encodeURIComponent(docId)}/${action}`, { method: 'POST' })
+      const payload = (await response.json().catch(() => ({}))) as EndpointResponse
+      if (!response.ok) {
+        throw new Error(payload.error || 'Nepodařilo se zpracovat fakturu.')
+      }
+      if (action === 'generate-invoice') {
+        applyDecision(readOrderDecisionState(payload))
+        toast.success('Faktura byla vygenerována.')
+      } else {
+        toast.success('Faktura byla odeslána na e-mail zákazníka.')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Nepodařilo se zpracovat fakturu.')
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
   const canConfirm = decision.isConfirmed !== true && decision.isCanceled !== true
   const canCancel = decision.isCanceled !== true
   const isDecisionBusy = busyAction !== null || isRefreshingDecision
-  const isInvoiceBusy = busyAction !== null
+  const isInvoiceBusy = busyAction !== null || isRefreshingDecision || !hasLoadedPersistedDecision
   const shouldShowActions = hasLoadedPersistedDecision && decision.currentStatus !== 'canceled'
 
   return (
@@ -286,7 +313,7 @@ export default function OrderConfirmationControls() {
       <div style={{ display: 'grid', gap: 4 }}>
         <strong style={{ fontSize: 14 }}>Stav objednávky</strong>
         <span style={{ color: 'var(--theme-elevation-600)', fontSize: 13 }}>
-          Potvrďte nebo zrušte objednávku, informujte zákazníka a stáhněte fakturu PDF pro další použití.
+          Potvrďte nebo zrušte objednávku. Fakturu můžete vygenerovat, stáhnout a odeslat zákazníkovi.
         </span>
       </div>
 
@@ -301,6 +328,9 @@ export default function OrderConfirmationControls() {
           <div>
             <strong>Číslo objednávky:</strong> {decision.orderId}
           </div>
+        ) : null}
+        {decision.invoiceNumber ? (
+          <div><strong>Číslo faktury:</strong> {decision.invoiceNumber}</div>
         ) : null}
         {decision.confirmedAt ? (
           <div>
@@ -317,7 +347,7 @@ export default function OrderConfirmationControls() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
         <button
           type="button"
-          onClick={handleInvoiceDownload}
+          onClick={decision.hasInvoice ? handleInvoiceDownload : () => handleInvoiceAction('generate-invoice')}
           disabled={isInvoiceBusy}
           style={{
             border: '1px solid var(--theme-elevation-300)',
@@ -329,8 +359,28 @@ export default function OrderConfirmationControls() {
             fontWeight: 600,
           }}
         >
-          {busyAction === 'invoice' ? 'Připravuji...' : 'Stáhnout fakturu PDF'}
+          {decision.hasInvoice
+            ? busyAction === 'invoice' ? 'Stahuji...' : 'Stáhnout fakturu PDF'
+            : busyAction === 'generate-invoice' ? 'Generuji...' : 'Vygenerovat fakturu'}
         </button>
+        {decision.hasInvoice ? (
+          <button
+            type="button"
+            onClick={() => handleInvoiceAction('send-invoice')}
+            disabled={isInvoiceBusy}
+            style={{
+              border: '1px solid var(--theme-elevation-300)',
+              borderRadius: 999,
+              padding: '10px 16px',
+              background: isInvoiceBusy ? 'var(--theme-elevation-150)' : 'var(--theme-elevation-0)',
+              color: 'var(--theme-text)',
+              cursor: isInvoiceBusy ? 'not-allowed' : 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            {busyAction === 'send-invoice' ? 'Odesílám...' : 'Odeslat fakturu zákazníkovi'}
+          </button>
+        ) : null}
       </div>
 
       {shouldShowActions ? (

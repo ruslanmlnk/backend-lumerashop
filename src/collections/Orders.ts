@@ -2,6 +2,7 @@ import type { CollectionConfig, PayloadRequest } from 'payload'
 
 import { normalizeDocumentId } from '@/lib/commerce'
 import { downloadOrderInvoice } from '@/lib/order-invoice-pdf'
+import { sendInvoiceEmailToCustomer } from '@/lib/customer-order-confirmation-email'
 import { downloadPplOrderLabel, syncPplOrderLabel } from '@/lib/ppl-labels'
 import { cancelOrder, confirmOrder, getOrderDecision } from '@/lib/orders'
 import { isPplShippingSelection, isZasilkovnaShippingSelection } from '@/lib/shipping-carriers'
@@ -94,7 +95,15 @@ export const Orders: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'orderId',
-    defaultColumns: ['orderId', 'paymentStatus', 'provider', 'total', 'customerEmail', 'updatedAt'],
+    defaultColumns: [
+      'orderId',
+      'invoiceNumber',
+      'paymentStatus',
+      'provider',
+      'total',
+      'customerEmail',
+      'updatedAt',
+    ],
   },
   endpoints: [
     {
@@ -169,22 +178,20 @@ export const Orders: CollectionConfig = {
       handler: async (req) => {
         try {
           const documentId = parseOrderDocId(req)
-          const isAdminUser = isAdminRequest(req)
           const hasAccess = await canAccessOrderInvoice(req, documentId)
 
           if (!hasAccess) {
-            return Response.json({ error: 'Order not found.' }, { status: 404 })
+            return Response.json({ error: 'Objednávka nebyla nalezena.' }, { status: 404 })
           }
 
           const result = await downloadOrderInvoice(req.payload, documentId, {
-            forceRegenerate: isAdminUser,
-            persistIfMissing: isAdminUser,
+            persistIfMissing: false,
           })
 
           if (!result) {
             return Response.json(
               {
-                error: isAdminUser ? 'Order not found.' : 'Invoice has not been generated yet.',
+                error: 'Faktura zatím nebyla vygenerována.',
               },
               { status: 404 },
             )
@@ -199,8 +206,49 @@ export const Orders: CollectionConfig = {
             },
           })
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Failed to generate invoice PDF.'
-          return Response.json({ error: message }, { status: 400 })
+          req.payload.logger.error({ err: error, msg: 'Invoice download failed' })
+          return Response.json({ error: 'Nepodařilo se stáhnout fakturu PDF.' }, { status: 400 })
+        }
+      },
+    },
+    {
+      path: '/:id/generate-invoice',
+      method: 'post',
+      handler: async (req) => {
+        if (!isAdminRequest(req)) {
+          return Response.json({ error: 'Přístup odepřen.' }, { status: 403 })
+        }
+        try {
+          const documentId = parseOrderDocId(req)
+          const invoice = await downloadOrderInvoice(req.payload, documentId, { persistIfMissing: true })
+          if (!invoice) return Response.json({ error: 'Objednávka nebyla nalezena.' }, { status: 404 })
+          return Response.json(await getOrderDecision(req.payload, documentId))
+        } catch (error) {
+          req.payload.logger.error({ err: error, msg: 'Invoice generation failed' })
+          return Response.json({ error: 'Nepodařilo se vygenerovat fakturu.' }, { status: 400 })
+        }
+      },
+    },
+    {
+      path: '/:id/send-invoice',
+      method: 'post',
+      handler: async (req) => {
+        if (!isAdminRequest(req)) {
+          return Response.json({ error: 'Přístup odepřen.' }, { status: 403 })
+        }
+        try {
+          const documentId = parseOrderDocId(req)
+          const invoice = await downloadOrderInvoice(req.payload, documentId, { persistIfMissing: false })
+          if (!invoice) return Response.json({ error: 'Nejprve vygenerujte fakturu.' }, { status: 400 })
+          const order = await req.payload.findByID({ collection: 'orders', id: documentId, depth: 0, req })
+          if (!order.customerEmail?.trim()) {
+            return Response.json({ error: 'U objednávky chybí e-mail zákazníka.' }, { status: 400 })
+          }
+          await sendInvoiceEmailToCustomer(order, invoice)
+          return Response.json({ success: true })
+        } catch (error) {
+          req.payload.logger.error({ err: error, msg: 'Invoice email failed' })
+          return Response.json({ error: 'Nepodařilo se odeslat fakturu zákazníkovi.' }, { status: 400 })
         }
       },
     },
@@ -395,7 +443,7 @@ export const Orders: CollectionConfig = {
       type: 'text',
       label: 'Číslo faktury',
       unique: true,
-      admin: hiddenReadOnlyAdmin,
+      admin: readOnlyAdmin,
     },
     {
       name: 'invoiceGeneratedAt',

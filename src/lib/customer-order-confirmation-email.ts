@@ -583,3 +583,27 @@ export const sendOrderConfirmedEmailToCustomer = (order: OrderStatusEmailDoc) =>
 
 export const sendOrderCanceledEmailToCustomer = (order: OrderStatusEmailDoc) =>
   sendOrderStatusEmailToCustomer(order, 'canceled')
+
+export const sendInvoiceEmailToCustomer = async (
+  order: { customerEmail?: string | null; orderId?: string | null; invoiceNumber?: string | null },
+  invoice: { data: Uint8Array; fileName: string; contentType: string },
+) => {
+  const config = getMailConfig()
+  if (!config) throw new Error('SMTP není nakonfigurováno pro odesílání e-mailů zákazníkům.')
+  const recipient = sanitizeText(order.customerEmail)
+  if (!recipient) throw new Error('U objednávky chybí e-mail zákazníka.')
+
+  const text = `Dobrý den,\n\nv příloze vám zasíláme fakturu č. ${sanitizeText(order.invoiceNumber)} k objednávce ${sanitizeText(order.orderId)}.\n\nDěkujeme za váš nákup.\nLumera`
+  await getTransporter(config).sendMail({
+    from: config.from,
+    to: recipient,
+    subject: `Lumera – faktura č. ${sanitizeText(order.invoiceNumber)}`,
+    text,
+    html: `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>`,
+    attachments: [{
+      filename: invoice.fileName,
+      content: Buffer.from(invoice.data),
+      contentType: invoice.contentType,
+    }],
+  })
+}

@@ -40,6 +40,14 @@ const createPayload = (
 }
 
 describe('downloadOrderInvoice', () => {
+  it('does not allocate a number or generate a PDF without an explicit generation request', async () => {
+    const payload = createPayload({ id: 7, orderId: 'LMR-7' })
+    expect(await downloadOrderInvoice(payload, 7)).toBeNull()
+    expect(await downloadOrderInvoice(payload, 7, { persistIfMissing: false })).toBeNull()
+    expect(payload.invoiceQuery).not.toHaveBeenCalled()
+    expect(payload.update).not.toHaveBeenCalled()
+  })
+
   it('returns a generated PDF for an existing order', async () => {
     const payload = createPayload({
       id: 7,
@@ -74,7 +82,7 @@ describe('downloadOrderInvoice', () => {
       ],
     })
 
-    const result = await downloadOrderInvoice(payload, 7)
+    const result = await downloadOrderInvoice(payload, 7, { persistIfMissing: true })
 
     expect(result).not.toBeNull()
     expect(result?.contentType).toBe('application/pdf')
@@ -105,7 +113,7 @@ describe('downloadOrderInvoice', () => {
         items: [{ name: 'Test', quantity: 1, unitPrice: 100, lineTotal: 100 }],
       })
 
-      await downloadOrderInvoice(payload, 9)
+      await downloadOrderInvoice(payload, 9, { persistIfMissing: true })
 
       expect(payload.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -148,6 +156,10 @@ describe('downloadOrderInvoice', () => {
     expect(result).not.toBeNull()
     expect(result?.fileName).toBe('LMR-8-faktura.pdf')
     expect(Buffer.from(result?.data || []).toString()).toBe('%PDF-stored')
+    expect(payload.update).not.toHaveBeenCalled()
+    const repeated = await downloadOrderInvoice(payload, 8, { persistIfMissing: true })
+    expect(Buffer.from(repeated?.data || []).toString()).toBe('%PDF-stored')
+    expect(payload.invoiceQuery).not.toHaveBeenCalled()
     expect(payload.update).not.toHaveBeenCalled()
   })
 })
