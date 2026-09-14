@@ -1,3 +1,4 @@
+import * as migration_20260914_120000_add_order_review_request from './20260914_120000_add_order_review_request'
 import * as migration_20260309_041140_add_ppl_shipment from './20260309_041140_add_ppl_shipment'
 import * as migration_20260319_110000_split_menu_visibility from './20260319_110000_split_menu_visibility'
 import * as migration_20260319_160500_add_first_purchase_discount from './20260319_160500_add_first_purchase_discount'
@@ -191,5 +192,10 @@ export const migrations = [
     up: migration_20260828_120000_add_product_glami_category_fullname.up,
     down: migration_20260828_120000_add_product_glami_category_fullname.down,
     name: '20260828_120000_add_product_glami_category_fullname',
+  },
+  {
+    up: migration_20260914_120000_add_order_review_request.up,
+    down: migration_20260914_120000_add_order_review_request.down,
+    name: '20260914_120000_add_order_review_request',
   },
 ]

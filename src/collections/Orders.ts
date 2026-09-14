@@ -3,6 +3,7 @@ import type { CollectionConfig, PayloadRequest } from 'payload'
 import { normalizeDocumentId } from '@/lib/commerce'
 import { downloadOrderInvoice, updateInvoiceNumber } from '@/lib/order-invoice-pdf'
 import { sendInvoiceEmailToCustomer } from '@/lib/customer-order-confirmation-email'
+import { sendOrderReviewRequest } from '@/lib/order-review-request'
 import { downloadPplOrderLabel, syncPplOrderLabel } from '@/lib/ppl-labels'
 import { cancelOrder, confirmOrder, getOrderDecision } from '@/lib/orders'
 import { isPplShippingSelection, isZasilkovnaShippingSelection } from '@/lib/shipping-carriers'
@@ -109,6 +110,19 @@ export const Orders: CollectionConfig = {
     ],
   },
   endpoints: [
+    {
+      path: '/:id/request-review',
+      method: 'post',
+      handler: async (req) => {
+        if (!isAdminRequest(req)) return Response.json({ error: 'Přístup odepřen.' }, { status: 403 })
+        try {
+          return Response.json(await sendOrderReviewRequest(req, parseOrderDocId(req)))
+        } catch (error) {
+          req.payload.logger.error({ err: error, msg: 'Review request email failed' })
+          return Response.json({ error: error instanceof Error ? error.message : 'Nepodařilo se odeslat žádost.' }, { status: 400 })
+        }
+      },
+    },
     {
       path: '/:id/decision',
       method: 'get',
@@ -1068,6 +1082,27 @@ export const Orders: CollectionConfig = {
         components: {
           Field: '@/components/admin/orders/OrderConfirmationControls',
         },
+      },
+    },
+    {
+      name: 'reviewRequestSentAt',
+      type: 'date',
+      label: 'Žádost o hodnocení odeslána',
+      access: { create: () => false, update: () => false },
+      admin: hiddenReadOnlyAdmin,
+    },
+    {
+      name: 'reviewRequestStartedAt',
+      type: 'date',
+      access: { create: () => false, update: () => false },
+      admin: hiddenReadOnlyAdmin,
+    },
+    {
+      name: 'reviewRequestControls',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: { Field: '@/components/admin/orders/ReviewRequestControls' },
       },
     },
     {

@@ -760,6 +760,8 @@ export interface Order {
     lastCheckedAt?: string | null
     lastError?: string | null
   }
+  reviewRequestSentAt?: string | null
+  reviewRequestStartedAt?: string | null
   purchaseCountRecorded?: boolean | null
   bonusLedgerRecorded?: boolean | null
   updatedAt: string
@@ -1347,6 +1349,8 @@ export interface OrdersSelect<T extends boolean = true> {
         lastCheckedAt?: T
         lastError?: T
       }
+  reviewRequestSentAt?: T
+  reviewRequestStartedAt?: T
   purchaseCountRecorded?: T
   bonusLedgerRecorded?: T
   updatedAt?: T

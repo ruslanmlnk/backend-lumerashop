@@ -1,3 +1,4 @@
+import { default as default_bd779df62709c59fc0cfed43e449d4b1 } from '@/components/admin/orders/ReviewRequestControls'
 import { SlugField as SlugField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { default as default_15c4833324bacff2a99a2d5deef1838c } from '@/components/admin/products/ProductNameCell'
 import { default as default_086e5f94c1f4969b651e6c492528ceb1 } from '@/components/admin/products/ProductPriceCell'
@@ -35,6 +36,7 @@ import { default as default_6c732e2c41b34768e37042417900ec79 } from '@/component
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 export const importMap = {
+  "@/components/admin/orders/ReviewRequestControls#default": default_bd779df62709c59fc0cfed43e449d4b1,
   "@payloadcms/next/client#SlugField": SlugField_2b8867833a34864a02ddf429b0728a40,
   "@/components/admin/products/ProductNameCell#default": default_15c4833324bacff2a99a2d5deef1838c,
   "@/components/admin/products/ProductPriceCell#default": default_086e5f94c1f4969b651e6c492528ceb1,
