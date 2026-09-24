@@ -50,6 +50,9 @@ const setRequiredPplEnv = () => {
   process.env.PPL_SENDER_PHONE = '+420777000111'
   process.env.PPL_POLL_ATTEMPTS = '1'
   process.env.PPL_POLL_INTERVAL_MS = '1'
+  for (const key of Object.keys(process.env)) {
+    if (key.startsWith('PPL_PRODUCT_TYPE_')) delete process.env[key]
+  }
 }
 
 describe('syncPplOrderLabel', () => {
@@ -115,6 +118,42 @@ describe('syncPplOrderLabel', () => {
         },
       }),
     )
+  })
+
+  it.each([
+    ['AlzaBox', false, 'SMAR'],
+    ['AlzaBox', true, 'SMAD'],
+    ['ParcelBox', false, 'SBOX'],
+    ['ParcelBox', true, 'SBOD'],
+    [' PPL BOX ', false, 'SBOX'],
+    ['PPL ParcelBox', true, 'SBOD'],
+    ['ParcelShop', false, 'SMAR'],
+    ['ParcelShop', true, 'SMAD'],
+    ['PartnerBox', false, 'SMAR'],
+    ['', false, 'SMAR'],
+  ])('uses the correct product for %s (COD: %s)', async (type, cod, productType) => {
+    const order = createOrder({
+      provider: cod ? 'cash-on-delivery' : 'global-payments',
+      shipping: {
+        methodId: 'ppl-pickup',
+        cashOnDelivery: cod,
+        pickupPointType: type,
+        pickupPointCode: 'KM12846007',
+      },
+    })
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ access_token: 'token', expires_in: 1800 }))
+      .mockResolvedValueOnce(Response.json({ batchId: 'batch-pickup' }, { status: 201 }))
+      .mockResolvedValueOnce(Response.json({ importState: 'Complete', items: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { syncPplOrderLabel } = await import('@/lib/ppl-labels')
+    await syncPplOrderLabel(createPayload(order), 9)
+
+    const request = JSON.parse(fetchMock.mock.calls[1][1].body)
+    expect(request.shipments[0].productType).toBe(productType)
+    expect(request.shipments[0].specificDelivery.parcelShopCode).toBe('KM12846007')
+    expect(Boolean(request.shipments[0].cashOnDelivery)).toBe(cod)
   })
 
   it('keeps the PPL authentication error details', async () => {

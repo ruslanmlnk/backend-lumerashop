@@ -163,7 +163,11 @@ const getSenderConfig = () => ({
 const isCodOrder = (order: PplOrderDoc) =>
   order.shipping?.cashOnDelivery === true || order.provider === 'cash-on-delivery'
 
-const isPickupBoxOrder = (order: PplOrderDoc) => /box/i.test(asCleanString(order.shipping?.pickupPointType))
+const isPickupBoxOrder = (order: PplOrderDoc) => {
+  const type = asCleanString(order.shipping?.pickupPointType).toLowerCase().replace(/[\s_-]+/g, '')
+  // SmartToBox is restricted to PPL's own boxes, not partner boxes such as AlzaBox.
+  return type === 'parcelbox' || type === 'pplbox' || type === 'pplparcelbox'
+}
 
 const getProductTypeForOrder = (order: PplOrderDoc) => {
   const cod = isCodOrder(order)
