@@ -322,7 +322,7 @@ const getStatusCopy = (status: OrderCustomerEmailStatus, order: OrderStatusEmail
         order.paymentStatus === 'paid'
           ? 'Pokud už byla platba provedena, ozveme se vám s dalším postupem ohledně vrácení platby.'
           : 'Pokud budete chtít vytvořit novou objednávku, stačí se vrátit zpět na web a objednat znovu.',
-      subject: `Lumera: objednávka ${sanitizeText(order.orderId) || ''} byla zrušena`,
+      subject: `LUMERASHOP: objednávka ${sanitizeText(order.orderId) || ''} byla zrušena`,
     }
   }
 
@@ -332,7 +332,7 @@ const getStatusCopy = (status: OrderCustomerEmailStatus, order: OrderStatusEmail
       hero: 'Vaši objednávku jsme přijali a nyní ji připravujeme k odeslání.',
       intro: 'vaši objednávku jsme úspěšně přijali.',
       detail: 'Zvolili jste dobírku. Úhradu provedete při převzetí zásilky.',
-      subject: `Lumera: objednávka ${sanitizeText(order.orderId) || ''} byla přijata`,
+      subject: `LUMERASHOP: objednávka ${sanitizeText(order.orderId) || ''} byla přijata`,
     }
   }
 
@@ -342,7 +342,7 @@ const getStatusCopy = (status: OrderCustomerEmailStatus, order: OrderStatusEmail
       hero: 'Vaši objednávku jsme přijali a nyní ji připravujeme k odeslání.',
       intro: 'vaši objednávku jsme úspěšně přijali.',
       detail: 'Platba byla přijata a objednávka je připravena k dalšímu zpracování.',
-      subject: `Lumera: objednávka ${sanitizeText(order.orderId) || ''} byla přijata`,
+      subject: `LUMERASHOP: objednávka ${sanitizeText(order.orderId) || ''} byla přijata`,
     }
   }
 
@@ -351,7 +351,7 @@ const getStatusCopy = (status: OrderCustomerEmailStatus, order: OrderStatusEmail
     hero: 'Vaši objednávku jsme přijali a nyní ji připravujeme k odeslání.',
     intro: 'vaši objednávku jsme úspěšně přijali.',
     detail: 'Objednávku jsme přijali a budeme ji dále zpracovávat podle zvolené platby a dopravy.',
-    subject: `Lumera: objednávka ${sanitizeText(order.orderId) || ''} byla přijata`,
+    subject: `LUMERASHOP: objednávka ${sanitizeText(order.orderId) || ''} byla přijata`,
   }
 }
 
@@ -385,7 +385,7 @@ const buildTextBody = (order: OrderStatusEmailDoc, status: OrderCustomerEmailSta
     buildItemsText(order, currency),
     '',
     'Děkujeme,',
-    'Lumera',
+    'LUMERASHOP',
   ].join('\n')
 }
 
@@ -459,7 +459,7 @@ const buildHtmlBody = (order: OrderStatusEmailDoc, status: OrderCustomerEmailSta
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-card" style="width:100%;max-width:680px;background:#ffffff;border-radius:28px;overflow:hidden;box-shadow:0 18px 60px rgba(17,17,17,0.08)">
                 <tr>
                   <td class="hero-section" style="padding:36px 36px 28px;background:${heroBackground};color:#ffffff">
-                    <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:${accentColor};margin-bottom:14px">Lumera</div>
+                    <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:${accentColor};margin-bottom:14px">LUMERASHOP</div>
                     <h1 class="hero-title" style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:36px;line-height:1.05;font-weight:700;color:#ffffff">
                       ${escapeHtml(copy.title)}
                     </h1>
@@ -597,7 +597,7 @@ export const sendInvoiceEmailToCustomer = async (
   await getTransporter(config).sendMail({
     from: config.from,
     to: recipient,
-    subject: `Lumera – faktura č. ${sanitizeText(order.invoiceNumber)}`,
+    subject: `LUMERASHOP – faktura č. ${sanitizeText(order.invoiceNumber)}`,
     text,
     html: `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>`,
     attachments: [{

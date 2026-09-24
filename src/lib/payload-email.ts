@@ -22,7 +22,7 @@ const getSmtpConfig = (): SmtpConfig | null => {
   const user = readEnv('SMTP_USER')
   const pass = readEnv('SMTP_PASS')
   const from = readEnv('SMTP_FROM') || user
-  const fromName = readEnv('SMTP_FROM_NAME') || 'Lumera'
+  const fromName = readEnv('SMTP_FROM_NAME') || 'LUMERASHOP'
 
   if (!host || !Number.isFinite(port) || port <= 0 || !from) {
     return null
@@ -55,7 +55,7 @@ export const payloadEmailAdapter = (): EmailAdapter => () => {
 
   return {
     defaultFromAddress: config?.fromAddress || 'no-reply@lumerashop.cz',
-    defaultFromName: config?.fromName || 'Lumera',
+    defaultFromName: config?.fromName || 'LUMERASHOP',
     name: 'lumera-smtp',
     async sendEmail(message) {
       if (!transporter) {
