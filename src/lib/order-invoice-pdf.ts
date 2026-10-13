@@ -5,6 +5,7 @@ import { ValidationError, type CollectionBeforeChangeHook, type Payload } from '
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 import sharp from 'sharp'
+import { renderInvoiceLayout } from './invoice-layout'
 
 const PAGE_WIDTH = 842
 const PAGE_HEIGHT = 595
@@ -91,6 +92,8 @@ type PayloadOrderDoc = {
   } | null
   items?:
     | Array<{
+        sku?: string | null
+        productSnapshotId?: string | null
         name?: string | null
         quantity?: number | null
         unitPrice?: number | null
@@ -149,6 +152,7 @@ const formatMoney = (value: number, currency: string) =>
 
 const formatDate = (value: Date) =>
   new Intl.DateTimeFormat('cs-CZ', {
+    timeZone: 'Europe/Prague',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -1056,12 +1060,7 @@ const buildProgrammaticInvoicePdf = async (order: PayloadOrderDoc) => {
   const generatedAt = new Date()
   const orderDate = getSafeDate(order.createdAt, generatedAt)
   const paymentMethod = getPaymentMethodLabel(order)
-  const dueDate = getDueDate(
-    orderDate,
-    order.shipping?.cashOnDelivery === true || order.provider === 'cash-on-delivery',
-  )
-  const issuedAt = dueDate
-  const saleDate = dueDate
+  const issuedAt = generatedAt
   const orderId = getInvoiceNumber(order)
   const buyer = resolveBuyerLines(order)
   const invoiceLines = buildInvoiceLines(order, currency)
@@ -1070,56 +1069,34 @@ const buildProgrammaticInvoicePdf = async (order: PayloadOrderDoc) => {
   const paidAmount = order.paymentStatus === 'paid' ? grossAmount : 0
   const amountDue = roundMoney(Math.max(0, grossAmount - paidAmount))
 
-  let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
-  let tableTopY = await drawInvoiceOpeningPage({
-    assets,
-    buyer,
-    dueDate,
-    font: regularFont,
-    issuedAt,
-    orderId,
-    page,
-    paymentMethod,
-    pdfDoc,
-    saleDate,
+  const breakdown = ['included', 'zero'].flatMap(category => {
+    const rows = invoiceLines.filter(line => line.taxCategory === category)
+    if (!rows.some(line => line.grossAmountRaw !== 0)) return []
+    return [{
+      rate: category === 'zero' ? '0 %' : '21 %',
+      net: formatMoney(roundMoney(rows.reduce((sum, line) => sum + line.netAmountRaw, 0)), currency),
+      tax: formatMoney(roundMoney(rows.reduce((sum, line) => sum + line.taxAmountRaw, 0)), currency),
+      gross: formatMoney(roundMoney(rows.reduce((sum, line) => sum + line.grossAmountRaw, 0)), currency),
+    }]
   })
-
-  drawTableHeader(page, regularFont, tableTopY)
-  let cursorY = tableTopY - TABLE_HEADER_HEIGHT
-
-  invoiceLines.forEach((line, index) => {
-    const rowHeight = getRowHeight(regularFont, line)
-    const isLastLine = index === invoiceLines.length - 1
-    const bottomReserve = isLastLine ? LAST_PAGE_BOTTOM_RESERVE : REGULAR_PAGE_BOTTOM_RESERVE
-
-    if (cursorY - rowHeight < bottomReserve) {
-      page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
-      addContinuationHeader(page, regularFont, orderId)
-      tableTopY = CONTINUATION_TABLE_TOP_Y
-      drawTableHeader(page, regularFont, tableTopY)
-      cursorY = tableTopY - TABLE_HEADER_HEIGHT
-    }
-
-    cursorY -= drawTableRow(page, regularFont, line, cursorY)
-  })
-
-  drawInvoiceSummarySection({
-    currency,
-    font: regularFont,
-    grossAmount: totals.grossAmount,
-    page,
-    taxAmount: totals.taxAmount,
-    topY: cursorY,
-  })
-
-  drawFooterTotals({
-    amountDue,
-    currency,
-    font: regularFont,
-    grossAmount: totals.grossAmount,
-    page,
-    paidAmount,
-  })
+  await renderInvoiceLayout(pdfDoc, regularFont, {
+    logoPngBytes: assets.logoPngBytes,
+    currency, amountDue,
+    number: orderId,
+    orderId: sanitizeString(order.orderId) || String(order.id),
+    orderDate: formatDate(orderDate),
+    issued: formatDate(issuedAt),
+    payment: paymentMethod, buyer: buyer.lines,
+    rows: invoiceLines.map((line, index) => ({
+      code: sanitizeString(order.items?.[index]?.sku) || sanitizeString(order.items?.[index]?.productSnapshotId) || line.index,
+      name: line.name, quantity: line.quantity + (index < (order.items?.length ?? 0) ? ' ks' : ''),
+      net: line.netLineTotal, rate: line.taxCategory === 'zero' ? '0 %' : '21 %',
+      tax: line.taxAmount, gross: line.grossLineTotal,
+    })),
+    net: formatMoney(totals.netAmount, currency), tax: formatMoney(totals.taxAmount, currency),
+    gross: formatMoney(grossAmount, currency), paid: formatMoney(paidAmount, currency),
+    remaining: formatMoney(amountDue, currency), breakdown,
+  }, wrapLineByWidth)
 
   return pdfDoc.save()
 }
@@ -1796,13 +1773,18 @@ const assignInvoiceNumber = async (payload: Payload, order: PayloadOrderDoc) => 
       return lockedInvoiceNumber
     }
 
+    const year = new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Europe/Prague' }).format(new Date())
+    const firstNumber = Number(year) * 10000
+    const lastNumber = firstNumber + 9999
     const counterResult = await client.query(
-      `SELECT COALESCE(MAX("invoice_number"::numeric), 0) + 1 AS "next_number"
-       FROM "orders" WHERE "invoice_number" ~ '^[0-9]+$'`,
+      `SELECT COALESCE(MAX(CASE WHEN "invoice_number" ~ '^[0-9]{8}$'
+         THEN "invoice_number"::numeric END), $1::numeric) + 1 AS "next_number"
+       FROM "orders" WHERE "invoice_number" BETWEEN $1::text AND $2::text`,
+      [firstNumber, lastNumber],
     )
     const sequence = Number(counterResult.rows?.[0]?.next_number)
 
-    if (!Number.isSafeInteger(sequence) || sequence < 1) {
+    if (!Number.isSafeInteger(sequence) || sequence <= firstNumber || sequence > lastNumber) {
       throw new Error('Failed to allocate the next invoice number.')
     }
 
@@ -1888,7 +1870,7 @@ export const updateInvoiceNumber: CollectionBeforeChangeHook = async ({ data, or
 
   const invoiceNumber = sanitizeString(data.invoiceNumber)
   if (!invoiceNumber && !originalDoc?.invoiceNumber) return data
-  if (!/^[1-9]\d*$/.test(invoiceNumber) || !Number.isSafeInteger(Number(invoiceNumber))) {
+  if (!/^[1-9]\d{7}$/.test(invoiceNumber)) {
     throw new ValidationError({ errors: [{ path: 'invoiceNumber', message: 'Zadejte kladné celé číslo bez úvodních nul.' }] })
   }
   if (!originalDoc?.invoiceData && !data.invoiceData) {

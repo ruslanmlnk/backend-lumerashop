@@ -7,9 +7,9 @@ const createPayload = (
   result: unknown,
   options?: { lockedInvoiceNumber?: string | null; maxNumber?: number },
 ) => {
-  const invoiceQuery = vi.fn(async (query: string) => {
+  const invoiceQuery = vi.fn(async (query: string, values?: number[]) => {
     if (query.includes('AS "next_number"')) {
-      return { rows: [{ next_number: (options?.maxNumber ?? 0) + 1 }] }
+      return { rows: [{ next_number: Math.max(options?.maxNumber ?? 0, values?.[0] ?? 0) + 1 }] }
     }
     if (query.startsWith('SELECT')) {
       return { rows: [{ invoice_number: options?.lockedInvoiceNumber ?? null }] }
@@ -90,12 +90,12 @@ describe('downloadOrderInvoice', () => {
     expect(payload.update).toHaveBeenCalledTimes(1)
     expect(payload.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ invoiceNumber: '1' }),
+        data: expect.objectContaining({ invoiceNumber: `${new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Europe/Prague' }).format(new Date())}0001` }),
       }),
     )
   })
 
-  it('continues from the current maximum even across a year boundary', async () => {
+  it('starts the current Prague year with an eight-digit number', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-12-31T23:30:00.000Z'))
 
@@ -116,11 +116,12 @@ describe('downloadOrderInvoice', () => {
 
       expect(payload.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ invoiceNumber: '5' }),
+          data: expect.objectContaining({ invoiceNumber: '20270001' }),
         }),
       )
       expect(payload.invoiceQuery).toHaveBeenCalledWith(
-        expect.stringContaining('MAX("invoice_number"::numeric)'),
+        expect.stringContaining('AS "next_number"'),
+        [20270000, 20279999],
       )
     } finally {
       vi.useRealTimers()
@@ -134,6 +135,38 @@ describe('downloadOrderInvoice', () => {
       }) as unknown as Payload
 
     await expect(downloadOrderInvoice(payload, 404)).resolves.toBeNull()
+  })
+
+  it('continues the eight-digit sequence without truncation', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-12T10:00:00Z'))
+    try {
+      const payload = createPayload({ id: 10, orderId: 'LMR-10', items: [] }, { maxNumber: 20260003 })
+      await downloadOrderInvoice(payload, 10, { persistIfMissing: true })
+      expect(payload.update).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ invoiceNumber: '20260004' }),
+      }))
+    } finally { vi.useRealTimers() }
+  })
+
+  it('rolls back when all four sequence digits are used', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-12T10:00:00Z'))
+    try {
+      const payload = createPayload({ id: 10 }, { maxNumber: 20269999 })
+      await expect(downloadOrderInvoice(payload, 10, { persistIfMissing: true })).rejects.toThrow('allocate')
+      expect(payload.invoiceQuery).toHaveBeenCalledWith('ROLLBACK')
+      expect(payload.update).not.toHaveBeenCalled()
+    } finally { vi.useRealTimers() }
+  })
+
+  it('reuses a number allocated by another request', async () => {
+    const payload = createPayload({ id: 10, items: [] }, { lockedInvoiceNumber: '20260008' })
+    await downloadOrderInvoice(payload, 10, { persistIfMissing: true })
+    expect(payload.invoiceQuery.mock.calls.some(([sql]) => sql.includes('next_number'))).toBe(false)
+    expect(payload.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ invoiceNumber: '20260008' }),
+    }))
   })
 
   it('returns a stored invoice without regenerating it', async () => {
@@ -164,7 +197,7 @@ describe('downloadOrderInvoice', () => {
 
 describe('editing invoice numbers', () => {
   const originalDoc = {
-    id: 7, orderId: 'LMR-7', invoiceNumber: '5', invoiceData: 'old-pdf',
+    id: 7, orderId: 'LMR-7', invoiceNumber: '20260005', invoiceData: 'old-pdf',
     invoiceFileName: 'LMR-7-faktura.pdf', currency: 'CZK', total: 100,
     items: [{ name: 'Test', quantity: 1, unitPrice: 100, lineTotal: 100 }],
   }
@@ -173,13 +206,13 @@ describe('editing invoice numbers', () => {
   } as unknown as Parameters<typeof updateInvoiceNumber>[0])
 
   it('rebuilds the stored PDF when the number is edited', async () => {
-    const updated = await edit('4')
-    expect(updated.invoiceNumber).toBe('4')
+    const updated = await edit('20260004')
+    expect(updated.invoiceNumber).toBe('20260004')
     expect(Buffer.from(updated.invoiceData, 'base64').subarray(0, 4).toString()).toBe('%PDF')
-    expect(originalDoc.invoiceNumber).toBe('5')
+    expect(originalDoc.invoiceNumber).toBe('20260005')
   })
 
-  it.each(['', '0', '-1', '1.5', 'abc', '04', '9007199254740992'])('rejects invalid number %s', async (value) => {
+  it.each(['', '0', '-1', '1.5', 'abc', '04', '2026000003', '9007199254740992'])('rejects invalid number %s', async (value) => {
     await expect(edit(value)).rejects.toThrow()
   })
 

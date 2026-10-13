@@ -462,7 +462,7 @@ export const Orders: CollectionConfig = {
       unique: true,
       admin: {
         condition: (data) => Boolean(data.invoiceData && data.invoiceFileName),
-        description: 'Číslo lze upravit po vygenerování faktury. Po uložení se aktualizuje také PDF. Další faktura použije nejvyšší uložené číslo + 1.',
+        description: 'Osmimístné číslo ve formátu RRRR0001. Číslo lze upravit po vygenerování faktury; aktualizuje se také PDF. Nové faktury navazují na nejvyšší osmimístné číslo v aktuálním roce.',
       },
     },
     {
