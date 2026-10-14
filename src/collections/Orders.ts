@@ -247,6 +247,27 @@ export const Orders: CollectionConfig = {
       },
     },
     {
+      path: '/:id/regenerate-invoice',
+      method: 'post',
+      handler: async (req) => {
+        if (!isAdminRequest(req)) {
+          return Response.json({ error: 'Přístup odepřen.' }, { status: 403 })
+        }
+        try {
+          const documentId = parseOrderDocId(req)
+          const invoice = await downloadOrderInvoice(req.payload, documentId, {
+            persistIfMissing: true,
+            regenerate: true,
+          })
+          if (!invoice) return Response.json({ error: 'Objednávka nebyla nalezena.' }, { status: 404 })
+          return Response.json(await getOrderDecision(req.payload, documentId))
+        } catch (error) {
+          req.payload.logger.error({ err: error, msg: 'Invoice regeneration failed' })
+          return Response.json({ error: 'Nepodařilo se znovu vygenerovat fakturu.' }, { status: 400 })
+        }
+      },
+    },
+    {
       path: '/:id/send-invoice',
       method: 'post',
       handler: async (req) => {

@@ -169,6 +169,27 @@ describe('downloadOrderInvoice', () => {
     }))
   })
 
+  it('regenerates only invoice fields while preserving its number', async () => {
+    const order = {
+      id: 8, orderId: 'LMR-8', invoiceNumber: '20260003',
+      invoiceData: Buffer.from('%PDF-old').toString('base64'),
+      invoiceFileName: 'LMR-8-faktura.pdf', invoiceGeneratedAt: '2026-03-30T09:00:00Z',
+      paymentStatus: 'paid', status: 'confirmed', items: [],
+    }
+    const payload = createPayload(order)
+    const result = await downloadOrderInvoice(payload, 8, { persistIfMissing: true, regenerate: true })
+    expect(Buffer.from(result!.data).subarray(0, 4).toString()).toBe('%PDF')
+    expect(Buffer.from(result!.data).toString()).not.toBe('%PDF-old')
+    expect(payload.invoiceQuery).not.toHaveBeenCalled()
+    const data = payload.update.mock.calls[0][0].data
+    expect(data.invoiceNumber).toBe('20260003')
+    expect(data.invoiceGeneratedAt).not.toBe(order.invoiceGeneratedAt)
+    expect(Object.keys(data).sort()).toEqual([
+      'invoiceContentType', 'invoiceData', 'invoiceFileName', 'invoiceGeneratedAt', 'invoiceNumber',
+    ])
+    expect(order.invoiceData).toBe(Buffer.from('%PDF-old').toString('base64'))
+  })
+
   it('returns a stored invoice without regenerating it', async () => {
     const storedPdf = Buffer.from('%PDF-stored').toString('base64')
     const payload = createPayload({

@@ -120,7 +120,7 @@ const mergeDecisionIntoDocument = (value: unknown, decision: OrderDecisionState)
 
 export default function OrderConfirmationControls() {
   const { data, setData } = useDocumentInfo()
-  const [busyAction, setBusyAction] = useState<'confirm' | 'cancel' | 'invoice' | 'generate-invoice' | 'send-invoice' | null>(null)
+  const [busyAction, setBusyAction] = useState<'confirm' | 'cancel' | 'invoice' | 'generate-invoice' | 'regenerate-invoice' | 'send-invoice' | null>(null)
   const [isRefreshingDecision, setIsRefreshingDecision] = useState(false)
   const [hasLoadedPersistedDecision, setHasLoadedPersistedDecision] = useState(false)
   const [decision, setDecision] = useState<OrderDecisionState>(() => readOrderDecisionState(data))
@@ -272,7 +272,7 @@ export default function OrderConfirmationControls() {
     }
   }
 
-  const handleInvoiceAction = async (action: 'generate-invoice' | 'send-invoice') => {
+  const handleInvoiceAction = async (action: 'generate-invoice' | 'regenerate-invoice' | 'send-invoice') => {
     setBusyAction(action)
     try {
       const response = await fetch(`/api/orders/${encodeURIComponent(docId)}/${action}`, { method: 'POST' })
@@ -280,7 +280,7 @@ export default function OrderConfirmationControls() {
       if (!response.ok) {
         throw new Error(payload.error || 'Nepodařilo se zpracovat fakturu.')
       }
-      if (action === 'generate-invoice') {
+      if (action !== 'send-invoice') {
         applyDecision(readOrderDecisionState(payload))
         toast.success('Faktura byla vygenerována.')
       } else {
@@ -363,6 +363,24 @@ export default function OrderConfirmationControls() {
             ? busyAction === 'invoice' ? 'Stahuji...' : 'Stáhnout fakturu PDF'
             : busyAction === 'generate-invoice' ? 'Generuji...' : 'Vygenerovat fakturu'}
         </button>
+        {decision.hasInvoice ? (
+          <button
+            type="button"
+            onClick={() => handleInvoiceAction('regenerate-invoice')}
+            disabled={isInvoiceBusy}
+            style={{
+              border: '1px solid var(--theme-elevation-300)',
+              borderRadius: 999,
+              padding: '10px 16px',
+              background: isInvoiceBusy ? 'var(--theme-elevation-150)' : 'var(--theme-elevation-0)',
+              color: 'var(--theme-text)',
+              cursor: isInvoiceBusy ? 'not-allowed' : 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            {busyAction === 'regenerate-invoice' ? 'Generuji...' : 'Znovu vygenerovat fakturu'}
+          </button>
+        ) : null}
         {decision.hasInvoice ? (
           <button
             type="button"

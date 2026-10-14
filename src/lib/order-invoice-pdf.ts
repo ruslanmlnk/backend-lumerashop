@@ -1890,6 +1890,7 @@ export const downloadOrderInvoice = async (
   documentId: number | string,
   options?: {
     persistIfMissing?: boolean
+    regenerate?: boolean
   },
 ): Promise<InvoiceDownloadResult | null> => {
   const order = await findOrderByDocumentId(payload, documentId)
@@ -1902,7 +1903,7 @@ export const downloadOrderInvoice = async (
   const storedInvoiceFileName = sanitizeString(order.invoiceFileName)
   const storedInvoiceContentType = sanitizeString(order.invoiceContentType) || 'application/pdf'
 
-  if (storedInvoiceData && storedInvoiceFileName) {
+  if (storedInvoiceData && storedInvoiceFileName && options?.regenerate !== true) {
     return {
       contentType: storedInvoiceContentType,
       data: new Uint8Array(Buffer.from(storedInvoiceData, 'base64')),
