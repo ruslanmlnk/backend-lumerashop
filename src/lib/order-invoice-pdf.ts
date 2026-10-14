@@ -52,6 +52,7 @@ type PayloadOrderDoc = {
   provider?: OrderPaymentProvider | null
   paymentStatus?: OrderPaymentStatus | null
   createdAt?: string | null
+  confirmedAt?: string | null
   updatedAt?: string | null
   customerEmail?: string | null
   customerFirstName?: string | null
@@ -1060,7 +1061,7 @@ const buildProgrammaticInvoicePdf = async (order: PayloadOrderDoc) => {
   const generatedAt = new Date()
   const orderDate = getSafeDate(order.createdAt, generatedAt)
   const paymentMethod = getPaymentMethodLabel(order)
-  const issuedAt = generatedAt
+  const confirmedAt = order.confirmedAt ? new Date(order.confirmedAt) : null
   const orderId = getInvoiceNumber(order)
   const buyer = resolveBuyerLines(order)
   const invoiceLines = buildInvoiceLines(order, currency)
@@ -1085,7 +1086,7 @@ const buildProgrammaticInvoicePdf = async (order: PayloadOrderDoc) => {
     number: orderId,
     orderId: sanitizeString(order.orderId) || String(order.id),
     orderDate: formatDate(orderDate),
-    issued: formatDate(issuedAt),
+    issued: confirmedAt && !Number.isNaN(confirmedAt.getTime()) ? formatDate(confirmedAt) : '-',
     payment: paymentMethod, buyer: buyer.lines,
     rows: invoiceLines.map((line, index) => ({
       code: sanitizeString(order.items?.[index]?.sku) || sanitizeString(order.items?.[index]?.productSnapshotId) || line.index,

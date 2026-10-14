@@ -9,6 +9,7 @@ for (const long of [false, true]) {
   const order = {
     id: 'preview', orderId: 'LMR-TEST-20260003', invoiceNumber: '20260003',
     createdAt: '2026-10-10T10:00:00.000Z', provider: 'global-payments', paymentStatus: 'paid',
+    confirmedAt: '2026-10-11T10:00:00.000Z',
     currency: 'CZK', total: long ? 30250 * 32 : 30250,
     billing: { companyName: 'Ukázková společnost s.r.o.', address: 'Ukázková 15', city: 'Praha', zip: '130 00', country: 'Česká republika' },
     items: Array.from({ length: long ? 32 : 1 }, (_, i) => ({
